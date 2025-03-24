@@ -1,0 +1,296 @@
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700&family=Quicksand:wght@500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-elora-cream-light text-gray-800;
+    font-family: 'Nunito', 'Noto Sans TC', sans-serif;
+  }
+  
+  a {
+    @apply text-elora-purple hover:text-elora-purple-light transition-colors;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-medium text-gray-800;
+  }
+  
+  button {
+    @apply focus:outline-none;
+  }
+}
+
+@layer components {
+  .bg-custom-gradient {
+    background: linear-gradient(135deg, #A487C3 0%, #B8E3C9 100%);
+  }
+  
+  .shadow-soft {
+    box-shadow: 0 4px 20px rgba(164, 135, 195, 0.15);
+  }
+  
+  .input-field {
+    @apply w-full px-4 py-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-elora-purple focus:border-transparent transition-colors;
+  }
+  
+  .btn-primary {
+    @apply px-5 py-2.5 bg-elora-purple hover:bg-elora-purple-light text-white font-medium rounded-lg transition-colors shadow-soft;
+  }
+  
+  .btn-secondary {
+    @apply px-5 py-2.5 bg-elora-mint hover:bg-elora-mint-light text-white font-medium rounded-lg transition-colors shadow-soft;
+  }
+  
+  .btn-accent {
+    @apply px-5 py-2.5 bg-elora-pink hover:bg-elora-pink-light text-white font-medium rounded-lg transition-colors shadow-soft;
+  }
+  
+  .btn-green {
+    @apply px-5 py-2.5 bg-elora-mint hover:bg-elora-mint-light text-white font-medium rounded-lg transition-colors shadow-soft;
+  }
+  
+  .category-icon {
+    @apply w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center text-elora-purple;
+  }
+  
+  /* 表單元素 */
+  .form-group {
+    @apply mb-4;
+  }
+  
+  .form-label {
+    @apply block text-sm font-medium text-gray-700 mb-1;
+  }
+  
+  .form-input {
+    @apply input-field;
+  }
+  
+  .form-select {
+    @apply input-field appearance-none bg-white;
+  }
+  
+  /* 卡片元素 */
+  .card {
+    @apply bg-white rounded-xl shadow-soft p-5 border border-slate-100;
+  }
+  
+  .card-title {
+    @apply text-lg font-bold text-gray-800 mb-4;
+  }
+}
+
+:root {
+  font-family: 'Nunito', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color-scheme: light;
+  color: #4a4a4a;
+  background-color: #FFF9F0;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  font-weight: 500;
+  color: #A487C3;
+  text-decoration: inherit;
+}
+a:hover {
+  color: #C6B2DD;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #C6B2DD 0%, #B8E3C9 100%);
+}
+
+h1 {
+  font-size: 2.5em;
+  line-height: 1.1;
+  color: #A487C3;
+}
+
+button {
+  border-radius: 12px;
+  border: 1px solid transparent;
+  padding: 0.6em 1.2em;
+  font-size: 1em;
+  font-weight: 500;
+  font-family: inherit;
+  background-color: #A487C3;
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 4px 10px rgba(164, 135, 195, 0.2);
+}
+button:hover {
+  background-color: #C6B2DD;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(198, 178, 221, 0.25);
+}
+button:focus,
+button:focus-visible {
+  outline: 2px solid #FAC6CD;
+}
+
+/* 可愛風格特有元素 */
+.cute-card {
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.85);
+  box-shadow: 0 8px 24px rgba(164, 135, 195, 0.1);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 243, 224, 0.2);
+  transition: all 0.3s ease;
+}
+
+.cute-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 28px rgba(164, 135, 195, 0.2);
+}
+
+.cute-border {
+  border: 2px dashed #FFF3E0;
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.bubble {
+  position: relative;
+  background: #C6B2DD;
+  border-radius: 20px;
+  padding: 15px;
+  margin-bottom: 20px;
+}
+
+.bubble:after {
+  content: '';
+  position: absolute;
+  bottom: -10px;
+  left: 20px;
+  border-width: 10px 10px 0;
+  border-style: solid;
+  border-color: #C6B2DD transparent;
+}
+
+/* 動畫效果 */
+.bounce {
+  animation: bounce 1s infinite alternate;
+}
+
+@keyframes bounce {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-10px);
+  }
+}
+
+.floating {
+  animation: floating 3s ease-in-out infinite;
+}
+
+@keyframes floating {
+  0% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+  100% {
+    transform: translateY(0px);
+  }
+}
+
+.pulse {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.subtle-glow {
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.subtle-glow:after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 243, 224, 0.4);
+  animation: gentle-pulse 2s ease-in-out infinite;
+}
+
+@keyframes gentle-pulse {
+  0% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.02);
+  }
+  100% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+}
+
+/* 懸停動畫效果 */
+.hover-glow {
+  position: relative;
+  overflow: hidden;
+}
+
+.hover-glow::after {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0) 70%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.hover-glow:hover::after {
+  opacity: 1;
+  animation: hover-glow-animation 2s ease-in-out infinite;
+}
+
+@keyframes hover-glow-animation {
+  0% {
+    transform: scale(0.8) rotate(0deg);
+  }
+  50% {
+    transform: scale(1) rotate(180deg);
+  }
+  100% {
+    transform: scale(0.8) rotate(360deg);
+  }
+}
