@@ -1,0 +1,23 @@
+warning: in the working copy of '.firebase/hosting.ZGlzdA.cache', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/App.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/ExpenseForm.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/FriendManagement.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/LeaderboardForm.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/LeaderboardInviteList.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/LoginForm.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/ProfileForm.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/contexts/AuthContext.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/index.css', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'tailwind.config.js', LF will be replaced by CRLF the next time Git touches it
+M	.firebase/hosting.ZGlzdA.cache
+M	src/App.tsx
+M	src/components/ExpenseForm.tsx
+M	src/components/FriendManagement.tsx
+M	src/components/LeaderboardForm.tsx
+M	src/components/LeaderboardInviteList.tsx
+M	src/components/LoginForm.tsx
+M	src/components/ProfileForm.tsx
+M	src/contexts/AuthContext.tsx
+M	src/firebase.ts
+M	src/index.css
+M	tailwind.config.js
