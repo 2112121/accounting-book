@@ -199,7 +199,13 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess, initialMode = 'login' 
       setSuccessfulOperation(true); // 設置成功標記而不是直接調用 onSuccess
     } catch (err: any) {
       console.error("%cGoogle登入失敗", "color:red;font-weight:bold", err);
-      setError(err.message || 'Google 登入失敗，請稍後再試');
+      
+      // 特別處理用戶關閉彈窗的情況
+      if (err.code === 'auth/popup-closed-by-user') {
+        setError('登入視窗已被關閉，請再次嘗試登入');
+      } else {
+        setError(err.message || 'Google 登入失敗，請稍後再試');
+      }
       // 在任何錯誤情況下都不調用 onSuccess
     } finally {
       setLoading(false);
@@ -297,14 +303,35 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess, initialMode = 'login' 
           <span>使用 Google 帳號{isRegistering ? '註冊' : '登入'}</span>
         </button>
         
-        <div className="text-center mt-4">
-          <button
-            type="button"
-            onClick={toggleMode}
-            className="w-full py-2 px-4 text-[#2E2E2E] hover:text-[#A487C3] bg-white hover:bg-white border border-[#E5E5E5] rounded-lg font-medium transition-all duration-300 shadow-sm hover:shadow-md focus:outline-none focus:bg-white"
-          >
-            {isRegistering ? '已有帳號？點此登入' : '沒有帳號？點此註冊'}
-          </button>
+        <div className="text-center mt-6">
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-200"></div>
+            </div>
+            <div className="relative flex justify-center">
+              <button
+                type="button"
+                onClick={toggleMode}
+                className="inline-flex items-center px-6 py-2 bg-white text-sm font-medium text-[#A487C3] hover:text-[#8A5DC8] border border-[#E5E5E5] hover:border-[#C6B2DD] rounded-full transition-all duration-300 shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-[#FFF3E0] transform hover:-translate-y-0.5"
+                style={{animation: 'pulseScale 2s infinite'}}
+              >
+                <span className="relative z-10">
+                  {isRegistering ? (
+                    <>
+                      <i className="fas fa-arrow-left mr-2 text-xs"></i>
+                      已有帳號？點此登入
+                    </>
+                  ) : (
+                    <>
+                      沒有帳號？點此註冊
+                      <i className="fas fa-arrow-right ml-2 text-xs"></i>
+                    </>
+                  )}
+                </span>
+                <span className="absolute inset-0 rounded-full bg-gradient-to-r from-[#FFF9F0] via-white to-[#FFF9F0] opacity-70 z-0"></span>
+              </button>
+            </div>
+          </div>
         </div>
       </form>
     </div>

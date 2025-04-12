@@ -1,24 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Friend, FriendRequest } from '../contexts/AuthContext';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../firebase';
 
 interface FriendManagementProps {
   onClose: () => void;
 }
 
 const FriendManagement: React.FC<FriendManagementProps> = ({ onClose }) => {
-  const { currentUser, searchUsers, sendFriendRequest, getFriends, getFriendRequests, acceptFriendRequest, rejectFriendRequest, removeFriend } = useAuth();
+  const { currentUser, searchUsers, sendFriendRequest, getFriends, getFriendRequests, getSentFriendRequests, cancelFriendRequest, acceptFriendRequest, rejectFriendRequest, removeFriend } = useAuth();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [friendCodeQuery, setFriendCodeQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Friend[]>([]);
   const [friends, setFriends] = useState<Friend[]>([]);
   const [friendRequests, setFriendRequests] = useState<FriendRequest[]>([]);
-  const [activeTab, setActiveTab] = useState<'search' | 'friends' | 'requests'>('friends');
+  const [sentFriendRequests, setSentFriendRequests] = useState<FriendRequest[]>([]);
+  const [activeTab, setActiveTab] = useState<'friends' | 'search' | 'requests' | 'sent'>('friends');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
+  const [recipientInfo, setRecipientInfo] = useState<{[userId: string]: Friend}>({});
   
   // 用戶的好友碼 (這裡假設是根據用戶ID生成的固定6位字符)
   const [myFriendCode, setMyFriendCode] = useState('');
@@ -52,6 +56,7 @@ const FriendManagement: React.FC<FriendManagementProps> = ({ onClose }) => {
   useEffect(() => {
     loadFriends();
     loadFriendRequests();
+    loadSentFriendRequests();
   }, [currentUser]);
 
   // 加載好友列表
@@ -77,6 +82,48 @@ const FriendManagement: React.FC<FriendManagementProps> = ({ onClose }) => {
       setFriendRequests(requests);
     } catch (error) {
       console.error('載入好友請求失敗', error);
+    }
+  };
+
+  // 加載已發送的好友請求
+  const loadSentFriendRequests = async () => {
+    if (!currentUser) return;
+    try {
+      const requests = await getSentFriendRequests();
+      setSentFriendRequests(requests);
+      
+      // 獲取所有收件人的信息
+      for (const request of requests) {
+        getRecipientInfo(request.to);
+      }
+    } catch (error) {
+      console.error('載入已發送的好友請求失敗', error);
+    }
+  };
+
+  // 獲取收件人信息
+  const getRecipientInfo = async (userId: string) => {
+    // 如果已經有緩存信息，則跳過
+    if (recipientInfo[userId]) return;
+    
+    try {
+      const userRef = doc(db, "users", userId);
+      const userDoc = await getDoc(userRef);
+      
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        setRecipientInfo(prev => ({
+          ...prev,
+          [userId]: {
+            id: userId,
+            nickname: userData.nickname || "未命名用戶",
+            email: userData.email || "",
+            photoURL: userData.photoURL || ""
+          }
+        }));
+      }
+    } catch (error) {
+      console.error('獲取收件人信息失敗:', error);
     }
   };
 
@@ -137,7 +184,6 @@ const FriendManagement: React.FC<FriendManagementProps> = ({ onClose }) => {
       setLoading(true);
       setError('');
       await sendFriendRequest(userId);
-      setSuccess('好友請求已發送');
       
       // 更新搜索結果，標記已發送請求的用戶
       setSearchResults(prev => 
@@ -146,6 +192,16 @@ const FriendManagement: React.FC<FriendManagementProps> = ({ onClose }) => {
         )
       );
       
+      // 重新加載已發送的好友請求
+      await loadSentFriendRequests();
+      
+      // 顯示成功提示
+      setSuccess('好友請求已成功發送！請等待對方確認');
+      
+      // 自動切換到已發送請求標籤頁
+      setActiveTab('sent');
+      
+      // 3秒後清除成功提示
       setTimeout(() => setSuccess(''), 3000);
     } catch (error: any) {
       setError(error.message || '發送好友請求失敗');
@@ -225,6 +281,53 @@ const FriendManagement: React.FC<FriendManagementProps> = ({ onClose }) => {
     });
   };
 
+  // 取消已發送的好友請求
+  const handleCancelFriendRequest = async (requestId: string) => {
+    if (window.confirm('確定要取消此好友請求嗎？')) {
+      try {
+        setLoading(true);
+        setError('');
+        await cancelFriendRequest(requestId);
+        
+        // 從已發送請求列表中移除
+        setSentFriendRequests(prev => prev.filter(req => req.id !== requestId));
+        
+        // 更新搜索結果，移除已發送請求標記
+        setSearchResults(prev => 
+          prev.map(user => {
+            // 查找對應的請求
+            const request = sentFriendRequests.find(req => req.to === user.id);
+            if (request && request.id === requestId) {
+              return { ...user, requestSent: false };
+            }
+            return user;
+          })
+        );
+        
+        setSuccess('已取消好友請求');
+        setTimeout(() => setSuccess(''), 3000);
+      } catch (error: any) {
+        setError(error.message || '取消好友請求失敗');
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
+  // 定義Tab數據結構
+  interface Tab {
+    id: string;
+    name: string;
+    icon: string;
+  }
+
+  const tabs: Tab[] = [
+    { id: 'friends', name: '我的好友', icon: 'fas fa-user-friends' },
+    { id: 'search', name: '搜尋新好友', icon: 'fas fa-search' },
+    { id: 'requests', name: '好友請求', icon: 'fas fa-envelope' },
+    { id: 'sent', name: '已發送請求', icon: 'fas fa-paper-plane' }
+  ];
+
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
@@ -260,17 +363,24 @@ const FriendManagement: React.FC<FriendManagementProps> = ({ onClose }) => {
       )}
       
       {/* 我的好友碼顯示區域 */}
-      <div className="bg-white shadow-md border border-gray-200 rounded-lg p-5 mb-6">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between">
-          <div className="mb-3 sm:mb-0">
-            <h3 className="font-medium text-gray-800 text-lg mb-1">我的好友碼</h3>
-            <p className="text-sm text-gray-500">分享此代碼給朋友，他們可以更快地添加你</p>
+      <div className="bg-white border border-[#E8DFFC] rounded-xl p-6 mb-6 relative overflow-hidden shadow-sm">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between relative z-10">
+          <div className="mb-4 sm:mb-0">
+            <h3 className="font-bold text-[#A487C3] text-lg mb-1 flex items-center">
+              <i className="fas fa-id-card text-xl mr-2"></i>
+              我的好友碼
+            </h3>
+            <p className="text-sm text-gray-600">分享此代碼給朋友，他們可以更快地添加你</p>
           </div>
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            <span className="font-mono font-bold text-xl bg-gray-50 p-3 rounded-lg border border-gray-200 text-[#A487C3] tracking-widest letter-spacing-2">{myFriendCode}</span>
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <div className="bg-white p-3 rounded-lg border border-[#E8DFFC] shadow-sm">
+              <span className="font-mono font-bold text-2xl text-[#A487C3] tracking-wider letter-spacing-2">
+                {myFriendCode}
+              </span>
+            </div>
             <button 
               onClick={copyFriendCode}
-              className="p-3 bg-[#A487C3] hover:bg-[#C6B2DD] text-white rounded-lg w-12 h-12 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-white"
+              className="p-3 bg-[#A487C3] hover:bg-[#8A5DC8] text-white rounded-lg w-12 h-12 flex items-center justify-center shadow-sm hover:shadow-md transition-all duration-300"
               title="複製好友碼"
             >
               <i className="fas fa-copy text-lg"></i>
@@ -279,43 +389,34 @@ const FriendManagement: React.FC<FriendManagementProps> = ({ onClose }) => {
         </div>
       </div>
       
-      {/* 標籤切換 */}
-      <div className="flex border-b border-gray-200 mb-6 overflow-x-auto">
-        <button
-          className={`py-3 px-5 font-medium text-base whitespace-nowrap ${
-            activeTab === 'friends'
-              ? 'text-white bg-[#A487C3] rounded-t-lg'
-              : 'text-gray-800 bg-gray-100 hover:bg-gray-200'
-          } focus:outline-none focus:ring-2 focus:ring-white`}
-          onClick={() => setActiveTab('friends')}
-        >
-          我的好友
-        </button>
-        <button
-          className={`py-3 px-5 font-medium text-base whitespace-nowrap ${
-            activeTab === 'search'
-              ? 'text-white bg-[#A487C3] rounded-t-lg'
-              : 'text-gray-800 bg-gray-100 hover:bg-gray-200'
-          } focus:outline-none focus:ring-2 focus:ring-white`}
-          onClick={() => setActiveTab('search')}
-        >
-          搜尋新好友
-        </button>
-        <button
-          className={`py-3 px-5 font-medium text-base whitespace-nowrap flex items-center ${
-            activeTab === 'requests'
-              ? 'text-white bg-[#A487C3] rounded-t-lg'
-              : 'text-gray-800 bg-gray-100 hover:bg-gray-200'
-          } focus:outline-none focus:ring-2 focus:ring-white`}
-          onClick={() => setActiveTab('requests')}
-        >
-          好友請求
-          {friendRequests.length > 0 && (
-            <span className="ml-2 bg-white text-[#A487C3] rounded-full text-xs w-5 h-5 flex items-center justify-center font-bold border border-[#A487C3]">
-              {friendRequests.length}
-            </span>
-          )}
-        </button>
+      {/* Tab 按鈕 */}
+      <div className="mb-6 mt-2">
+        <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => {
+                setActiveTab(tab.id as 'friends' | 'search' | 'requests' | 'sent');
+                setSearchQuery('');
+                setFriendCodeQuery('');
+                setSearchResults([]);
+              }}
+              className={`px-4 py-2 rounded-lg text-sm whitespace-nowrap transition-all duration-200 flex items-center ${
+                activeTab === tab.id
+                  ? 'bg-[#A487C3] text-white'
+                  : 'text-[#A487C3] bg-white'
+              }`}
+            >
+              <i className={`${tab.icon} ${activeTab === tab.id ? 'text-white' : 'text-[#A487C3]'} mr-2`}></i>
+              <span>{tab.name}</span>
+              {tab.id === 'requests' && friendRequests.length > 0 && (
+                <span className="ml-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                  {friendRequests.length}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
       </div>
       
       {/* 好友列表 */}
@@ -332,26 +433,27 @@ const FriendManagement: React.FC<FriendManagementProps> = ({ onClose }) => {
               {friends.map(friend => (
                 <div 
                   key={friend.id}
-                  className="flex flex-wrap sm:flex-nowrap items-center justify-between p-3 bg-white border border-gray-200 rounded-lg"
+                  className="flex flex-wrap sm:flex-nowrap items-center justify-between p-4 bg-white border border-gray-200 hover:border-[#A487C3] rounded-lg transition-all duration-300 hover:shadow-md group"
                 >
-                  <div className="flex items-center gap-3 w-full sm:w-auto mb-2 sm:mb-0">
-                    <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 uppercase">
+                  <div className="flex items-center gap-3 w-full sm:w-auto mb-3 sm:mb-0">
+                    <div className="w-12 h-12 rounded-full bg-[#F8F5FF] flex items-center justify-center text-[#A487C3] uppercase border-2 border-[#E8DFFC] shadow-sm overflow-hidden group-hover:scale-105 transition-transform duration-300">
                       {friend.photoURL ? (
                         <img src={friend.photoURL} alt={friend.nickname} className="w-full h-full rounded-full object-cover" />
                       ) : (
-                        friend.nickname.charAt(0)
+                        <span className="text-lg font-bold">{friend.nickname.charAt(0)}</span>
                       )}
                     </div>
                     <div>
-                      <p className="font-medium">{friend.nickname}</p>
+                      <p className="font-medium text-gray-800">{friend.nickname}</p>
                       <p className="text-xs text-gray-500">{friend.email}</p>
                     </div>
                   </div>
                   <button
                     onClick={() => handleRemoveFriend(friend.id)}
-                    className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg flex items-center justify-center w-full sm:w-auto focus:outline-none focus:ring-2 focus:ring-white"
+                    className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg flex items-center justify-center w-full sm:w-auto focus:outline-none border border-gray-200 transition-all duration-300"
                   >
-                    <i className="fas fa-user-times mr-1"></i> 移除好友
+                    <i className="fas fa-user-times mr-2"></i>
+                    <span>移除好友</span>
                   </button>
                 </div>
               ))}
@@ -362,8 +464,9 @@ const FriendManagement: React.FC<FriendManagementProps> = ({ onClose }) => {
               <p className="text-sm text-gray-400">使用搜尋功能添加新好友</p>
               <button
                 onClick={() => setActiveTab('search')}
-                className="mt-3 px-4 py-2 bg-[#A487C3] hover:bg-[#C6B2DD] text-white rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-white"
+                className="mt-3 px-4 py-2 bg-[#A487C3] hover:bg-[#8A5DC8] text-white rounded-lg text-sm transition-all duration-300 shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-white friend-btn friend-btn-primary"
               >
+                <i className="fas fa-search mr-2"></i>
                 搜尋好友
               </button>
             </div>
@@ -377,28 +480,43 @@ const FriendManagement: React.FC<FriendManagementProps> = ({ onClose }) => {
           <h3 className="font-medium mb-3">搜尋好友</h3>
           
           {/* 用好友碼搜尋 */}
-          <div className="bg-white shadow-sm border border-gray-200 rounded-lg p-4 mb-4">
-            <h4 className="font-medium text-sm mb-2">用好友碼搜尋</h4>
+          <div className="bg-white shadow-sm border border-gray-200 rounded-lg p-5 mb-4">
+            <h4 className="font-medium text-[#A487C3] mb-3 flex items-center">
+              <i className="fas fa-search-plus mr-2"></i>
+              用好友碼搜尋
+            </h4>
             <div className="flex flex-col sm:flex-row gap-2">
-              <input 
-                type="text"
-                value={friendCodeQuery}
-                onChange={(e) => setFriendCodeQuery(e.target.value.toUpperCase())}
-                placeholder="輸入6位好友碼"
-                maxLength={6}
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-white font-mono text-center uppercase tracking-widest text-lg"
-              />
-              <button 
+              <div className="relative flex-1">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <i className="fas fa-hashtag text-[#A487C3]"></i>
+                </div>
+                <input 
+                  type="text"
+                  value={friendCodeQuery}
+                  onChange={(e) => setFriendCodeQuery(e.target.value.toUpperCase())}
+                  placeholder="輸入6位好友碼"
+                  maxLength={6}
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#A487C3] focus:border-[#A487C3] transition-all duration-300 font-mono text-center uppercase tracking-widest text-lg shadow-sm"
+                />
+              </div>
+              <button
+                type="button"
                 onClick={handleFriendCodeSearch}
                 disabled={isSearching}
-                className="px-4 py-2 bg-[#A487C3] hover:bg-[#C6B2DD] text-white rounded-lg disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-white"
+                className="px-4 py-2 bg-[#A487C3] hover:bg-[#8A5DC8] text-white rounded-lg flex items-center justify-center transition-all duration-300 shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-white"
               >
-                {isSearching ? '搜尋中...' : '搜尋'}
+                {isSearching ? (
+                  <><i className="fas fa-spinner fa-spin mr-2"></i>搜尋中...</>
+                ) : (
+                  <><i className="fas fa-search mr-2"></i>搜尋</>
+                )}
               </button>
             </div>
-            <p className="text-xs text-gray-500 mt-2">
-              <i className="fas fa-info-circle mr-1"></i>
-              提示：好友碼不分大小寫，如找不到用戶，可能是因為該用戶尚未啟用好友碼或好友碼輸入錯誤
+            <p className="text-xs text-gray-500 mt-3 flex items-start">
+              <i className="fas fa-info-circle mr-1 mt-0.5 text-[#A487C3]"></i>
+              <span>
+                提示：好友碼不分大小寫，如找不到用戶，可能是因為該用戶尚未啟用好友碼或好友碼輸入錯誤
+              </span>
             </p>
           </div>
           
@@ -430,20 +548,45 @@ const FriendManagement: React.FC<FriendManagementProps> = ({ onClose }) => {
                   
                   {/* 檢查是否已是好友 */}
                   {friends.some(friend => friend.id === user.id) ? (
-                    <span className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg inline-block w-full sm:w-auto text-center">
+                    <span className="px-4 py-2 bg-gradient-to-r from-emerald-50 to-green-50 text-green-600 rounded-lg inline-block w-full sm:w-auto text-center flex items-center justify-center shadow-sm border border-green-100">
+                      <i className="fas fa-user-check mr-2 text-green-500"></i>
                       已是好友
                     </span>
                   ) : user.requestSent ? (
-                    <span className="px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg inline-block w-full sm:w-auto text-center">
-                      已發送請求
-                    </span>
+                    <div className="flex flex-col items-center w-full sm:w-auto">
+                      <span className="px-4 py-2 bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-600 rounded-lg inline-block w-full sm:w-auto text-center flex items-center justify-center shadow-sm border border-blue-100 relative group cursor-help">
+                        <span className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center text-blue-500 text-xs animate-pulse">
+                          <i className="fas fa-info"></i>
+                        </span>
+                        <i className="fas fa-paper-plane mr-2"></i>
+                        已發送請求
+                        <span className="absolute invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity duration-300 bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-48 bg-white p-2 rounded-md shadow-lg text-xs text-gray-700 pointer-events-none border border-gray-200 z-10">
+                          點擊"已發送請求"標籤查看詳情，你可以取消已發送的請求
+                          <span className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-1/2 w-2 h-2 bg-white border-r border-b border-gray-200 rotate-45"></span>
+                        </span>
+                      </span>
+                    </div>
                   ) : (
                     <button
                       onClick={() => handleSendFriendRequest(user.id)}
                       disabled={loading}
-                      className="px-3 py-1.5 bg-[#A487C3] hover:bg-[#C6B2DD] text-white rounded-lg text-sm disabled:opacity-50 w-full sm:w-auto focus:outline-none focus:ring-2 focus:ring-white"
+                      className="relative overflow-hidden px-4 py-2 bg-[#A487C3] hover:bg-[#8A5DC8] text-white rounded-lg text-sm disabled:opacity-50 w-full sm:w-auto transition-all duration-300 shadow-sm hover:shadow-md flex items-center justify-center group"
                     >
-                      {loading ? '處理中...' : '加為好友'}
+                      <span className="absolute top-0 left-0 w-full h-full bg-white opacity-0 group-hover:opacity-10 transition-opacity duration-300"></span>
+                      {loading ? (
+                        <div className="flex items-center">
+                          <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          處理中...
+                        </div>
+                      ) : (
+                        <div className="flex items-center">
+                          <i className="fas fa-user-plus mr-2"></i>
+                          加為好友
+                        </div>
+                      )}
                     </button>
                   )}
                 </div>
@@ -479,18 +622,18 @@ const FriendManagement: React.FC<FriendManagementProps> = ({ onClose }) => {
               {friendRequests.map(request => (
                 <div 
                   key={request.id}
-                  className="p-3 bg-white border border-gray-200 rounded-lg"
+                  className="p-4 bg-white border border-gray-200 hover:border-[#E8DFFC] rounded-lg transition-all duration-300 hover:shadow-md"
                 >
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 uppercase">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-12 h-12 rounded-full bg-[#F8F5FF] flex items-center justify-center text-[#A487C3] uppercase border-2 border-[#E8DFFC] shadow-sm overflow-hidden">
                       {request.from.photoURL ? (
                         <img src={request.from.photoURL} alt={request.from.nickname} className="w-full h-full rounded-full object-cover" />
                       ) : (
-                        request.from.nickname.charAt(0)
+                        <span className="text-lg font-bold">{request.from.nickname.charAt(0)}</span>
                       )}
                     </div>
                     <div>
-                      <p className="font-medium">{request.from.nickname}</p>
+                      <p className="font-medium text-gray-800">{request.from.nickname}</p>
                       <p className="text-xs text-gray-500">{request.from.email}</p>
                     </div>
                   </div>
@@ -499,15 +642,17 @@ const FriendManagement: React.FC<FriendManagementProps> = ({ onClose }) => {
                     <button
                       onClick={() => handleAcceptFriendRequest(request.id)}
                       disabled={loading}
-                      className="px-3 py-1.5 bg-[#A487C3] hover:bg-[#C6B2DD] text-white rounded-lg text-sm disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-white"
+                      className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm disabled:opacity-50 transition-all duration-300 shadow-sm hover:shadow-md flex items-center justify-center"
                     >
+                      <i className="fas fa-check mr-2"></i>
                       接受
                     </button>
                     <button
                       onClick={() => handleRejectFriendRequest(request.id)}
                       disabled={loading}
-                      className="px-3 py-1.5 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-sm disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-white"
+                      className="px-4 py-2 bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 hover:border-gray-300 rounded-lg text-sm disabled:opacity-50 transition-all duration-300 shadow-sm hover:shadow-md flex items-center justify-center"
                     >
+                      <i className="fas fa-times mr-2"></i>
                       拒絕
                     </button>
                   </div>
@@ -517,6 +662,176 @@ const FriendManagement: React.FC<FriendManagementProps> = ({ onClose }) => {
           ) : (
             <div className="text-center py-6 bg-gray-50 rounded-lg">
               <p className="text-gray-500">沒有待處理的好友請求</p>
+            </div>
+          )}
+        </div>
+      )}
+      
+      {/* 已發送的好友請求 */}
+      {activeTab === 'sent' && (
+        <div className="space-y-4">
+          <h3 className="font-medium mb-3 flex items-center text-lg text-[#8A5DC8]">
+            <i className="fas fa-paper-plane mr-2"></i>
+            已發送的好友請求
+          </h3>
+          
+          {loading ? (
+            <div className="text-center py-10 bg-white border border-gray-100 rounded-xl shadow-sm">
+              <div className="inline-block w-16 h-16 relative mb-3">
+                <div className="absolute inset-0 border-4 border-[#F0EAFA] border-t-[#A487C3] rounded-full animate-spin"></div>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <i className="fas fa-paper-plane text-[#A487C3] text-lg animate-pulse"></i>
+                </div>
+              </div>
+              <p className="text-gray-500 text-lg">正在載入請求...</p>
+              <p className="text-gray-400 text-sm mt-1">請稍候片刻</p>
+            </div>
+          ) : sentFriendRequests.length > 0 ? (
+            <div className="space-y-3">
+              {sentFriendRequests.map(request => (
+                <div 
+                  key={request.id}
+                  className="bg-white border border-gray-200 hover:border-[#E8DFFC] rounded-xl transition-all duration-300 hover:shadow-lg group overflow-hidden"
+                >
+                  {/* 頂部狀態條 */}
+                  <div className="w-full h-2 bg-gradient-to-r from-blue-400 to-indigo-400 relative overflow-hidden">
+                    <div className="absolute inset-0 bg-white opacity-30 transform -translate-x-1/2 animate-pulse"></div>
+                  </div>
+                  
+                  <div className="p-5">
+                    {/* 主要內容區 */}
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="flex items-start">
+                        {/* 發送圖標 */}
+                        <div className="flex-shrink-0 mr-3 relative">
+                          <div className="w-10 h-10 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-500 shadow-sm group-hover:scale-105 transition-transform duration-300">
+                            <i className="fas fa-paper-plane group-hover:animate-bounce"></i>
+                          </div>
+                          <div className="absolute -right-1 -bottom-1 w-5 h-5 bg-blue-500 rounded-full border-2 border-white flex items-center justify-center">
+                            <i className="fas fa-arrow-right text-white text-xs"></i>
+                          </div>
+                        </div>
+                        
+                        {/* 標題和時間 */}
+                        <div>
+                          <h4 className="font-medium text-gray-900 text-base">已發送好友邀請</h4>
+                          <div className="flex items-center text-xs text-gray-500 mt-0.5">
+                            <i className="far fa-clock mr-1.5"></i>
+                            <span>已發送於 {new Date(request.createdAt).toLocaleTimeString('zh-TW', {
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}</span>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* 日期顯示 */}
+                      <div className="px-2 py-1 bg-gray-50 rounded-md border border-gray-100 text-xs text-gray-500 flex items-center whitespace-nowrap shadow-sm">
+                        <i className="far fa-calendar-alt mr-1.5 text-blue-400"></i>
+                        {new Date(request.createdAt).toLocaleDateString('zh-TW', {
+                          year: 'numeric',
+                          month: '2-digit',
+                          day: '2-digit'
+                        })}
+                      </div>
+                    </div>
+                    
+                    {/* 收件人信息卡片 */}
+                    <div className="bg-gradient-to-r from-gray-50 to-white rounded-lg p-4 mb-4 border border-gray-100 flex items-center shadow-sm">
+                      {/* 收件人頭像(佔位) */}
+                      <div className="w-12 h-12 rounded-full bg-[#F8F5FF] flex items-center justify-center text-[#A487C3] uppercase border border-[#E8DFFC] mr-3 shadow-sm overflow-hidden group-hover:scale-105 transition-transform duration-300">
+                        {recipientInfo[request.to]?.photoURL ? (
+                          <img src={recipientInfo[request.to].photoURL} alt={recipientInfo[request.to].nickname} className="w-full h-full object-cover" />
+                        ) : (
+                          <i className="fas fa-user text-lg"></i>
+                        )}
+                      </div>
+                      
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center">
+                          <span className="text-xs font-medium text-gray-500 bg-white px-2 py-0.5 rounded-full border border-gray-200 mr-2 shadow-sm">收件人</span>
+                          <span className="font-medium text-[#8A5DC8] truncate text-base">
+                            {(() => {
+                              // 優先使用獲取到的收件人信息
+                              if (recipientInfo[request.to]) {
+                                return recipientInfo[request.to].nickname;
+                              }
+                              
+                              // 其次使用搜索結果
+                              const recipient = searchResults.find(user => user.id === request.to);
+                              if (recipient) {
+                                return recipient.nickname || recipient.email || '未知用戶';
+                              }
+                              
+                              // 如果都不存在，則顯示加載中
+                              return <span className="inline-flex items-center"><i className="fas fa-spinner fa-spin mr-1 text-sm text-blue-400"></i> 加載中...</span>;
+                            })()}
+                          </span>
+                        </div>
+                        
+                        <div className="flex justify-between items-center mt-2">
+                          <div className="flex items-center text-sm">
+                            <div className="relative w-4 h-4 mr-2 flex-shrink-0">
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-300 opacity-75"></span>
+                              <span className="relative inline-flex rounded-full h-4 w-4 bg-blue-400"></span>
+                            </div>
+                            <span className="font-medium text-blue-600">等待確認中</span>
+                          </div>
+                          
+                          <div className="text-xs text-blue-600 cursor-help relative group/tooltip">
+                            <i className="fas fa-info-circle"></i>
+                            <div className="absolute bottom-full right-0 mb-2 w-60 bg-white p-2.5 rounded-lg shadow-lg border border-blue-100 invisible group-hover/tooltip:visible opacity-0 group-hover/tooltip:opacity-100 transition-all duration-300 z-10 pointer-events-none text-gray-600">
+                              <p className="font-medium text-blue-600 mb-1 flex items-center">
+                                <i className="fas fa-info-circle mr-1.5"></i>
+                                好友請求狀態說明
+                              </p>
+                              <p className="mb-1 text-xs">請求將持續有效，直到被接受或取消。</p>
+                              <p className="text-xs">對方接受後，你們將成為好友。</p>
+                              <div className="absolute w-2 h-2 bg-white border-r border-b border-blue-100 transform rotate-45 -bottom-1 right-3"></div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* 操作區域 */}
+                    <div className="flex justify-end">
+                      <button
+                        onClick={() => handleCancelFriendRequest(request.id)}
+                        disabled={loading}
+                        className="px-4 py-2 bg-white hover:bg-red-50 text-gray-700 hover:text-red-600 rounded-lg text-sm border border-gray-200 hover:border-red-200 flex items-center gap-2 shadow-sm transition-all duration-200 hover:shadow transform hover:-translate-y-0.5"
+                      >
+                        <i className="fas fa-times"></i>
+                        <span>取消請求</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12 bg-gradient-to-b from-white to-gray-50 rounded-xl border border-gray-200 shadow-sm">
+              <div className="relative w-20 h-20 mx-auto mb-4">
+                <div className="absolute inset-0 bg-blue-100 rounded-full opacity-50 animate-ping"></div>
+                <div className="relative w-20 h-20 flex items-center justify-center bg-white rounded-full border-2 border-blue-100 shadow-md">
+                  <i className="fas fa-paper-plane text-3xl text-blue-400"></i>
+                </div>
+              </div>
+              <h4 className="text-lg font-medium text-gray-800 mb-2">尚無發送中的好友請求</h4>
+              <p className="text-gray-500 mb-6 max-w-md mx-auto px-4">您目前沒有等待確認的好友請求，可以通過搜尋功能尋找並添加新好友</p>
+              <button
+                onClick={() => setActiveTab('search')}
+                className="mx-auto px-6 py-3 bg-[#A487C3] hover:bg-[#8A5DC8] text-white rounded-lg text-sm shadow-md hover:shadow-lg transition-all duration-300 flex items-center font-medium"
+              >
+                <i className="fas fa-search mr-2"></i>
+                搜尋好友
+              </button>
+              <div className="mt-6 flex justify-center">
+                <div className="flex items-center space-x-1 text-xs text-gray-500">
+                  <i className="fas fa-lightbulb text-yellow-400"></i>
+                  <span>提示: 您也可以分享您的好友碼，讓朋友更快地找到您</span>
+                </div>
+              </div>
             </div>
           )}
         </div>

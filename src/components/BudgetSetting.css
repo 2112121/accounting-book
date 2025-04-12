@@ -1,0 +1,1441 @@
+/* BudgetSetting.css */
+/* 基础动画关键帧定义 */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideInLeft {
+  from { transform: translateX(-30px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes slideInRight {
+  from { transform: translateX(30px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes slideInBottom {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes zoomIn {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* 添加新的多類別(類別預算)選擇區塊樣式 */
+@keyframes categoryCheckboxPulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+  100% { transform: scale(1); }
+}
+
+@keyframes categoryTagFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
+@keyframes categorySelectionGlow {
+  0%, 100% { box-shadow: 0 0 5px rgba(164, 135, 195, 0.2); }
+  50% { box-shadow: 0 0 15px rgba(164, 135, 195, 0.4); }
+}
+
+/* 添加更多動畫效果 */
+@keyframes categorySelectPop {
+  0% { transform: scale(0.8); opacity: 0; }
+  60% { transform: scale(1.1); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes categoryDeselectFade {
+  0% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(0.9); opacity: 0; }
+}
+
+@keyframes iconWiggle {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-10deg); }
+  75% { transform: rotate(10deg); }
+}
+
+@keyframes multiCategoryBgShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes countBadgePulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+/* 容器样式 */
+.budget-container {
+  max-height: 90vh;
+  overflow-y: auto;
+  border-radius: 1rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  scroll-behavior: smooth;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(164, 135, 195, 0.6) transparent;
+  background-color: #f9f7fc;
+}
+
+.budget-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.budget-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.budget-container::-webkit-scrollbar-thumb {
+  background-color: rgba(164, 135, 195, 0.6);
+  border-radius: 3px;
+}
+
+/* 按钮样式 */
+.close-button {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #A487C3;
+  color: white;
+  border: none;
+  box-shadow: 0 4px 10px rgba(164, 135, 195, 0.3);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.close-button::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(45deg, rgba(255, 255, 255, 0.2), transparent);
+  transform: translateY(100%);
+  transition: transform 0.3s ease;
+}
+
+.close-button:hover {
+  transform: scale(1.1);
+  background: #9678B6;
+  box-shadow: 0 6px 15px rgba(164, 135, 195, 0.4);
+}
+
+.close-button:hover::before {
+  transform: translateY(0);
+}
+
+/* 消息通知样式 */
+.budget-notification {
+  padding: 1rem;
+  border-radius: 0.75rem;
+  margin-bottom: 1rem;
+  animation: slideInBottom 0.5s ease forwards;
+  display: flex;
+  align-items: center;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+
+.error-message {
+  background: linear-gradient(to right, #fff5f5, #fed7d7);
+  color: #e53e3e;
+  border-left: 4px solid #e53e3e;
+}
+
+.success-message {
+  background: linear-gradient(to right, #f0fff4, #c6f6d5);
+  color: #38a169;
+  border-left: 4px solid #38a169;
+}
+
+/* 表单容器样式 */
+.budget-form-container {
+  background: white;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+  animation: fadeIn 0.6s ease forwards;
+  margin-bottom: 1.5rem;
+  border: 1px solid rgba(164, 135, 195, 0.1);
+}
+
+/* 表单控件样式 */
+.form-control {
+  margin-bottom: 1.5rem;
+}
+
+.form-control.zoom-in {
+  animation: zoomIn 0.5s ease forwards;
+}
+
+.animation-delay-100 { animation-delay: 0.1s; }
+.animation-delay-200 { animation-delay: 0.2s; }
+.animation-delay-300 { animation-delay: 0.3s; }
+.animation-delay-400 { animation-delay: 0.4s; }
+.animation-delay-500 { animation-delay: 0.5s; }
+
+.form-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #4a5568;
+  margin-bottom: 0.5rem;
+}
+
+.form-hint {
+  font-size: 0.75rem;
+  color: #718096;
+  margin-top: 0.5rem;
+}
+
+.select-container {
+  position: relative;
+}
+
+.form-select {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background-color: #f9f7fc;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  color: #4a5568;
+  font-size: 0.95rem;
+  transition: all 0.3s ease;
+  padding-right: 2.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.form-select:focus {
+  outline: none;
+  border-color: #a487c3;
+  box-shadow: 0 0 0 3px rgba(164, 135, 195, 0.2);
+}
+
+.select-icon {
+  position: absolute;
+  right: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #a487c3;
+  pointer-events: none;
+}
+
+.form-input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background-color: #f9f7fc;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  color: #4a5568;
+  font-size: 0.95rem;
+  transition: all 0.3s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #a487c3;
+  box-shadow: 0 0 0 3px rgba(164, 135, 195, 0.2);
+}
+
+/* 周期按钮组样式 */
+.period-buttons {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.5rem;
+}
+
+.period-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 0.5rem;
+  border-radius: 0.5rem;
+  background: white;
+  border: 1px solid #e2e8f0;
+  color: #4a5568;
+  font-size: 0.75rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.period-button i {
+  margin-bottom: 0.3rem;
+  font-size: 1rem;
+  color: #A487C3;
+}
+
+.period-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
+  border-color: #A487C3;
+}
+
+.period-button.active {
+  background: #A487C3;
+  color: white;
+  border-color: #A487C3;
+  transform: translateY(-3px);
+  box-shadow: 0 4px 12px rgba(164, 135, 195, 0.3);
+}
+
+.period-button.active i {
+  color: white;
+}
+
+/* 自定义日期范围样式 */
+.custom-date-range {
+  background: #f9f7fc;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  margin-top: 0.5rem;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.03);
+  border: 1px solid rgba(164, 135, 195, 0.1);
+}
+
+.date-field {
+  margin-bottom: 0;
+}
+
+/* 预算金额输入样式 - 重新设计部分 */
+.amount-input-container {
+  position: relative;
+  background: white;
+  border-radius: 0.75rem;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(164, 135, 195, 0.15);
+  padding: 0.5rem;
+  transition: all 0.3s ease;
+}
+
+.amount-input-container:hover {
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.06);
+  border-color: rgba(164, 135, 195, 0.25);
+}
+
+.currency-symbol {
+  position: absolute;
+  top: 0.75rem;
+  left: 0.75rem;
+  height: 2.25rem;
+  width: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #A487C3;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.amount-input-container .form-input {
+  height: 2.75rem;
+  padding-left: 3rem;
+  padding-right: 1rem;
+  font-size: 1.125rem;
+  font-weight: 500;
+  background: #f9f7fc;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(164, 135, 195, 0.15);
+}
+
+.amount-input-container .form-input:focus {
+  border-color: #A487C3;
+  box-shadow: 0 0 0 3px rgba(164, 135, 195, 0.2);
+  background: white;
+}
+
+.amount-buttons-title {
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+}
+
+.amount-buttons-title::before {
+  content: "";
+  display: inline-block;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background-color: #A487C3;
+  margin-right: 6px;
+}
+
+.amount-buttons {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.quick-amount-btn {
+  height: 2.5rem;
+  border-radius: 0.5rem;
+  background: white;
+  border: 1px solid rgba(164, 135, 195, 0.2);
+  color: #4b5563;
+  font-size: 0.95rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.quick-amount-btn::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, transparent, rgba(164, 135, 195, 0.08));
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.quick-amount-btn:hover {
+  background: #F9F7FC;
+  color: #A487C3;
+  transform: translateY(-2px);
+  border-color: #A487C3;
+  box-shadow: 0 3px 8px rgba(164, 135, 195, 0.15);
+}
+
+.quick-amount-btn:hover::after {
+  opacity: 1;
+}
+
+.quick-amount-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(164, 135, 195, 0.15);
+}
+
+.quick-amount-btn span {
+  display: inline-block;
+  position: relative;
+  z-index: 1;
+}
+
+/* 添加预算按钮样式 */
+.add-budget-button {
+  width: 100%;
+  padding: 0.875rem 1rem;
+  border-radius: 0.5rem;
+  background: #A487C3;
+  color: white;
+  font-weight: 600;
+  border: none;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(138, 93, 200, 0.2);
+  position: relative;
+  overflow: hidden;
+}
+
+.add-budget-button::after {
+  content: "";
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: -100%;
+  background: linear-gradient(90deg, 
+    rgba(255, 255, 255, 0) 0%, 
+    rgba(255, 255, 255, 0.2) 50%, 
+    rgba(255, 255, 255, 0) 100%
+  );
+  transition: all 0.6s ease;
+}
+
+.add-budget-button:hover {
+  transform: translateY(-2px);
+  background: #9678B6;
+  box-shadow: 0 6px 16px rgba(138, 93, 200, 0.3);
+}
+
+.add-budget-button:hover::after {
+  left: 100%;
+}
+
+/* 预算列表容器样式 */
+.budget-list-container {
+  animation: fadeIn 0.5s ease forwards;
+}
+
+.section-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #4a5568;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+}
+
+.section-title i {
+  margin-right: 0.5rem;
+  color: #A487C3;
+}
+
+.slide-in-left {
+  animation: slideInLeft 0.5s ease forwards;
+}
+
+/* 空列表状态样式 */
+.empty-list {
+  background: white;
+  border-radius: 1rem;
+  padding: 3rem 1.5rem;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+  animation: fadeIn 0.5s ease forwards;
+}
+
+.empty-icon {
+  width: 4rem;
+  height: 4rem;
+  margin: 0 auto 1.5rem;
+  background: #f3f0f9;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid rgba(164, 135, 195, 0.2);
+}
+
+.empty-icon i {
+  font-size: 1.5rem;
+  color: #A487C3;
+}
+
+.empty-list p {
+  color: #6b7280;
+  margin-bottom: 1.5rem;
+}
+
+.add-first-budget {
+  padding: 0.75rem 1.5rem;
+  background: #A487C3;
+  color: white;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  border: none;
+  box-shadow: 0 4px 12px rgba(138, 93, 200, 0.2);
+}
+
+.add-first-budget:hover {
+  transform: translateY(-2px);
+  background: #9678B6;
+  box-shadow: 0 6px 16px rgba(138, 93, 200, 0.3);
+}
+
+/* 预算项目列表样式 */
+.budget-items {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.budget-item {
+  background: white;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.03);
+  transition: all 0.3s ease;
+  opacity: 0;
+  border: 1px solid rgba(164, 135, 195, 0.1);
+}
+
+.budget-item.fade-in {
+  animation: fadeIn 0.5s ease forwards;
+}
+
+.budget-item:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.05);
+  border-color: rgba(164, 135, 195, 0.2);
+}
+
+.budget-item-content {
+  display: flex;
+  align-items: center;
+  padding: 1rem;
+  position: relative;
+}
+
+.budget-item-icon {
+  width: 3rem;
+  height: 3rem;
+  flex-shrink: 0;
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  margin-right: 1rem;
+  font-size: 1.25rem;
+  background: #A487C3;
+}
+
+.budget-item-info {
+  flex-grow: 1;
+}
+
+.budget-item-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.budget-period {
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  background: #f3f0f9;
+  border-radius: 0.375rem;
+  color: #4b5563;
+  display: flex;
+  align-items: center;
+}
+
+.budget-name {
+  font-weight: 600;
+  color: #374151;
+}
+
+.budget-date-range {
+  font-size: 0.7rem;
+  color: #6b7280;
+  display: flex;
+  align-items: center;
+}
+
+.budget-amount {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #A487C3;
+  margin-top: 0.25rem;
+}
+
+.budget-delete-button {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f9f7fc;
+  color: #A487C3;
+  transition: all 0.2s ease;
+  border: 1px solid rgba(164, 135, 195, 0.2);
+}
+
+.budget-delete-button:hover {
+  background: #A487C3;
+  color: white;
+}
+
+/* 分隔线样式 */
+.divider {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin: 2rem 0;
+}
+
+.divider::before,
+.divider::after {
+  content: "";
+  flex-grow: 1;
+  height: 1px;
+  background: #e2e8f0;
+}
+
+.divider span {
+  padding: 0 1rem;
+  font-size: 0.85rem;
+  color: #6b7280;
+  background: #f9f7fc;
+  border-radius: 0.5rem;
+}
+
+/* 通知设置样式 */
+.notification-setting {
+  background: white;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.03);
+  margin-bottom: 1.5rem;
+  animation: slideInBottom 0.5s ease forwards;
+  border: 1px solid rgba(164, 135, 195, 0.1);
+}
+
+.notification-content {
+  padding: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.notification-info {
+  display: flex;
+  align-items: center;
+}
+
+.notification-icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  background: #f3f0f9;
+  color: #A487C3;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 0.75rem;
+  font-size: 1rem;
+  border: 1px solid rgba(164, 135, 195, 0.2);
+}
+
+.notification-info h4 {
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 0.25rem;
+}
+
+.notification-info p {
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+/* 开关样式 */
+.toggle-switch {
+  position: relative;
+}
+
+.toggle-input {
+  height: 0;
+  width: 0;
+  visibility: hidden;
+  position: absolute;
+}
+
+.toggle-label {
+  cursor: pointer;
+  width: 3rem;
+  height: 1.5rem;
+  background: #e5e7eb;
+  display: block;
+  border-radius: 1.5rem;
+  position: relative;
+  transition: background-color 0.3s ease;
+}
+
+.toggle-label::after {
+  content: "";
+  position: absolute;
+  top: 0.15rem;
+  left: 0.15rem;
+  width: 1.2rem;
+  height: 1.2rem;
+  background: white;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.toggle-input:checked + .toggle-label {
+  background: #A487C3;
+}
+
+.toggle-input:checked + .toggle-label::after {
+  left: calc(100% - 0.15rem);
+  transform: translateX(-100%);
+}
+
+/* 动作按钮样式 */
+.action-buttons {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.cancel-button {
+  flex: 1;
+  padding: 0.875rem 1rem;
+  background: #f3f0f9;
+  color: #4b5563;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  border: 1px solid rgba(164, 135, 195, 0.2);
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cancel-button:hover {
+  background: #e9e4f3;
+  color: #A487C3;
+}
+
+.save-button {
+  flex: 1;
+  padding: 0.875rem 1rem;
+  background: #A487C3;
+  color: white;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  border: none;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(138, 93, 200, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.save-button::after {
+  content: "";
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: -100%;
+  background: linear-gradient(90deg, 
+    rgba(255, 255, 255, 0) 0%, 
+    rgba(255, 255, 255, 0.2) 50%, 
+    rgba(255, 255, 255, 0) 100%
+  );
+  transition: all 0.6s ease;
+}
+
+.save-button:hover {
+  transform: translateY(-2px);
+  background: #9678B6;
+  box-shadow: 0 6px 16px rgba(138, 93, 200, 0.3);
+}
+
+.save-button:hover::after {
+  left: 100%;
+}
+
+.save-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* 加载动画 */
+.loader {
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: white;
+  display: inline-block;
+  margin-right: 0.5rem;
+  animation: spin 1s linear infinite;
+}
+
+/* 响应式样式 */
+@media (max-width: 640px) {
+  .period-buttons {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  
+  .budget-item-content {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .budget-item-icon {
+    margin-bottom: 0.75rem;
+    margin-right: 0;
+  }
+  
+  .budget-delete-button {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+  }
+}
+
+/* 修改多類別選擇區塊背景 */
+.multi-category-select {
+  background: linear-gradient(145deg, #ffffff, #f9f7fc);
+  border-radius: 1rem;
+  padding: 1.25rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+  position: relative;
+  overflow: hidden;
+  transition: all 0.4s ease;
+  border: 1px solid rgba(164, 135, 195, 0.15);
+  animation: fadeIn 0.6s ease forwards;
+  margin-top: 1rem;
+}
+
+.multi-category-select::before {
+  content: "";
+  position: absolute;
+  width: 200%;
+  height: 200%;
+  top: -50%;
+  left: -50%;
+  background: linear-gradient(45deg, 
+    rgba(164, 135, 195, 0.02) 0%, 
+    rgba(255, 255, 255, 0) 45%, 
+    rgba(164, 135, 195, 0.02) 90%
+  );
+  z-index: 0;
+  animation: multiCategoryBgShift 15s ease infinite;
+  transform: rotate(30deg);
+}
+
+/* 增強類別標籤效果 */
+.selected-count {
+  display: inline-block;
+  padding: 2px 8px;
+  background: linear-gradient(135deg, #A487C3, #9678B6);
+  color: white;
+  border-radius: 12px;
+  font-weight: 600;
+  box-shadow: 0 2px 5px rgba(164, 135, 195, 0.25);
+  margin-left: 4px;
+  animation: countBadgePulse 2s ease-in-out infinite;
+}
+
+.category-checkbox input:checked + i.fa-check-square {
+  animation: iconWiggle 0.5s ease;
+}
+
+/* 類別標籤更多動態效果 */
+.category-tag-enter {
+  animation: categorySelectPop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+.category-tag-exit {
+  animation: categoryDeselectFade 0.2s ease-out forwards;
+}
+
+/* 預算類型按鈕懸停時的光效 */
+.budget-type-btn {
+  position: relative;
+  overflow: hidden;
+}
+
+.budget-type-btn::before {
+  content: "";
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  background: radial-gradient(circle at center, 
+    rgba(164, 135, 195, 0) 0%, 
+    rgba(164, 135, 195, 0) 50%, 
+    rgba(164, 135, 195, 0.1) 100%
+  );
+  opacity: 0;
+  transform: scale(0.5);
+  transition: all 0.4s ease;
+}
+
+.budget-type-btn:hover::before {
+  opacity: 1;
+  transform: scale(1.5);
+}
+
+/* 針對已選類別項添加刪除按鈕的特效 */
+.category-tag-remove:hover i {
+  animation: iconWiggle 0.3s ease;
+}
+
+/* 沒有選擇類別時的提示動畫 */
+.empty-categories-message {
+  color: #9CA3AF;
+  text-align: center;
+  padding: 1rem 0;
+  font-style: italic;
+  font-size: 0.85rem;
+  animation: pulse 2s infinite;
+}
+
+/* 添加類別選擇項的懸停光暈特效 */
+.category-checkbox:hover {
+  animation: categorySelectionGlow 1.5s infinite;
+}
+
+/* 選擇和未選擇的切換動畫 */
+.category-checkbox-icon-check,
+.category-checkbox-icon-uncheck {
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.category-checkbox-icon-check {
+  opacity: 0;
+  transform: scale(0);
+  position: absolute;
+}
+
+.category-checkbox.selected .category-checkbox-icon-check {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.category-checkbox.selected .category-checkbox-icon-uncheck {
+  opacity: 0;
+  transform: scale(0);
+}
+
+/* 添加在空類別列表時的新增類別提示 */
+.add-category-hint {
+  background: linear-gradient(145deg, #ffffff, #f9f7fc);
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  margin-top: 1rem;
+  display: flex;
+  align-items: center;
+  border: 1px dashed rgba(164, 135, 195, 0.3);
+  opacity: 0.8;
+  transition: all 0.3s ease;
+}
+
+.add-category-hint:hover {
+  opacity: 1;
+  background: white;
+  border-color: rgba(164, 135, 195, 0.5);
+  transform: translateY(-2px);
+}
+
+.add-category-hint-icon {
+  width: 2rem;
+  height: 2rem;
+  background: rgba(164, 135, 195, 0.1);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 0.75rem;
+  color: #A487C3;
+}
+
+.add-category-hint-text {
+  font-size: 0.85rem;
+  line-height: 1.4;
+  color: #6B7280;
+}
+
+/* 類別標籤懸停和點擊效果 */
+.category-tag {
+  position: relative;
+  z-index: 1;
+}
+
+.category-tag::before {
+  content: "";
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  background: rgba(164, 135, 195, 0.15);
+  border-radius: inherit;
+  z-index: -1;
+  transform: scale(0);
+  opacity: 0;
+  transition: all 0.3s ease;
+}
+
+.category-tag:hover::before {
+  transform: scale(1);
+  opacity: 1;
+}
+
+/* 預算類型按鈕組的增強樣式 */
+.budget-type-buttons {
+  background: rgba(164, 135, 195, 0.05);
+  padding: 4px;
+  border-radius: 10px;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.budget-type-btn {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  z-index: 1;
+}
+
+.budget-type-btn.active {
+  transform: translateY(-1px);
+}
+
+.budget-type-btn.active::before {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, #9678B6, transparent);
+  z-index: -1;
+}
+
+.budget-type-btn::after {
+  content: "";
+  position: absolute;
+  width: 30px;
+  height: 100%;
+  top: 0;
+  left: -100%;
+  background: linear-gradient(90deg, 
+    rgba(255, 255, 255, 0) 0%, 
+    rgba(255, 255, 255, 0.3) 50%, 
+    rgba(255, 255, 255, 0) 100%
+  );
+  transition: all 0.4s ease;
+  z-index: 0;
+}
+
+.budget-type-btn.active::after {
+  left: 100%;
+}
+
+.budget-type-btn:hover::after {
+  left: 100%;
+}
+
+.budget-type-icon {
+  display: inline-block;
+  transition: all 0.3s ease;
+  position: relative;
+  z-index: 2;
+}
+
+.budget-type-btn:hover .budget-type-icon {
+  transform: scale(1.2);
+}
+
+.budget-type-btn.active .budget-type-icon {
+  animation: pulseGlow 2s infinite;
+}
+
+.budget-type-hint {
+  position: relative;
+  padding: 0.75rem;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.8), rgba(249, 247, 252, 0.8));
+  border-radius: 8px;
+  border-left: 3px solid #A487C3;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+  font-size: 0.8rem;
+  line-height: 1.4;
+  margin-top: 0.5rem;
+  backdrop-filter: blur(5px);
+  animation: fadeIn 0.3s ease forwards;
+}
+
+.budget-type-hint::before {
+  content: "";
+  position: absolute;
+  top: -5px;
+  left: 20px;
+  width: 10px;
+  height: 10px;
+  background: linear-gradient(135deg, rgba(249, 247, 252, 0.8), rgba(255, 255, 255, 0.8));
+  transform: rotate(45deg);
+  border-top: 1px solid rgba(164, 135, 195, 0.1);
+  border-left: 1px solid rgba(164, 135, 195, 0.1);
+}
+
+/* 增强预算类型图标 */
+.cat-budget-icon {
+  background: linear-gradient(135deg, #A487C3, #9678B6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  display: inline-block;
+  transition: all 0.3s ease;
+}
+
+.active .cat-budget-icon {
+  background: white;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* 添加新的切換按鈕動畫 */
+@keyframes buttonGlow {
+  0%, 100% { box-shadow: 0 0 5px rgba(164, 135, 195, 0.2); }
+  50% { box-shadow: 0 0 15px rgba(164, 135, 195, 0.5); }
+}
+
+@keyframes buttonExpand {
+  0% { transform: scale(0.95); }
+  50% { transform: scale(1.03); }
+  100% { transform: scale(1); }
+}
+
+@keyframes iconRotate {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes iconPop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.3); }
+  100% { transform: scale(1); }
+}
+
+/* 預算切換按鈕區域 - 完整重寫 */
+.budget-toggle-buttons {
+  margin-bottom: 0rem;
+  padding: 0.25rem;
+  background: linear-gradient(145deg, #f5f2fa, #ffffff);
+  border-radius: 0.8rem;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.03);
+  border: 1px solid rgba(164, 135, 195, 0.1);
+  position: relative;
+  overflow: hidden;
+  animation: fadeIn 0.6s ease forwards;
+  width: auto;
+  display: inline-flex;
+}
+
+.budget-toggle-button {
+  padding: 0.65rem 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.6rem;
+  font-weight: 500;
+  font-size: 0.95rem;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  z-index: 1;
+}
+
+.budget-toggle-button:hover {
+  transform: translateY(-1px);
+  animation: buttonGlow 2s infinite;
+}
+
+.budget-toggle-button.active {
+  background: linear-gradient(135deg, #A487C3, #9678B6);
+  color: white;
+  box-shadow: 0 2px 8px rgba(164, 135, 195, 0.2);
+  animation: buttonExpand 0.5s;
+}
+
+.budget-toggle-button:not(.active) {
+  background: rgba(255, 255, 255, 0.9);
+  color: #4a5568;
+}
+
+.budget-toggle-button:not(.active):hover {
+  background: #f9f7fc;
+  color: #A487C3;
+}
+
+.budget-toggle-button-icon {
+  margin-right: 0.5rem;
+  display: inline-block;
+  transition: all 0.3s ease;
+  font-size: 0.9rem;
+}
+
+.budget-toggle-button:hover .budget-toggle-button-icon {
+  animation: iconPop 0.5s;
+}
+
+.budget-toggle-button.active .budget-toggle-button-icon {
+  animation: iconRotate 0.7s;
+}
+
+.budget-toggle-count {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.4rem;
+  height: 1.4rem;
+  padding: 0 0.4rem;
+  background: white;
+  color: #A487C3;
+  border-radius: 1rem;
+  font-size: 0.75rem;
+  font-weight: bold;
+  margin-left: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.budget-toggle-button:hover .budget-toggle-count {
+  transform: scale(1.1);
+}
+
+/* 類別預算選擇勾選框優化 */
+.category-checkbox {
+  background: #ffffff !important;
+  transition: all 0.25s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(164, 135, 195, 0.1) !important;
+}
+
+.category-checkbox:hover {
+  transform: translateY(-2px);
+  background: #fcfcff !important;
+  box-shadow: 0 3px 8px rgba(164, 135, 195, 0.1);
+  animation: none;
+}
+
+.category-checkbox-icon-check,
+.category-checkbox-icon-uncheck {
+  color: #A487C3;
+}
+
+.category-checkbox.selected {
+  background: #faf8ff !important;
+  border-color: rgba(164, 135, 195, 0.5) !important;
+  box-shadow: 0 2px 6px rgba(164, 135, 195, 0.15);
+}
+
+/* 增加類別選擇區域與上方選項的間距 */
+.multi-category-select {
+  margin-top: 1rem;
+}
+
+/* 選擇類別計數標籤調整樣式 */
+.selected-count-wrapper {
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px dashed rgba(164, 135, 195, 0.2);
+}
+
+/* 調整已選類別標籤樣式 */
+.selected-categories {
+  margin-top: 1.25rem;
+  background: linear-gradient(145deg, #ffffff, #f9f7fc);
+  border-radius: 0.75rem;
+  padding: 1rem;
+  border: 1px solid rgba(164, 135, 195, 0.1);
+}
+
+.selected-count-wrapper {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px dashed rgba(164, 135, 195, 0.2);
+  color: #6b7280;
+  font-size: 0.85rem;
+}
+
+.selected-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.5rem;
+  height: 1.5rem;
+  padding: 0 0.5rem;
+  border-radius: 1rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-left: 0.4rem;
+  margin-right: 0.4rem;
+  background: linear-gradient(135deg, #A487C3, #9678B6);
+  color: white;
+  box-shadow: 0 2px 5px rgba(164, 135, 195, 0.3);
+  animation: countBadgePulse 2s ease-in-out infinite;
+}
+
+/* 調整類別標籤和刪除按鈕大小 */
+.category-tag {
+  padding: 0.3rem 0.6rem;
+  border-radius: 2rem;
+  background: #F0EAFA;
+  color: #A487C3;
+  font-size: 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  margin: 0.2rem;
+  box-shadow: 0 2px 4px rgba(164, 135, 195, 0.15);
+  border: 1px solid rgba(164, 135, 195, 0.2);
+  overflow: hidden;
+  animation: categoryTagFloat 3s ease-in-out infinite;
+  animation-delay: calc(var(--index) * 0.1s);
+}
+
+.category-tag-icon {
+  font-size: 0.7rem;
+  margin-right: 0.3rem;
+  opacity: 0.8;
+}
+
+.category-tag-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 0.9rem;
+  height: 0.9rem;
+  border-radius: 50%;
+  background: rgba(164, 135, 195, 0.1);
+  margin-left: 0.3rem;
+  color: #A487C3;
+  font-size: 0.6rem;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.category-tag-remove:hover {
+  background: rgba(164, 135, 195, 0.3);
+  transform: rotate(90deg);
+}
+
+.category-tag-remove i {
+  font-size: 0.6rem;
+}
+
+/* 空類別選擇提示文字 */
+.empty-categories-message {
+  color: #9CA3AF;
+  text-align: center;
+  padding: 0.75rem;
+  font-style: italic;
+  font-size: 0.85rem;
+  border: 1px dashed rgba(164, 135, 195, 0.3);
+  border-radius: 0.5rem;
+  background: rgba(249, 247, 252, 0.5);
+} 

@@ -48,7 +48,7 @@ const LeaderboardForm: React.FC<LeaderboardFormProps> = ({ onClose }) => {
     useState<Leaderboard | null>(null);
   const [editingLeaderboard, setEditingLeaderboard] =
     useState<Leaderboard | null>(null);
-  const [timeRange, setTimeRange] = useState<TimeRangeType>("month");
+  const [timeRange, setTimeRange] = useState<TimeRangeType | null>(null);
   const [startDate, setStartDate] = useState<Date>(new Date());
   const [endDate, setEndDate] = useState<Date>(new Date());
   const [error, setError] = useState("");
@@ -439,8 +439,14 @@ const LeaderboardForm: React.FC<LeaderboardFormProps> = ({ onClose }) => {
 
   // 處理創建排行榜
   const handleCreateLeaderboard = async () => {
-    if (!newLeaderboardName.trim() || !statisticalPeriod) {
+    if (!newLeaderboardName.trim() && !statisticalPeriod) {
       setError("請輸入排行榜名稱並選擇統計時間範圍");
+      return;
+    } else if (!newLeaderboardName.trim()) {
+      setError("請輸入排行榜名稱");
+      return;
+    } else if (!statisticalPeriod) {
+      setError("請選擇統計時間範圍");
       return;
     }
 
@@ -955,8 +961,9 @@ const LeaderboardForm: React.FC<LeaderboardFormProps> = ({ onClose }) => {
       </div>
 
       {error && (
-        <div className="bg-red-50 text-red-500 p-3 rounded-lg mb-4 text-sm">
-          {error}
+        <div className="bg-red-50 text-red-500 p-3 rounded-lg mb-4 text-sm border border-red-200 flex items-center">
+          <i className="fas fa-exclamation-circle mr-2 text-red-400"></i>
+          <span className="font-medium">{error}</span>
         </div>
       )}
 
@@ -1051,53 +1058,32 @@ const LeaderboardForm: React.FC<LeaderboardFormProps> = ({ onClose }) => {
 
                   <div className="space-y-2">
                     {[...selectedLeaderboard.members]
-                      .sort((a, b) => b.totalExpense - a.totalExpense)
-                      .map((member, index) => (
+                      .map((member) => (
                         <div
                           key={member.userId}
                           className="flex items-center justify-between bg-white rounded-lg p-3 shadow-sm"
                         >
                           <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 flex items-center justify-center bg-[#A487C3] text-white rounded-full">
-                              {index + 1}
+                            <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-600">
+                              <i className="fas fa-user"></i>
                             </div>
                             <div>
                               <p className="font-medium">
-                                {member.userId === currentUser?.uid
-                                  ? `${member.nickname} (我)`
-                                  : `用戶 ${String.fromCharCode(65 + index)}`}
+                                {member.nickname ||
+                                  member.displayName ||
+                                  member.email ||
+                                  "未知用戶"}
                               </p>
-                              <p className="text-xs text-gray-500">
-                                {index === 0
-                                  ? "領先排行榜"
-                                  : (() => {
-                                      // 計算與第一名的差額，確保不出現錯誤的0差額顯示
-                                      const firstPlaceTotalExpense =
-                                        selectedLeaderboard.members.sort(
-                                          (a, b) =>
-                                            b.totalExpense - a.totalExpense,
-                                        )[0].totalExpense;
-                                      const diff =
-                                        firstPlaceTotalExpense -
-                                        member.totalExpense;
-
-                                      console.log(
-                                        `計算差額: 第一名總花費=${firstPlaceTotalExpense}, ${member.nickname}總花費=${member.totalExpense}, 差額=${diff}`,
-                                      );
-
-                                      return `比第 1 名少花費 ${diff} 元`;
-                                    })()}
+                              <p className="text-xs text-gray-500 truncate">
+                                {member.userId === currentUser?.uid ? "創建者" : "成員"}
                               </p>
                             </div>
                           </div>
-                          <p className="font-semibold">
-                            NT$ {member.totalExpense}
-                          </p>
                         </div>
                       ))}
                   </div>
                   <p className="text-xs text-gray-500 mt-4">
-                    注意：排行榜顯示的是期間內的總消費金額
+                    注意：排行榜顯示的是所有參與成員，成員排名請在排行榜頁面查看
                   </p>
                 </div>
 
@@ -1357,16 +1343,28 @@ const LeaderboardForm: React.FC<LeaderboardFormProps> = ({ onClose }) => {
                       <p className="font-medium text-gray-800">
                         {leaderboard.name}
                       </p>
-                      <p className="text-xs text-gray-500">
-                        {leaderboard.members.length} 位成員 ·
-                        {leaderboard.timeRange === "week" && "一週"}
-                        {leaderboard.timeRange === "month" && "一月"}
-                        {leaderboard.timeRange === "year" && "一年"}
-                        {leaderboard.timeRange === "custom" && "自定義"}·{" "}
-                        {leaderboard.startDate && leaderboard.endDate
-                          ? `${formatDate(leaderboard.startDate)} 到 ${formatDate(leaderboard.endDate)}`
-                          : `創建於 ${formatDate(leaderboard.createdAt)}`}
-                      </p>
+                      <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs">
+                        <span className="inline-flex items-center px-2.5 py-1 bg-[#F0EAFA] text-[#A487C3] rounded-full border border-[#E5D9F2]">
+                          <i className="fas fa-users mr-1.5"></i>
+                          {leaderboard.members.length} 位成員
+                        </span>
+                        <span className="inline-flex items-center px-2.5 py-1 bg-[#F5F5F5] text-gray-600 rounded-full">
+                          <i className={`fas fa-calendar-week mr-1.5 ${timeRange && timeRange === "week" ? "text-white" : "text-gray-500"}`}></i>
+                          {leaderboard.timeRange === "week" && "一週"}
+                        </span>
+                        <span className="inline-flex items-center px-2.5 py-1 bg-[#F5F5F5] text-gray-600 rounded-full">
+                          <i className={`fas fa-calendar-alt mr-1.5 ${timeRange && timeRange === "month" ? "text-white" : "text-gray-500"}`}></i>
+                          {leaderboard.timeRange === "month" && "一月"}
+                        </span>
+                        <span className="inline-flex items-center px-2.5 py-1 bg-[#F5F5F5] text-gray-600 rounded-full">
+                          <i className={`fas fa-calendar-day mr-1.5 ${timeRange && timeRange === "year" ? "text-white" : "text-gray-500"}`}></i>
+                          {leaderboard.timeRange === "year" && "一年"}
+                        </span>
+                        <span className="inline-flex items-center px-2.5 py-1 bg-[#F5F5F5] text-gray-600 rounded-full">
+                          <i className={`fas fa-sliders-h mr-1.5 ${timeRange && timeRange === "custom" ? "text-white" : "text-gray-500"}`}></i>
+                          {leaderboard.timeRange === "custom" && "自定義"}
+                        </span>
+                      </div>
                     </div>
                     <i className="fas fa-chevron-right text-gray-400"></i>
                   </button>
@@ -1401,9 +1399,15 @@ const LeaderboardForm: React.FC<LeaderboardFormProps> = ({ onClose }) => {
                     id="leaderboardName"
                     value={newLeaderboardName}
                     onChange={(e) => setNewLeaderboardName(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-white"
+                    className={`w-full px-4 py-2 border ${!newLeaderboardName.trim() && error ? 'border-red-400 focus:ring-red-300' : 'border-gray-300 focus:ring-white'} rounded-lg focus:outline-none focus:ring-2`}
                     placeholder="例如：公司同事排行、朋友聚會排行等"
                   />
+                  {!newLeaderboardName.trim() && error && error.includes("排行榜名稱") && (
+                    <p className="mt-1 text-xs text-red-500">
+                      <i className="fas fa-exclamation-circle mr-1"></i>
+                      請輸入排行榜名稱
+                    </p>
+                  )}
                 </div>
 
                 <div className="mt-4">
@@ -1411,63 +1415,75 @@ const LeaderboardForm: React.FC<LeaderboardFormProps> = ({ onClose }) => {
                     選擇統計時間範圍:
                   </h4>
                   {!statisticalPeriod ? (
-                    <div className="flex flex-wrap gap-2 mb-4">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          handleTimeRangeChange("week");
-                          setStatisticalPeriod("this_week");
-                        }}
-                        className={`px-4 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-white ${
-                          timeRange === "week"
-                            ? "bg-[#F8F3FF] text-[#A487C3] border border-[#A487C3]"
-                            : "bg-white text-gray-600 hover:bg-[#F8F3FF] hover:text-[#A487C3] border border-gray-200"
-                        }`}
-                      >
-                        一週
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          handleTimeRangeChange("month");
-                          setStatisticalPeriod("this_month");
-                        }}
-                        className={`px-4 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-white ${
-                          timeRange === "month"
-                            ? "bg-[#F8F3FF] text-[#A487C3] border border-[#A487C3]"
-                            : "bg-white text-gray-600 hover:bg-[#F8F3FF] hover:text-[#A487C3] border border-gray-200"
-                        }`}
-                      >
-                        一月
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          handleTimeRangeChange("year");
-                          setStatisticalPeriod("this_year");
-                        }}
-                        className={`px-4 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-white ${
-                          timeRange === "year"
-                            ? "bg-[#F8F3FF] text-[#A487C3] border border-[#A487C3]"
-                            : "bg-white text-gray-600 hover:bg-[#F8F3FF] hover:text-[#A487C3] border border-gray-200"
-                        }`}
-                      >
-                        一年
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          handleTimeRangeChange("custom");
-                          setStatisticalPeriod("custom");
-                        }}
-                        className={`px-4 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-white ${
-                          timeRange === "custom"
-                            ? "bg-[#F8F3FF] text-[#A487C3] border border-[#A487C3]"
-                            : "bg-white text-gray-600 hover:bg-[#F8F3FF] hover:text-[#A487C3] border border-gray-200"
-                        }`}
-                      >
-                        自定義
-                      </button>
+                    <div>
+                      <div className={`flex flex-wrap gap-2 mb-2 ${!statisticalPeriod && error && error.includes("時間範圍") ? 'p-2 border border-red-300 rounded-lg bg-red-50' : ''}`}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            handleTimeRangeChange("week");
+                            setStatisticalPeriod("this_week");
+                          }}
+                          className={`px-4 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#A487C3] ${
+                            timeRange && timeRange === "week"
+                              ? "bg-gradient-to-r from-[#A487C3] to-[#8A5DC8] text-white font-medium shadow-md"
+                              : "bg-white text-gray-700 hover:bg-gray-200 border border-gray-200 hover:border-gray-300 font-medium"
+                          }`}
+                        >
+                          <i className={`fas fa-calendar-week mr-1.5 ${timeRange && timeRange === "week" ? "text-white" : "text-gray-500"}`}></i>
+                          一週
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            handleTimeRangeChange("month");
+                            setStatisticalPeriod("this_month");
+                          }}
+                          className={`px-4 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#A487C3] ${
+                            timeRange && timeRange === "month"
+                              ? "bg-gradient-to-r from-[#A487C3] to-[#8A5DC8] text-white font-medium shadow-md"
+                              : "bg-white text-gray-700 hover:bg-gray-200 border border-gray-200 hover:border-gray-300 font-medium"
+                          }`}
+                        >
+                          <i className={`fas fa-calendar-alt mr-1.5 ${timeRange && timeRange === "month" ? "text-white" : "text-gray-500"}`}></i>
+                          一月
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            handleTimeRangeChange("year");
+                            setStatisticalPeriod("this_year");
+                          }}
+                          className={`px-4 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#A487C3] ${
+                            timeRange && timeRange === "year"
+                              ? "bg-gradient-to-r from-[#A487C3] to-[#8A5DC8] text-white font-medium shadow-md"
+                              : "bg-white text-gray-700 hover:bg-gray-200 border border-gray-200 hover:border-gray-300 font-medium"
+                          }`}
+                        >
+                          <i className={`fas fa-calendar-day mr-1.5 ${timeRange && timeRange === "year" ? "text-white" : "text-gray-500"}`}></i>
+                          一年
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            handleTimeRangeChange("custom");
+                            setStatisticalPeriod("custom");
+                          }}
+                          className={`px-4 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#A487C3] ${
+                            timeRange && timeRange === "custom"
+                              ? "bg-gradient-to-r from-[#A487C3] to-[#8A5DC8] text-white font-medium shadow-md"
+                              : "bg-white text-gray-700 hover:bg-gray-200 border border-gray-200 hover:border-gray-300 font-medium"
+                          }`}
+                        >
+                          <i className={`fas fa-sliders-h mr-1.5 ${timeRange && timeRange === "custom" ? "text-white" : "text-gray-500"}`}></i>
+                          自定義
+                        </button>
+                      </div>
+                      {!statisticalPeriod && error && error.includes("時間範圍") && (
+                        <p className="mt-1 text-xs text-red-500">
+                          <i className="fas fa-exclamation-circle mr-1"></i>
+                          請選擇統計時間範圍
+                        </p>
+                      )}
                     </div>
                   ) : (
                     <div className="flex items-center gap-2 mt-1">

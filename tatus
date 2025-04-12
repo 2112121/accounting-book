@@ -1,0 +1,30 @@
+warning: in the working copy of '.firebase/hosting.ZGlzdA.cache', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'index.html', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'package-lock.json', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'package.json', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/App.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/ExpenseForm.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/FriendManagement.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/LeaderboardForm.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/LeaderboardViewer.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/LoginForm.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/components/ProfileForm.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/contexts/AuthContext.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/index.css', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'tailwind.config.js', LF will be replaced by CRLF the next time Git touches it
+ .firebase/hosting.ZGlzdA.cache       |   63 [32m+[m[31m-[m
+ index.html                           |   25 [32m+[m[31m-[m
+ package-lock.json                    |  159 [32m++[m[31m-[m
+ package.json                         |    8 [32m+[m[31m-[m
+ public/index.html                    |   30 [32m+[m[31m-[m
+ src/App.tsx                          | 2113 [32m++++++++++++++++++++++++++++++[m[31m----[m
+ src/components/ExpenseForm.tsx       |  265 [32m++[m[31m---[m
+ src/components/FriendManagement.tsx  |  498 [32m++++++[m[31m--[m
+ src/components/LeaderboardForm.tsx   |  222 [32m++[m[31m--[m
+ src/components/LeaderboardViewer.tsx | 1134 [32m+++++++++++[m[31m-------[m
+ src/components/LoginForm.tsx         |   45 [32m+[m[31m-[m
+ src/components/ProfileForm.tsx       |  110 [32m+[m[31m-[m
+ src/contexts/AuthContext.tsx         |  809 [32m++++++++[m[31m-----[m
+ src/index.css                        |  818 [32m++++++++++++[m[31m-[m
+ tailwind.config.js                   |   16 [32m+[m[31m-[m
+ 15 files changed, 5027 insertions(+), 1288 deletions(-)
