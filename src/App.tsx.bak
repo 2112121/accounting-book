@@ -21,7 +21,6 @@ import {
   Timestamp,
   getDoc,
   onSnapshot,
-  runTransaction,
 } from "firebase/firestore";
 import { db } from "./firebase";
 import DatePicker from "react-datepicker";
@@ -36,11 +35,10 @@ import LeaderboardNotification from "./components/LeaderboardNotification";
 import LoanManagement from "./components/LoanManagement"; // 引入借貸管理組件
 import BudgetSetting from './components/BudgetSetting';
 import BudgetNotification from './components/BudgetNotification';
-import BudgetProgressBars from './components/BudgetProgressBars'; // 引入預算進度條組件
 // 引入SplitExpenseManagement組件
 import SplitExpenseManagement from "./components/SplitExpenseManagement";
-import GroupInviteList from "./components/GroupInviteList"; // 引入群组邀请列表组件
-import GroupInviteNotification from "./components/GroupInviteNotification"; // 引入群组邀请通知组件
+// 引入預算進度條組件
+import BudgetProgress from './components/BudgetProgress';
 
 // 支出類型定義
 interface Expense {
@@ -66,7 +64,6 @@ const App: React.FC = () => {
   const [showFriendManagement, setShowFriendManagement] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showLeaderboardInvites, setShowLeaderboardInvites] = useState(false);
-  const [showGroupInvites, setShowGroupInvites] = useState(false); // 添加群组邀请弹窗显示状态
   const [showLeaderboardViewer, setShowLeaderboardViewer] = useState(false);
   const [notificationCount, setNotificationCount] = useState(0);
   const [leaderboardEndedNotifications, setLeaderboardEndedNotifications] =
@@ -87,7 +84,6 @@ const chartRef = useRef<HTMLDivElement>(null);
     userNickname,
     getFriendRequests,
     getLeaderboardInvites,
-    userProfileColor,
   } = useAuth();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [totalExpense, setTotalExpense] = useState(0);
@@ -105,21 +101,6 @@ const chartRef = useRef<HTMLDivElement>(null);
   const successMessageTimer = useRef<number | undefined>(undefined);
   // 添加選取的日期狀態，默認為今天
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  // 添加一個狀態用於存儲支出表單的初始數據
-  const [expenseParams, setExpenseParams] = useState<{
-    amount: string;
-    category: string;
-    notes: string;
-    date: string;
-  } | null>(null);
-  // 借貸管理的參數，從URL獲取
-  const [loanParams, setLoanParams] = useState<{
-    action: 'add-lend' | 'add-borrow';
-    amount: string;
-    person: string;
-    description: string;
-    date: string;
-  } | null>(null);
   // 日期選項
   const dateOptions = [
     { value: new Date().toISOString().slice(0, 10), label: "今日" },
@@ -143,7 +124,6 @@ const chartRef = useRef<HTMLDivElement>(null);
   const [showPasswordForm, setShowPasswordForm] = useState(false);
   const [friendRequestCount, setFriendRequestCount] = useState(0);
   const [leaderboardInviteCount, setLeaderboardInviteCount] = useState(0);
-  const [groupInviteCount, setGroupInviteCount] = useState(0); // 添加群组邀请计数状态
   const [loginFormMode, setLoginFormMode] = useState<"login" | "register">(
     "login",
   );
@@ -1027,24 +1007,19 @@ const chartRef = useRef<HTMLDivElement>(null);
 
   // 根據類別獲取對應的圖標
   const getCategoryIcon = (category: string): string => {
-    const icons: { [key: string]: string } = {
+    const categoryIcons: Record<string, string> = {
       餐飲: "fa-utensils",
       交通: "fa-car",
-      生活: "fa-shopping-cart",
+      娛樂: "fa-film",
       購物: "fa-shopping-bag",
-      娛樂: "fa-gamepad",
-      住支: "fa-home",
-      健康: "fa-medkit",
-      旅遊: "fa-plane",
-      服裝: "fa-tshirt",
       教育: "fa-book",
       醫療: "fa-heartbeat",
-      社交: "fa-users",
       投資: "fa-chart-line",
-      捐贈: "fa-hand-holding-heart",
-      其他: "fa-ellipsis-h"
+      水電: "fa-bolt",
+      其他: "fa-ellipsis-h",
     };
-    return icons[category] || "fa-question";
+
+    return categoryIcons[category] || "fa-ellipsis-h";
   };
 
   // 監聽排行榜邀請查看事件
@@ -1188,15 +1163,8 @@ const chartRef = useRef<HTMLDivElement>(null);
       }
     } catch (error) {
         console.error("刷新後數據恢復失敗:", error);
-        // 不再顯示錯誤提示，只在控制台輸出錯誤信息
-        // setError("無法恢復數據，請嘗試手動刷新頁面");
-        // setTimeout(() => setError(null), 3000);
-        
-        // 將空數組設置為默認值，避免UI顯示舊數據
-        setExpenses([]);
-        
-        // 靜默處理錯誤，不顯示給用戶
-        console.log("數據恢復失敗，繼續使用應用...");
+        setError("無法恢復數據，請嘗試手動刷新頁面");
+        setTimeout(() => setError(null), 3000);
       } finally {
         console.log("===數據恢復過程結束===");
       }
@@ -1293,156 +1261,68 @@ const chartRef = useRef<HTMLDivElement>(null);
         100,
       );
 
-      // 使用 Firestore 事務同步更新消費記錄和排行榜數據
+      // 異步保存到Firebase
       try {
-        const expenseData = {
+        const docRef = await addDoc(collection(db, "expenses"), {
           ...expense,
           attachmentUrls,
           userId: currentUser.uid,
           createdAt: new Date(),
           // 將日期轉換為 Timestamp 對象存儲
           date: Timestamp.fromDate(new Date(expense.date)),
-        };
-        
-        try {
-          // 嘗試使用事務確保一致性
-          const { docId, splitDocId } = await addExpenseWithTransaction(expenseData, expense.isShared, expense.sharedWith);
-          console.log("使用事務成功添加記錄，支出ID:", docId, "分帳ID:", splitDocId || "無分帳");
-  
-          // 更新真實ID
-          setExpenses((prevExpenses) =>
-            prevExpenses.map((exp) =>
-              exp.id === tempId ? { ...exp, id: docId } : exp,
-            ),
-          );
-        } catch (txError) {
-          // 事務失敗時，嘗試直接添加支出記錄（不含排行榜更新）
-          console.error("事務處理失敗:", txError);
+        });
+
+        console.log("記錄已保存到Firebase，ID:", docRef.id);
+
+        // 如果是分帳支出，則創建分帳記錄
+        if (expense.isShared && expense.sharedWith && expense.sharedWith.length > 0) {
+          // 準備分帳數據
+          const participants = expense.sharedWith.map(person => ({
+            userId: person.userId,
+            nickname: person.nickname,
+            email: person.email || "",
+            photoURL: person.photoURL || "",
+            amount: person.amount,
+            paid: person.paid || false
+          }));
           
-          // 記錄具體錯誤信息到日誌
-          if (txError instanceof Error) {
-            console.error("事務錯誤詳情:", {
-              名稱: txError.name,
-              訊息: txError.message,
-              堆疊: txError.stack
-            });
-          }
+          // 提取參與者 ID 列表，方便查詢
+          const participantIds = participants.map(p => p.userId);
           
-          // 後備方案：直接添加支出記錄
-          console.log("嘗試使用後備方案直接添加支出...");
-          const docRef = await addDoc(collection(db, "expenses"), expenseData);
-          console.log("使用後備方案成功添加記錄，支出ID:", docRef.id);
+          // 創建分帳數據
+          const splitData = {
+            creatorId: currentUser.uid,
+            title: expense.notes || expense.category,
+            description: `${expense.category} 支出分帳`,
+            totalAmount: expense.amount,
+            date: new Date(expense.date),
+            originalExpenseId: docRef.id,
+            status: 'pending',
+            participants,
+            participantIds,
+            created: new Date()
+          };
           
-          // 更新真實ID
-          setExpenses((prevExpenses) =>
-            prevExpenses.map((exp) =>
-              exp.id === tempId ? { ...exp, id: docRef.id } : exp,
-            ),
-          );
+          // 保存分帳記錄
+          const splitRef = await addDoc(collection(db, "splitExpenses"), splitData);
+          console.log("分帳記錄已創建，ID:", splitRef.id);
           
-          // 如果是分帳支出，則創建分帳記錄（但不使用事務）
-          if (expense.isShared && expense.sharedWith && expense.sharedWith.length > 0) {
-            try {
-              // 获取当前用户的最新资料
-              const userDoc = await getDoc(doc(db, "users", currentUser.uid));
-              let creatorNickname = "";
-              
-              if (userDoc.exists()) {
-                const userData = userDoc.data();
-                creatorNickname = userData.nickname || currentUser.displayName || "";
-                console.log("后备方案: 获取到当前用户昵称:", creatorNickname);
-              }
-              
-              // 準備分帳數據 - 确保使用最新的用户昵称
-              const participants = await Promise.all(expense.sharedWith.map(async person => {
-                // 尝试获取每个参与者的最新昵称
-                if (person.userId) {
-                  try {
-                    const participantDoc = await getDoc(doc(db, "users", person.userId));
-                    if (participantDoc.exists()) {
-                      const participantData = participantDoc.data();
-                      return {
-                        userId: person.userId,
-                        nickname: participantData.nickname || person.nickname || "",
-                        email: participantData.email || person.email || "",
-                        photoURL: participantData.photoURL || person.photoURL || "",
-                        amount: person.amount,
-                        paid: person.paid || false
-                      };
-                    }
-                  } catch (e) {
-                    console.warn(`无法获取参与者 ${person.userId} 的最新资料，使用提供的资料`, e);
-                  }
-                }
-                
-                return {
-                  userId: person.userId,
-                  nickname: person.nickname || "",
-                  email: person.email || "",
-                  photoURL: person.photoURL || "",
-                  amount: person.amount,
-                  paid: person.paid || false
-                };
-              }));
-              
-              // 提取參與者 ID 列表，方便查詢
-              const participantIds = participants.map(p => p.userId);
-              
-              // 創建分帳數據
-              const splitData = {
-                creatorId: currentUser.uid,
-                creatorNickname, // 添加创建者昵称
-                title: expense.notes || expense.category,
-                description: `${expense.category} 支出分帳`,
-                totalAmount: expense.amount,
-                date: new Date(expense.date),
-                originalExpenseId: docRef.id,
-                status: 'pending',
-                participants,
-                participantIds,
-                created: new Date()
-              };
-              
-              // 保存分帳記錄
-              const splitRef = await addDoc(collection(db, "splitExpenses"), splitData);
-              console.log("使用後備方案創建分帳記錄，ID:", splitRef.id);
-              
-              // 更新原始支出記錄，標記為已分帳
-              await updateDoc(doc(db, "expenses", docRef.id), {
-                isSplit: true,
-                splitTransactionId: splitRef.id
-              });
-            } catch (splitError) {
-              console.error("創建分帳記錄失敗:", splitError);
-            }
-          }
-          
-          // 顯示警告信息
-          setSuccessMessage("支出已保存，但排行榜可能未更新");
-          setShowSuccessMessage(true);
-          if (successMessageTimer.current) {
-            window.clearTimeout(successMessageTimer.current);
-          }
-          successMessageTimer.current = window.setTimeout(
-            () => setShowSuccessMessage(false),
-            3000,
-          );
-        }
-      } catch (error) {
-        console.error("保存到Firebase失敗，但UI已更新:", error);
-        
-        // 記錄具體錯誤類型和訊息
-        if (error instanceof Error) {
-          console.error("Firebase錯誤詳情:", {
-            名稱: error.name,
-            訊息: error.message,
-            堆疊: error.stack
+          // 更新原始支出記錄，標記為已分帳
+          await updateDoc(doc(db, "expenses", docRef.id), {
+            isSplit: true,
+            splitTransactionId: splitRef.id
           });
         }
-        
-        // 更新錯誤提示
-        setError("數據保存失敗，請稍後重試。支出記錄仍顯示在界面上。");
-        setTimeout(() => setError(null), 5000);
+
+        // 更新真實ID
+        setExpenses((prevExpenses) =>
+          prevExpenses.map((exp) =>
+            exp.id === tempId ? { ...exp, id: docRef.id } : exp,
+          ),
+        );
+      } catch (error) {
+        console.error("保存到Firebase失敗，但UI已更新:", error);
+        // Firebase保存失敗不提示用戶，因為UI體驗已完成
       }
 
       return true;
@@ -1454,295 +1334,21 @@ const chartRef = useRef<HTMLDivElement>(null);
     }
   };
 
-  // 使用 Firestore 事務添加支出並同步更新排行榜
-  const addExpenseWithTransaction = async (
-    expenseData: any,
-    isShared?: boolean,
-    sharedWith?: Array<{
-      userId: string;
-      nickname: string;
-      email?: string;
-      photoURL?: string;
-      amount: number;
-      paid: boolean;
-    }>
-  ): Promise<{ docId: string; splitDocId?: string }> => {
-    if (!currentUser) {
-      throw new Error("用戶未登入");
-    }
-    
-    // 檢查數據合法性
-    if (!expenseData || !expenseData.amount || !expenseData.category) {
-      throw new Error("支出數據不完整");
-    }
-    
-    console.log("準備開始 Firestore 事務...");
-    
-    try {
-      // 獲取當前用戶參與的所有進行中排行榜
-      const result = await runTransaction(db, async (transaction) => {
-        console.log("開始執行 Firestore 事務...");
-        
-        try {
-          // 步驟 1: 添加支出記錄
-          const expenseRef = doc(collection(db, "expenses"));
-          transaction.set(expenseRef, expenseData);
-          console.log("事務中創建支出文檔，ID:", expenseRef.id);
-          
-          // 步驟 2: 如果是分帳支出，創建分帳記錄
-          let splitDocId;
-          if (isShared && sharedWith && sharedWith.length > 0) {
-            // 獲取當前用戶的最新數據
-            console.log("事務中獲取用戶文檔，UID:", currentUser.uid);
-            const userDoc = await transaction.get(doc(db, "users", currentUser.uid));
-            let creatorNickname = "";
-            
-            if (userDoc.exists()) {
-              const userData = userDoc.data();
-              creatorNickname = userData.nickname || currentUser.displayName || "";
-              console.log("獲取到當前用戶暱稱:", creatorNickname);
-            }
-            
-            // 準備分帳數據 - 確保使用最新的用戶昵称
-            const participants = await Promise.all(sharedWith.map(async person => {
-              // 對每個參與者嘗試獲取最新的用戶昵稱信息
-              if (person.userId) {
-                try {
-                  const participantDoc = await transaction.get(doc(db, "users", person.userId));
-                  if (participantDoc.exists()) {
-                    const participantData = participantDoc.data();
-                    // 使用Firestore中存儲的最新昵稱
-                    return {
-                      userId: person.userId,
-                      nickname: participantData.nickname || person.nickname || "",
-                      email: participantData.email || person.email || "",
-                      photoURL: participantData.photoURL || person.photoURL || "",
-                      amount: person.amount,
-                      paid: person.paid || false
-                    };
-                  }
-                } catch (e) {
-                  console.warn(`無法獲取參與者 ${person.userId} 的最新資料，使用提供的資料`, e);
-                }
-              }
-              
-              // 如果無法獲取或發生錯誤，則使用傳入的資料
-              return {
-                userId: person.userId,
-                nickname: person.nickname || "",
-                email: person.email || "",
-                photoURL: person.photoURL || "",
-                amount: person.amount,
-                paid: person.paid || false
-              };
-            }));
-            
-            // 提取參與者 ID 列表，方便查詢
-            const participantIds = participants.map(p => p.userId);
-            
-            // 創建分帳數據 - 使用最新的創建者昵称
-            const splitData = {
-              creatorId: currentUser.uid,
-              creatorNickname,  // 添加創建者昵稱字段
-              title: expenseData.notes || expenseData.category,
-              description: `${expenseData.category} 支出分帳`,
-              totalAmount: expenseData.amount,
-              date: expenseData.date,
-              originalExpenseId: expenseRef.id,
-              status: 'pending',
-              participants,
-              participantIds,
-              created: new Date()
-            };
-            
-            // 添加分帳記錄
-            const splitRef = doc(collection(db, "splitExpenses"));
-            transaction.set(splitRef, splitData);
-            console.log("事務中創建分帳文檔，ID:", splitRef.id);
-            
-            // 更新原始支出記錄，標記為已分帳
-            transaction.update(expenseRef, {
-              isSplit: true,
-              splitTransactionId: splitRef.id
-            });
-            
-            splitDocId = splitRef.id;
-          }
-          
-          // 步驟 3: 獲取用戶參與的進行中排行榜
-          console.log("事務中獲取用戶文檔，UID:", currentUser.uid);
-          const userDoc = await transaction.get(doc(db, "users", currentUser.uid));
-          if (!userDoc.exists()) {
-            console.error("事務中用戶文檔不存在");
-            throw new Error("用戶數據不存在");
-          }
-          
-          const userData = userDoc.data();
-          console.log("事務中用戶數據:", { 
-            暱稱: userData.nickname || '未知', 
-            排行榜數量: (userData.leaderboards || []).length 
-          });
-          
-          const userLeaderboardIds = userData.leaderboards || [];
-          
-          // 如果用戶沒有參與排行榜，就不需要更新
-          if (userLeaderboardIds.length === 0) {
-            console.log("事務中: 用戶沒有參與任何排行榜，跳過排行榜更新");
-            return { 
-              docId: expenseRef.id, 
-              splitDocId 
-            };
-          }
-          
-          // 獲取所有排行榜數據
-          console.log("事務中: 獲取 " + userLeaderboardIds.length + " 個排行榜數據");
-          const leaderboardPromises = userLeaderboardIds.map((id: string) => {
-            console.log("事務中: 準備獲取排行榜 ID:", id);
-            return transaction.get(doc(db, "leaderboards", id));
-          });
-          
-          const leaderboardDocs = await Promise.all(leaderboardPromises);
-          console.log("事務中: 成功獲取 " + leaderboardDocs.length + " 個排行榜文檔");
-          
-          // 篩選出進行中的排行榜並立即更新
-          const now = new Date();
-          const expenseDate = expenseData.date instanceof Timestamp 
-            ? expenseData.date.toDate() 
-            : new Date(expenseData.date);
-          const expenseAmount = expenseData.amount;
-          
-          console.log(`事務中: 檢查 ${leaderboardDocs.length} 個排行榜是否需要更新，支出日期:`, expenseDate.toLocaleDateString());
-          
-          let updatedLeaderboardCount = 0;
-          
-          for (let i = 0; i < leaderboardDocs.length; i++) {
-            const leaderboardDoc = leaderboardDocs[i];
-            if (!leaderboardDoc.exists()) {
-              console.log("事務中: 排行榜文檔不存在，跳過");
-              continue;
-            }
-            
-            const leaderboardData = leaderboardDoc.data();
-            console.log("事務中: 處理排行榜 - ", { 
-              ID: leaderboardDoc.id, 
-              名稱: leaderboardData.name,
-              成員數: (leaderboardData.members || []).length
-            });
-            
-            // 解析日期
-            const startDate = leaderboardData.startDate instanceof Timestamp 
-              ? leaderboardData.startDate.toDate() 
-              : new Date(leaderboardData.startDate);
-              
-            const endDate = leaderboardData.endDate instanceof Timestamp 
-              ? leaderboardData.endDate.toDate() 
-              : new Date(leaderboardData.endDate);
-            
-            // 修改逻辑：确保结束日期包含当天的所有数据
-            // 创建结束日期的副本，设置为当天23:59:59
-            const endDateFull = new Date(endDate);
-            endDateFull.setHours(23, 59, 59, 999);
-            
-            // 检查排行榜是否进行中，修改判断逻辑确保包含结束日期当天
-            // 修改判断条件，确保结束日期当天的支出也能被统计
-            const isOngoing = now <= endDate;
-            const isInRange = expenseDate >= startDate && (isOngoing || expenseDate <= endDateFull);
-            
-            console.log(`事務中: 排行榜 ${leaderboardData.name} (${leaderboardDoc.id}): 進行中=${isOngoing}, 支出在範圍內=${isInRange}`);
-            console.log(`排行榜時間範圍: ${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()} (含結束日整天)`);
-            
-            if (isInRange) {
-              // 獲取用戶在排行榜中的成員索引
-              const memberIndex = leaderboardData.members.findIndex(
-                (m: any) => m.userId === currentUser.uid
-              );
-              
-              if (memberIndex !== -1) {
-                // 更新成員支出金額
-                const updatedMembers = [...leaderboardData.members];
-                const member = {...updatedMembers[memberIndex]};
-                
-                // 更新總支出
-                member.totalExpense = (member.totalExpense || 0) + expenseAmount;
-                
-                // 更新支出ID列表
-                member.expenseIds = [...(member.expenseIds || []), expenseRef.id];
-                
-                // 更新支出摘要
-                const expenseSummary = {
-                  id: expenseRef.id,
-                  amount: expenseAmount,
-                  date: expenseData.date,
-                  category: expenseData.category
-                };
-                member.expenseSummaries = [...(member.expenseSummaries || []), expenseSummary];
-                
-                // 更新成員資料
-                updatedMembers[memberIndex] = member;
-                
-                // 更新排行榜
-                console.log(`事務中: 更新排行榜 ${leaderboardData.name} (${leaderboardDoc.id}): 用戶支出 +${expenseAmount}, 新總額=${member.totalExpense}`);
-                transaction.update(doc(db, "leaderboards", leaderboardDoc.id), {
-                  members: updatedMembers
-                });
-                
-                updatedLeaderboardCount++;
-              } else {
-                console.log(`事務中: 用戶不是排行榜 ${leaderboardData.name} 的成員，跳過更新`);
-              }
-            }
-          }
-          
-          console.log(`事務中: 共更新 ${updatedLeaderboardCount} 個排行榜`);
-          
-          return { 
-            docId: expenseRef.id, 
-            splitDocId 
-          };
-        } catch (error) {
-          console.error("事務內部執行失敗:", error);
-          if (error instanceof Error) {
-            console.error("事務內部錯誤詳情:", error.message);
-          }
-          throw error; // 重新拋出以便外部捕獲
-        }
-      });
-      
-      console.log("Firestore 事務完成", result);
-      return result;
-    } catch (error) {
-      console.error("Firestore 事務整體失敗", error);
-      if (error instanceof Error) {
-        console.error("事務失敗詳細信息:", {
-          名稱: error.name,
-          訊息: error.message,
-          堆疊: error.stack
-        });
-      }
-      throw error; // 重新拋出以便外部捕獲和處理
-    }
-  };
-
   // 獲取類別對應的顏色
   const getCategoryColor = (category: string): string => {
-    const colors: { [key: string]: string } = {
-      餐飲: "#FF6B6B", // 紅色
-      交通: "#4ECDC4", // 青色
-      生活: "#A487C3", // 紫色 (elora-purple)
-      購物: "#10B981", // 綠色
-      娛樂: "#FFD166", // 黃色
-      住支: "#FAE278", // 淺黃色
-      健康: "#83D6DE", // 水藍色
-      醫療: "#EF4444", // 紅色
-      旅遊: "#F3A953", // 橙色
-      服裝: "#C3A487", // 棕色
-      教育: "#A487C3", // 紫色
-      社交: "#FF8896", // 粉紅色
-      投資: "#87C387", // 綠色
-      捐贈: "#D687C3", // 粉紫色
-      其他: "#B3B3B3"  // 灰色
+    const categoryColors: Record<string, string> = {
+      餐飲: "#F4606C", // 修改為紅色系
+      交通: "#B8E3C9", // 薄荷綠 (elora-mint)
+      娛樂: "#FAC6CD", // 粉紅色 (elora-pink)
+      購物: "#C6B2DD", // 淺紫色 (elora-purple-light)
+      教育: "#E6CEAC", // 修改為淺棕色
+      醫療: "#FFE2E5", // 淺粉紅色 (elora-pink-light)
+      投資: "#90F1EF", // 修改為青藍色
+      水電: "#FAE278", // 淺黃色
+      其他: "#A487C3", // 紫色 (elora-purple)
     };
-    return colors[category] || "#B3B3B3";
+
+    return categoryColors[category] || "#A487C3";
   };
 
   // 將 Expense 類型轉換為表單需要的格式
@@ -2239,21 +1845,8 @@ useEffect(() => {
       if (typeof (window as any).initializeAppData === "function") {
         (window as any).initializeAppData();
       } else {
-        console.log("刷新函數未定義，無法自動刷新數據");
-        // 不再強制刷新頁面，避免用戶數據丟失
-        // console.log("刷新函數未定義，嘗試手動刷新頁面");
-        // window.location.reload();
-        
-        // 顯示一個較為友好的提示
-        setSuccessMessage("初始化完成");
-        setShowSuccessMessage(true);
-        if (successMessageTimer.current) {
-          window.clearTimeout(successMessageTimer.current);
-        }
-        successMessageTimer.current = window.setTimeout(
-          () => setShowSuccessMessage(false),
-          1500,
-        );
+        console.log("刷新函數未定義，嘗試手動刷新頁面");
+        window.location.reload();
       }
     } catch (error) {
       console.error("連線測試失敗:", error);
@@ -2340,35 +1933,14 @@ useEffect(() => {
           });
           
           setLoanOverdueNotifications(overdueNotifications);
-          
-          // 讀取分帳群組邀請
-          const groupInvitesRef = collection(db, "groupInvites");
-          const groupInvitesQuery = query(
-            groupInvitesRef,
-            where("inviteeId", "==", currentUser.uid),
-            where("status", "==", "pending"),
-          );
-          
-          const groupInvitesSnapshot = await getDocs(groupInvitesQuery);
-          const groupInvites: any[] = [];
-          
-          groupInvitesSnapshot.forEach((doc) => {
-            groupInvites.push({
-              id: doc.id,
-              ...doc.data(),
-            });
-          });
-          
-          setGroupInviteCount(groupInvites.length);
 
-          // 更新通知計數 (好友請求 + 排行榜邀請 + 排行榜結束通知 + 借貸到期通知 + 借貸逾期通知 + 分帳群組邀請)
+          // 更新通知計數 (好友請求 + 排行榜邀請 + 排行榜結束通知 + 借貸到期通知 + 借貸逾期通知)
           setNotificationCount(
             friendRequests.length +
               leaderboardInvites.length +
               endedNotifications.length +
               dueNotifications.length +
-              overdueNotifications.length +
-              groupInvites.length,
+              overdueNotifications.length,
           );
 
           // 保存請求和邀請數據以便顯示
@@ -2615,170 +2187,28 @@ useEffect(() => {
   const [showBudgetSetting, setShowBudgetSetting] = useState(false);
   const [showSplitExpenseForm, setShowSplitExpenseForm] = useState(false); // 添加好友分帳表單狀態
   
-  // 處理顯示預算設置表單的事件
+  // 監聽預算設置視窗顯示事件
   useEffect(() => {
     const handleShowBudgetSetting = () => {
-      console.log('收到顯示預算設置事件');
+      console.log("接收到顯示預算設置頁面事件");
       setShowBudgetSetting(true);
     };
-    
+
     // 添加事件監聽器
-    window.addEventListener('showBudgetSetting', handleShowBudgetSetting);
-    
-    // 組件卸載時清理事件監聽器
+    window.addEventListener("showBudgetSetting", handleShowBudgetSetting);
+
+    // 清理函數
     return () => {
-      window.removeEventListener('showBudgetSetting', handleShowBudgetSetting);
+      window.removeEventListener("showBudgetSetting", handleShowBudgetSetting);
     };
   }, []);
   
-  // 主要 useEffect - 仅在应用加载时运行一次
-  useEffect(() => {
-    console.log("App 组件已加载");
-
-    // 检测 Firestore 索引错误并提供解决方案
-    const handleFirestoreError = (event: ErrorEvent) => {
-      if (event.error && typeof event.error.message === 'string' && 
-          event.error.message.includes('The query requires an index')) {
-        
-        console.error("检测到 Firestore 索引错误:");
-        console.error(event.error.message);
-        
-        // 提取索引创建链接
-        const indexMatch = event.error.message.match(/https:\/\/console\.firebase\.google\.com[\w\/\.\-\?\=\&\%]+/);
-        if (indexMatch && indexMatch[0]) {
-          console.log("%c点击以下链接创建必要的索引:", "color: green; font-weight: bold; font-size: 16px;");
-          console.log("%c" + indexMatch[0], "color: blue; text-decoration: underline; cursor: pointer; font-size: 14px;");
-          
-          // 在页面显示提示
-          setError("需要创建 Firestore 索引，请检查控制台获取详细信息");
-          setTimeout(() => setError(null), 5000);
-        }
-      }
-    };
-
-    // 添加全局错误处理器
-    window.addEventListener('error', handleFirestoreError);
-
-    return () => {
-      window.removeEventListener('error', handleFirestoreError);
-    };
-  }, []);
-
-  // 监听新群组邀请的事件
-  useEffect(() => {
-    const handleNewGroupInvite = (event: Event) => {
-      // 更新群組邀請計數（從數據庫重新獲取）
-      if (currentUser) {
-        // 查詢待處理的群組邀請
-        const fetchGroupInvites = async () => {
-          try {
-            const groupInvitesRef = collection(db, "groupInvites");
-            const groupInvitesQuery = query(
-              groupInvitesRef,
-              where("inviteeId", "==", currentUser.uid),
-              where("status", "==", "pending"),
-            );
-            
-            const groupInvitesSnapshot = await getDocs(groupInvitesQuery);
-            setGroupInviteCount(groupInvitesSnapshot.size);
-            
-            // 更新總通知計數
-            setNotificationCount(prev => prev + 1);
-          } catch (error) {
-            console.error("獲取群組邀請失敗:", error);
-          }
-        };
-        
-        fetchGroupInvites();
-      }
-    };
-    
-    // 監聽顯示群組邀請列表的事件
-    const handleShowGroupInvites = () => {
-      console.log("App - 收到顯示群組邀請列表事件");
-      setShowGroupInvites(true);
-    };
-    
-    window.addEventListener('newGroupInvite', handleNewGroupInvite);
-    window.addEventListener('showGroupInvites', handleShowGroupInvites);
-    
-    return () => {
-      window.removeEventListener('newGroupInvite', handleNewGroupInvite);
-      window.removeEventListener('showGroupInvites', handleShowGroupInvites);
-    };
-  }, [currentUser]);
-
-  // 檢測URL參數並顯示借貸管理模態框
-  useEffect(() => {
-    const queryParams = new URLSearchParams(window.location.search);
-    const action = queryParams.get('action');
-    
-    if (action === 'add-lend' || action === 'add-borrow') {
-      const amount = queryParams.get('amount') || '';
-      const person = queryParams.get('person') || '';
-      const description = queryParams.get('description') || '';
-      const date = queryParams.get('date') || '';
-      
-      // 設置借貸參數
-      setLoanParams({
-        action: action as 'add-lend' | 'add-borrow',
-        amount,
-        person,
-        description,
-        date
-      });
-      
-      // 顯示借貸管理模態框
-      setShowLoanManagement(true);
-      
-      // 清除URL參數
-      window.history.replaceState({}, document.title, window.location.pathname);
-    }
-  }, []);
-
-  const [showSplitExpenseManagement, setShowSplitExpenseManagement] = useState(false);
-
-  // 組件掛載時檢查URL參數
-  useEffect(() => {
-    // 檢查URL參數
-    const queryParams = new URLSearchParams(window.location.search);
-    const action = queryParams.get('action');
-    
-    if (action === 'add-lend' || action === 'add-borrow') {
-      // 處理借貸管理參數
-      setLoanParams({
-        action: action as 'add-lend' | 'add-borrow',
-        amount: queryParams.get('amount') || '',
-        person: queryParams.get('person') || '',
-        description: queryParams.get('description') || '',
-        date: queryParams.get('date') || ''
-      });
-      
-      // 打開借貸管理
-      setShowLoanManagement(true);
-      
-      // 清除URL參數
-      window.history.replaceState({}, document.title, window.location.pathname);
-    } else if (action === 'add-expense') {
-      // 處理新增支出參數
-      setExpenseParams({
-        amount: queryParams.get('amount') || '',
-        category: queryParams.get('category') || '其他',
-        notes: queryParams.get('notes') || '',
-        date: queryParams.get('date') || format(new Date(), 'yyyy-MM-dd') // 從URL獲取日期，或使用當前日期
-      });
-      
-      // 自動打開支出表單
-      setShowExpenseForm(true);
-      
-      // 清除URL參數
-      window.history.replaceState({}, document.title, window.location.pathname);
-    }
-  }, []);
-
   return (
-    <div className="bg-[#F5F5FA] min-h-screen font-sans">
-      {/* 頂部導航欄 */}
+    <div
+      className="min-h-screen bg-gradient-to-br from-elora-cream-light to-white text-gray-800"
+      key={renderKey}
+    >
+{/* 頂部導航 */}
       <nav className={`fixed top-0 left-0 right-0 bg-white bg-opacity-95 backdrop-blur-md shadow-sm z-20 nav-scroll-effect ${navScrolled ? 'scrolled' : ''}`}>
         <div className="flex justify-between items-center px-4 py-3 max-w-5xl mx-auto">
           {/* Left-side navigation items with toggle sidebar button */}
@@ -2793,7 +2223,7 @@ useEffect(() => {
             )}
             <div className="flex items-center">
               <span className="text-lg font-bold text-[#A487C3] nav-logo">
-                <i className="fas fa-moon mr-1"></i>記帳狼人殺
+                記帳狼人殺
               </span>
             </div>
         </div>
@@ -2804,48 +2234,47 @@ useEffect(() => {
               {/* 通知圖標 */}
               <div className="relative">
                 <button 
-                  className="w-10 h-10 flex items-center justify-center text-white bg-[#A487C3] hover:bg-[#8A5DC8] rounded-full transition-all duration-300 shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-white ripple-effect"
+                  className="p-2 text-[#A487C3] hover:text-[#8A5DC8] bg-white hover:bg-[#F8F3FF] rounded-lg transition-all duration-300 shadow-sm hover:shadow-md border border-[#F5F5F5] focus:outline-none focus:ring-2 focus:ring-white ripple-effect"
                   onClick={() => setShowNotifications(!showNotifications)}
                   style={{ overflow: 'visible' }}
                 >
                   <i className="fas fa-bell"></i>
                 </button>
                 {notificationCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center shadow-lg z-50 notification-badge border-2 border-white">
+                  <span className="absolute -top-3 -right-3 bg-red-500 text-white text-xs font-bold rounded-full w-7 h-7 flex items-center justify-center shadow-lg z-50 notification-badge border-2 border-white">
                     {notificationCount}
                   </span>
                 )}
               </div>
 
               {/* 用戶頭像 */}
-              <button
-                className="w-10 h-10 rounded-full shadow-md overflow-hidden cursor-pointer transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-white ripple-effect relative"
+              <div
+                className="flex items-center cursor-pointer hover:bg-[#F8F3FF] rounded-lg p-1 transition-all duration-300 nav-item ripple-effect"
                 onClick={() => setShowProfileForm(!showProfileForm)}
-                style={{ 
-                  background: userProfileColor || (!currentUser.photoURL ? '#A487C3' : undefined)
-                }}
               >
-                {!userProfileColor && currentUser.photoURL ? (
-                  <img
-                    src={currentUser.photoURL}
-                    alt="用戶頭像"
-                    className="absolute inset-0 w-full h-full object-cover"
-                  />
-                ) : (
-                  <span className="text-white font-medium flex items-center justify-center w-full h-full">
-                    {userNickname
-                      ? userNickname.charAt(0).toUpperCase()
-                      : currentUser.email
-                        ? currentUser.email.charAt(0).toUpperCase()
-                        : "?"}
-                  </span>
-                )}
-              </button>
+                <div className="w-8 h-8 rounded-full bg-[#A487C3] shadow-md overflow-hidden flex items-center justify-center">
+                  {currentUser.photoURL ? (
+                    <img
+                      src={currentUser.photoURL}
+                      alt="用戶頭像"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-white font-medium">
+                      {userNickname
+                        ? userNickname.charAt(0).toUpperCase()
+                        : currentUser.email
+                          ? currentUser.email.charAt(0).toUpperCase()
+                          : "?"}
+                    </span>
+                  )}
+                </div>
+              </div>
 
               {/* 登出按鈕 */}
               <button 
                 onClick={() => logout()}
-                className="w-10 h-10 flex items-center justify-center text-white bg-[#E07A8D] hover:bg-[#D56B7E] rounded-full transition-all duration-300 shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-white ripple-effect"
+                className="p-2 text-[#FAC6CD] hover:text-[#E57B9E] bg-white hover:bg-[#FFF6F8] rounded-lg transition-all duration-300 shadow-sm hover:shadow-md border border-[#F5F5F5] ripple-effect"
               >
                 <i className="fas fa-sign-out-alt"></i>
               </button>
@@ -2993,24 +2422,6 @@ useEffect(() => {
               <i className="fas fa-plus"></i>
               <span>新增消費明細</span>
             </button>
-            
-            <button 
-              className="px-5 py-3 bg-[#6BBFA0] hover:bg-[#5CAA90] text-white rounded-xl shadow-sm hover:shadow-md flex items-center gap-2 font-medium transition-all duration-300"
-              onClick={() => {
-                const element = document.getElementById('expense-details');
-                if (element) {
-                  element.scrollIntoView({ behavior: 'smooth' });
-                  // 添加一个高亮效果
-                  element.classList.add('highlight-section');
-                  setTimeout(() => {
-                    element.classList.remove('highlight-section');
-                  }, 2000);
-                }
-              }}
-            >
-              <i className="fas fa-list-ul"></i>
-              <span>歷史消費明細</span>
-            </button>
           </div>
           
           {/* 成功提示消息 - 固定在畫面中央 */}
@@ -3018,7 +2429,7 @@ useEffect(() => {
             <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-gradient-to-r from-[#6BCB77] to-[#89D8B0] text-white px-6 py-3 rounded-lg shadow-lg flex items-center z-[9999] text-lg font-medium animate-fade-in">
               <i className="fas fa-check-circle mr-3 text-xl"></i>
               <span>{successMessage}</span>
-            </div>
+</div>
           )}
           
           {/* 顯示錯誤消息的通知 */}
@@ -3027,27 +2438,24 @@ useEffect(() => {
               <div className="flex items-center">
                 <i className="fas fa-exclamation-circle mr-2"></i>
                 <span>{error}</span>
-              </div>
+</div>
               <button
                 onClick={() => setError(null)}
                 className="text-elora-pink hover:text-elora-pink-light"
               >
                 <i className="fas fa-times"></i>
               </button>
-            </div>
+</div>
           )}
           
-          {/* 預算進度條區域 - 移到支出分析區塊上方 */}
-          {currentUser && <BudgetProgressBars />}
-          
           {/* 支出分析卡片 */}
-          <div className="relative bg-white bg-opacity-95 backdrop-blur-sm rounded-xl shadow-md border-l-4 border-[#3AA6B9] p-5 mb-6 hover:shadow-lg transition-all duration-300">
+          <div className="relative bg-white bg-opacity-95 backdrop-blur-sm rounded-xl shadow-md border-l-4 border-elora-purple p-5 mb-6 hover:shadow-lg transition-all duration-300">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-bold text-[#3AA6B9]">支出分析</h2>
+              <h2 className="text-lg font-bold text-elora-purple">支出分析</h2>
               {selectedCategory && (
                 <button
                   onClick={resetCategorySelection}
-                  className="text-sm text-white bg-[#3AA6B9] hover:bg-[#4ABBC9] px-4 py-1.5 rounded-lg flex items-center transition-all duration-300 shadow-sm hover:shadow-md"
+                  className="text-sm text-white bg-elora-purple hover:bg-elora-purple-light px-4 py-1.5 rounded-lg flex items-center transition-all duration-300 shadow-sm hover:shadow-md"
                 >
                   <i className="fas fa-arrow-left mr-1.5"></i> 返回總覽
                 </button>
@@ -3101,7 +2509,7 @@ useEffect(() => {
                         {categoryExpenses.map((expense, index) => (
                           <div
                             key={expense.id}
-                            className="bg-white p-3 rounded-lg shadow-sm border-l-2 border-[#3AA6B9] hover:shadow-md transition-all duration-300"
+                            className="bg-white p-3 rounded-lg shadow-sm border-l-2 border-elora-purple hover:shadow-md transition-all duration-300"
                             style={{
                               animation: `fadeSlideIn 0.5s ease-out ${index * 0.1}s both`,
                               opacity: 0,
@@ -3178,7 +2586,7 @@ useEffect(() => {
           </div>
           
           {/* 今日支出 - 放在每日消費趨勢下方 */}
-          <div id="expense-details" className="bg-white bg-opacity-95 rounded-xl shadow-md border-l-4 border-elora-pink p-5 mb-6">
+          <div className="bg-white bg-opacity-95 rounded-xl shadow-md border-l-4 border-elora-pink p-5 mb-6">
             <div className="flex flex-col mb-4">
               {/* 刪除選項卡切換 */}
               
@@ -3195,7 +2603,7 @@ useEffect(() => {
                           : selectedDateOption === "last_week"
                             ? "上週消費明細"
                             : selectedDateOption === "month_select"
-                              ? `${selectedMonth.split('-')[0]}年${String(selectedMonth.split('-')[1]).padStart(2, '0')}月消費明細`
+                              ? `${selectedMonth.split('-')[0]}年${selectedMonth.split('-')[1]}月消費明細`
                               : selectedDateOption === "earlier"
                                 ? format(selectedDate, "yyyy年M月d日") + " 消費明細"
                                 : "全部消費明細"}
@@ -3330,7 +2738,7 @@ useEffect(() => {
               </div>
             </div>
 
-            <p className="text-gray-500 self-end">
+            <p className="text-gray-500">
               總計:{" "}
               {filteredTransactions.length > 0
                 ? new Intl.NumberFormat("zh-TW", {
@@ -3420,7 +2828,7 @@ useEffect(() => {
 </div>
 ))}
 </div>
-                <div className="mt-6 pt-4 border-t border-gray-200 flex justify-start">
+                <div className="mt-6 pt-4 border-t border-gray-200 flex justify-end">
                   <p className="text-lg font-bold text-gray-800">
                     總計:{" "}
                     {new Intl.NumberFormat("zh-TW", {
@@ -3447,15 +2855,7 @@ useEffect(() => {
                       ? "昨天沒有消費記錄"
                       : selectedDateOption === "month"
                         ? "本月沒有消費記錄"
-                        : selectedDateOption === "month_select"
-                          ? `${selectedMonth.split('-')[0]}年${String(selectedMonth.split('-')[1]).padStart(2, '0')}月沒有消費記錄`
-                          : selectedDateOption === "this_week"
-                            ? "本週沒有消費記錄"
-                            : selectedDateOption === "last_week"
-                              ? "上週沒有消費記錄"
-                              : selectedDateOption === "all"
-                                ? "沒有任何消費記錄"
-                                : `${format(selectedDate, "yyyy年M月d日")} 沒有消費記錄`}
+                        : `${format(selectedDate, "yyyy年M月d日")} 沒有消費記錄`}
                 </p>
                 <button 
                   className="px-4 py-2 bg-[#E07A8D] hover:bg-[#F09CA7] text-white rounded-lg text-sm shadow-sm hover:shadow-md transition-all duration-300 ripple-effect floating"
@@ -3494,13 +2894,8 @@ useEffect(() => {
               <div className="flex flex-col">
                 <h3 className="font-bold text-[#2E2E2E] mb-3">選單</h3>
                 <div className="flex items-center gap-3">
-                  <div 
-                    className="w-12 h-12 rounded-full overflow-hidden flex items-center justify-center flex-shrink-0 shadow-md"
-                    style={{ 
-                      background: userProfileColor || (!currentUser.photoURL ? '#A487C3' : undefined)
-                    }}
-                  >
-                    {!userProfileColor && currentUser.photoURL ? (
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-r from-elora-purple to-elora-pink overflow-hidden flex items-center justify-center flex-shrink-0 shadow-md">
+                    {currentUser.photoURL ? (
                       <img
                         src={currentUser.photoURL}
                         alt="用戶頭像"
@@ -3515,7 +2910,7 @@ useEffect(() => {
                             : "?"}
                       </span>
                     )}
-                  </div>
+</div>
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-[#2E2E2E] truncate">
                       {userNickname ||
@@ -3551,18 +2946,13 @@ useEffect(() => {
                         setShowSidebar(false);
                   setShowLeaderboardViewer(true);
                 }}
-                className="flex items-center gap-3 w-full p-3 text-left text-white bg-[#C6B2DD] hover:bg-[#D8CAEB] rounded-lg mb-2 relative shadow-sm transition-all duration-300 sidebar-menu-item sidebar-menu-item-2 tilt-hover ripple-effect"
+                className="flex items-center gap-3 w-full p-3 text-left text-white bg-[#C6B2DD] hover:bg-[#D8CAEB] rounded-lg mb-2 shadow-sm transition-all duration-300 sidebar-menu-item sidebar-menu-item-2 tilt-hover ripple-effect"
                 style={{opacity: 1, transform: 'none'}}
               >
                 <div className="w-8 h-8 rounded-full bg-white bg-opacity-20 flex items-center justify-center backdrop-blur-sm">
                   <i className="fas fa-list-ol text-white"></i>
                 </div>
                 <span>排行榜</span>
-                {leaderboardInviteCount > 0 && (
-                  <span className="absolute top-0 right-0 bg-red-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center transform -translate-y-1 translate-x-1 shadow-md z-20 notification-badge animate-pulse">
-                    {leaderboardInviteCount}
-                  </span>
-                )}
                     </button>
 
                     <button 
@@ -3617,11 +3007,6 @@ useEffect(() => {
     <i className="fas fa-receipt text-white"></i>
   </div>
   <span>好友分帳</span>
-  {groupInviteCount > 0 && (
-    <span className="absolute top-0 right-0 bg-red-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center transform -translate-y-1 translate-x-1 shadow-md z-20 notification-badge animate-pulse">
-      {groupInviteCount}
-    </span>
-  )}
 </button>
 
 {/* 添加預算設置選項 */}
@@ -3705,7 +3090,6 @@ useEffect(() => {
                     // 立即關閉表單，提高用戶體驗
                     setShowExpenseForm(false);
                     setEditingExpense(null);
-                    setExpenseParams(null); // 清除初始參數
                     
                     // 直接執行保存操作
                     let success = false;
@@ -3749,20 +3133,8 @@ useEffect(() => {
                 onCancel={() => {
                   setShowExpenseForm(false);
                   setEditingExpense(null);
-                  setExpenseParams(null); // 清除初始參數
                 }}
-                expense={
-                  // 優先使用編輯中的支出數據，否則檢查是否有初始參數
-                  editingExpense ? convertExpenseForForm(editingExpense) :
-                  expenseParams ? {
-                    id: '', // 新建支出的id為空
-                    amount: parseFloat(expenseParams.amount),
-                    category: expenseParams.category,
-                    date: expenseParams.date || new Date().toISOString().slice(0, 10),
-                    notes: expenseParams.notes,
-                    attachments: []
-                  } as any : null
-                }
+                expense={convertExpenseForForm(editingExpense)}
               />
 </div>
 </div>
@@ -3796,10 +3168,16 @@ useEffect(() => {
         </div>
       )}
 
-      {/* 日期選擇對話框 - 完全重寫為自定義界面 */}
+      {/* 日期選擇對話框 */}
       {showDatePicker && (
-        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-white rounded-lg p-4 w-[90%] max-w-sm animate-slideUpIn shadow-xl border border-[#E8E4ED] transform">
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50 backdrop-blur-sm animate-fadeIn"
+          onClick={() => setShowDatePicker(false)}
+        >
+          <div 
+            className="bg-white rounded-lg p-4 w-[90%] max-w-sm animate-slideUpIn shadow-xl border border-[#E8E4ED] transform"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between mb-4 border-b border-gray-100 pb-2">
               <h3 className="text-base font-medium text-gray-700 flex items-center">
                 <i className="fas fa-calendar-day mr-2 text-[#8A7C9F]"></i>
@@ -3814,94 +3192,20 @@ useEffect(() => {
               </button>
             </div>
             
-            {/* 自定義日期選擇界面 */}
             <div className="bg-[#F9F7FB] p-3 rounded-md mb-4">
-              <div className="grid grid-cols-3 gap-2">
-                {/* 年份選擇 */}
-                <div>
-                  <label className="block text-xs text-gray-600 mb-1">年</label>
-                  <select 
-                    className="w-full p-2 border border-[#E8E4ED] rounded-md focus:outline-none focus:ring-1 focus:ring-[#8A7C9F] focus:border-[#8A7C9F] bg-white text-sm"
-                    value={selectedDate.getFullYear()}
-                    onChange={(e) => {
-                      const newYear = parseInt(e.target.value);
-                      const newDate = new Date(selectedDate);
-                      newDate.setFullYear(newYear);
-                      setSelectedDate(newDate);
-                    }}
-                  >
-                    {Array.from({ length: 10 }, (_, i) => (
-                      <option key={i} value={new Date().getFullYear() - 5 + i}>
-                        {new Date().getFullYear() - 5 + i}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                
-                {/* 月份選擇 */}
-                <div>
-                  <label className="block text-xs text-gray-600 mb-1">月</label>
-                  <select 
-                    className="w-full p-2 border border-[#E8E4ED] rounded-md focus:outline-none focus:ring-1 focus:ring-[#8A7C9F] focus:border-[#8A7C9F] bg-white text-sm"
-                    value={selectedDate.getMonth() + 1}
-                    onChange={(e) => {
-                      const newMonth = parseInt(e.target.value) - 1;
-                      const newDate = new Date(selectedDate);
-                      newDate.setMonth(newMonth);
-                      
-                      // 處理月份天數問題
-                      const currentDay = selectedDate.getDate();
-                      const lastDayOfMonth = new Date(newDate.getFullYear(), newMonth + 1, 0).getDate();
-                      if (currentDay > lastDayOfMonth) {
-                        newDate.setDate(lastDayOfMonth);
-                      }
-                      
-                      setSelectedDate(newDate);
-                    }}
-                  >
-                    {Array.from({ length: 12 }, (_, i) => (
-                      <option key={i} value={i + 1}>
-                        {i + 1}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                
-                {/* 日期選擇 */}
-                <div>
-                  <label className="block text-xs text-gray-600 mb-1">日</label>
-                  <select 
-                    className="w-full p-2 border border-[#E8E4ED] rounded-md focus:outline-none focus:ring-1 focus:ring-[#8A7C9F] focus:border-[#8A7C9F] bg-white text-sm"
-                    value={selectedDate.getDate()}
-                    onChange={(e) => {
-                      const newDay = parseInt(e.target.value);
-                      const newDate = new Date(selectedDate);
-                      newDate.setDate(newDay);
-                      setSelectedDate(newDate);
-                    }}
-                  >
-                    {Array.from(
-                      { length: new Date(
-                        selectedDate.getFullYear(), 
-                        selectedDate.getMonth() + 1, 
-                        0
-                      ).getDate() }, 
-                      (_, i) => (
-                        <option key={i} value={i + 1}>
-                          {i + 1}
-                        </option>
-                      )
-                    )}
-                  </select>
-                </div>
-              </div>
-              
-              {/* 顯示選擇的日期 */}
-              <div className="mt-3 text-center bg-white p-2 rounded-md shadow-sm border border-[#E8E4ED]">
-                <p className="text-gray-700 font-medium">
-                  {selectedDate.getFullYear()}年{selectedDate.getMonth() + 1}月{selectedDate.getDate()}日
-                </p>
-              </div>
+              <input
+                type="date"
+                className="w-full p-2 border border-[#E8E4ED] rounded-md focus:outline-none focus:ring-1 focus:ring-[#8A7C9F] focus:border-[#8A7C9F] bg-white text-sm shadow-sm hover:border-[#8A7C9F] transition-all duration-200"
+                onChange={(e) => {
+                  if (e.target.value) {
+                    const [year, month, day] = e.target.value.split('-').map(Number);
+                    const selectedDate = new Date(year, month - 1, day);
+                    setSelectedDate(selectedDate);
+                    setSelectedDateOption("earlier");
+                    setShowDatePicker(false);
+                  }
+                }}
+              />
             </div>
             
             <div className="flex space-x-2">
@@ -3913,10 +3217,7 @@ useEffect(() => {
                 取消
               </button>
               <button
-                onClick={() => {
-                  setSelectedDateOption("earlier");
-                  setShowDatePicker(false);
-                }}
+                onClick={() => setShowDatePicker(false)}
                 className="flex-1 py-2 px-4 bg-[#8A7C9F] text-white rounded-md hover:bg-[#79708C] transition-colors text-sm flex items-center justify-center gap-1 shadow-sm"
               >
                 <i className="fas fa-check-circle text-xs"></i>
@@ -3927,10 +3228,16 @@ useEffect(() => {
         </div>
       )}
 
-      {/* 月份選擇對話框 - 同樣重寫為自定義界面 */}
+      {/* 月份選擇對話框 */}
       {showMonthPicker && (
-        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-white rounded-lg p-4 w-[90%] max-w-sm animate-slideUpIn shadow-xl border border-[#E8E4ED]">
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50 backdrop-blur-sm animate-fadeIn"
+          onClick={() => setShowMonthPicker(false)}
+        >
+          <div 
+            className="bg-white rounded-lg p-4 w-[90%] max-w-sm animate-slideUpIn shadow-xl border border-[#E8E4ED]"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between mb-4 border-b border-gray-100 pb-2">
               <h3 className="text-base font-medium text-gray-700 flex items-center">
                 <i className="fas fa-calendar-alt mr-2 text-[#8A7C9F]"></i>
@@ -3945,95 +3252,22 @@ useEffect(() => {
               </button>
             </div>
             
-            {/* 自定義月份選擇界面 */}
             <div className="bg-[#F9F7FB] p-3 rounded-md mb-4">
-              <div className="grid grid-cols-2 gap-2">
-                {/* 年份選擇 */}
-                <div>
-                  <label className="block text-xs text-gray-600 mb-1">年</label>
-                  <select 
-                    className="w-full p-2 border border-[#E8E4ED] rounded-md focus:outline-none focus:ring-1 focus:ring-[#8A7C9F] focus:border-[#8A7C9F] bg-white text-sm"
-                    value={selectedDate.getFullYear()}
-                    onChange={(e) => {
-                      const newYear = parseInt(e.target.value);
-                      const newDate = new Date(selectedDate);
-                      newDate.setFullYear(newYear);
-                      setSelectedDate(newDate);
-                      
-                      // 更新selectedMonth
-                      const month = newDate.getMonth() + 1;
-                      setSelectedMonth(`${newYear}-${month}`);
-                    }}
-                  >
-                    {Array.from({ length: 10 }, (_, i) => (
-                      <option key={i} value={new Date().getFullYear() - 5 + i}>
-                        {new Date().getFullYear() - 5 + i}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                
-                {/* 月份選擇 */}
-                <div>
-                  <label className="block text-xs text-gray-600 mb-1">月</label>
-                  <select 
-                    className="w-full p-2 border border-[#E8E4ED] rounded-md focus:outline-none focus:ring-1 focus:ring-[#8A7C9F] focus:border-[#8A7C9F] bg-white text-sm"
-                    value={selectedDate.getMonth() + 1}
-                    onChange={(e) => {
-                      const newMonth = parseInt(e.target.value) - 1;
-                      const newDate = new Date(selectedDate);
-                      newDate.setMonth(newMonth);
-                      newDate.setDate(1); // 設為月初
-                      setSelectedDate(newDate);
-                      
-                      // 更新selectedMonth
-                      const year = newDate.getFullYear();
-                      const month = newMonth + 1;
-                      setSelectedMonth(`${year}-${month}`);
-                    }}
-                  >
-                    {Array.from({ length: 12 }, (_, i) => (
-                      <option key={i} value={i + 1}>
-                        {i + 1}月
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-              
-              {/* 月份按鈕快速選擇 */}
-              <div className="mt-3 grid grid-cols-4 gap-2">
-                {Array.from({ length: 12 }, (_, i) => (
-                  <button
-                    key={i}
-                    className={`p-2 text-sm rounded-md transition-colors ${
-                      selectedDate.getMonth() === i 
-                        ? "bg-[#8A7C9F] text-white" 
-                        : "bg-white text-gray-700 hover:bg-[#F2EDF7]"
-                    } border border-[#E8E4ED]`}
-                    onClick={() => {
-                      const newDate = new Date(selectedDate);
-                      newDate.setMonth(i);
-                      newDate.setDate(1); // 設為月初
-                      setSelectedDate(newDate);
-                      
-                      // 更新selectedMonth
-                      const year = newDate.getFullYear();
-                      const month = i + 1;
-                      setSelectedMonth(`${year}-${month}`);
-                    }}
-                  >
-                    {i + 1}月
-                  </button>
-                ))}
-              </div>
-              
-              {/* 顯示選擇的月份 */}
-              <div className="mt-3 text-center bg-white p-2 rounded-md shadow-sm border border-[#E8E4ED]">
-                <p className="text-gray-700 font-medium">
-                  {selectedDate.getFullYear()}年{selectedDate.getMonth() + 1}月
-                </p>
-              </div>
+              <input
+                type="month"
+                className="w-full p-2 border border-[#E8E4ED] rounded-md focus:outline-none focus:ring-1 focus:ring-[#8A7C9F] focus:border-[#8A7C9F] bg-white text-sm shadow-sm hover:border-[#8A7C9F] transition-all duration-200"
+                onChange={(e) => {
+                  if (e.target.value) {
+                    const [year, month] = e.target.value.split('-').map(Number);
+                    console.log(`選擇了月份: ${year}-${month}`);
+                    // 設定為該月第一天
+                    const selectedDate = new Date(year, month - 1, 1);
+                    setSelectedDate(selectedDate);
+                    setSelectedDateOption("month_select");
+                    setShowMonthPicker(false);
+                  }
+                }}
+              />
             </div>
             
             <div className="flex space-x-2">
@@ -4045,10 +3279,7 @@ useEffect(() => {
                 取消
               </button>
               <button
-                onClick={() => {
-                  setSelectedDateOption("month_select");
-                  setShowMonthPicker(false);
-                }}
+                onClick={() => setShowMonthPicker(false)}
                 className="flex-1 py-2 px-4 bg-[#8A7C9F] text-white rounded-md hover:bg-[#79708C] transition-colors text-sm flex items-center justify-center gap-1 shadow-sm"
               >
                 <i className="fas fa-check-circle text-xs"></i>
@@ -4324,31 +3555,6 @@ useEffect(() => {
                       </div>
                     </div>
                   )}
-
-                  {/* 分帳群組邀請通知 */}
-                  {groupInviteCount > 0 && (
-                    <div
-                      className="w-full p-3 rounded-lg bg-cyan-50 cursor-pointer hover:bg-cyan-100 transition"
-                      onClick={() => {
-                        setShowNotifications(false);
-                        setShowGroupInvites(true);
-                      }}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-cyan-100 rounded-full flex items-center justify-center text-cyan-500">
-                          <i className="fas fa-users"></i>
-                        </div>
-                        <div className="text-left">
-                          <span className="font-medium text-gray-800 block">
-                            分帳群組邀請通知
-                          </span>
-                          <span className="text-xs text-gray-500">
-                            您有 {groupInviteCount} 個分帳群組邀請待處理
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  )}
                 </div>
               ) : (
                 <div className="text-center py-12">
@@ -4398,21 +3604,12 @@ useEffect(() => {
 
       {/* 預算和借貸通知處理組件 */}
       <BudgetNotification />
-      
-      {/* 分帳群組邀請通知组件 */}
-      <GroupInviteNotification />
 
       {/* 借貸管理表單 */}
       {showLoanManagement && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
-            <LoanManagement 
-              onClose={() => {
-                setShowLoanManagement(false);
-                setLoanParams(null); // 關閉時清除參數
-              }} 
-              initialParams={loanParams}
-            />
+            <LoanManagement onClose={() => setShowLoanManagement(false)} />
           </div>
         </div>
       )}
@@ -4430,99 +3627,326 @@ useEffect(() => {
       {showSplitExpenseForm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
-            <SplitExpenseManagement 
-              onClose={() => setShowSplitExpenseForm(false)} 
-              groupInviteCount={groupInviteCount}
-            />
+            <SplitExpenseManagement onClose={() => setShowSplitExpenseForm(false)} />
           </div>
         </div>
       )}
 
-      {/* 固定在右下角的懸浮新增支出按鈕 */}
-      {currentUser && 
-        !showSidebar && 
-        !showExpenseForm && 
-        !showLoginForm && 
-        !showProfileForm && 
-        !showLeaderboardForm && 
-        !showFriendManagement && 
-        !showLeaderboardViewer && 
-        !showLoanManagement && 
-        !showBudgetSetting && 
-        !showSplitExpenseForm && 
-        !showDatePicker && 
-        !showMonthPicker && 
-        !showNotifications && (
-        <div className="fixed bottom-8 right-8 z-[1000] flex flex-col gap-4 items-center">
-          {/* 添加历史明细按钮和提示 */}
-          <div className="group relative">
-            <button
-              onClick={() => {
-                const element = document.getElementById('expense-details');
-                if (element) {
-                  element.scrollIntoView({ behavior: 'smooth' });
-                  // 添加一个高亮效果
-                  element.classList.add('highlight-section');
-                  setTimeout(() => {
-                    element.classList.remove('highlight-section');
-                  }, 2000);
-                }
-              }}
-              className="w-14 h-14 sm:w-12 sm:h-12 bg-gradient-to-r from-[#6BBFA0] to-[#8FD3B9] rounded-full shadow-xl hover:shadow-2xl flex items-center justify-center text-white transform hover:scale-110 active:scale-95 transition-all duration-300 relative overflow-hidden focus:outline-none focus:ring-4 focus:ring-green-300 focus:ring-opacity-50"
-              aria-label="歷史消費明細"
-            >
-              <i className="fas fa-list-ul text-2xl sm:text-xl relative z-10"></i>
-              {/* 波紋效果元素 */}
-              <div className="absolute inset-0 bg-white opacity-0 hover:opacity-20 transition-opacity duration-300 rounded-full"></div>
-            </button>
-            {/* 歷史明細按鈕的懸停提示 */}
-            <div className="absolute -top-12 right-0 bg-[#333333] text-white text-xs px-3 py-1.5 rounded-md opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-300 whitespace-nowrap shadow-md transform group-hover:-translate-y-1">
-              <div className="flex items-center gap-1">
-                <i className="fas fa-list-ul text-xs"></i>
-                <span>歷史消費明細</span>
-              </div>
-              {/* 小三角形 */}
-              <div className="absolute w-3 h-3 bg-[#333333] transform rotate-45 right-4 bottom-[-6px]"></div>
-            </div>
-          </div>
-          
-          {/* 新增支出按鈕和提示 */}
-          <div className="group relative">
-            <button
+      {/* 預算進度條 - 放在頂部 */}
+      {currentUser && (
+        <BudgetProgress />
+      )}
+
+      {/* 每日消費長條圖 */}
+      <div className="bg-white bg-opacity-95 backdrop-blur-sm rounded-xl shadow-md border-l-4 border-elora-mint p-5 mb-6 hover:shadow-lg transition-all duration-300">
+        <h2 className="text-lg font-bold text-[#6BBFA0] mb-4">
+          每日消費趨勢
+        </h2>
+        {expenses && expenses.length > 0 ? (
+          <div
+            ref={dailyChartRef}
+            style={{ height: "300px" }}
+            key={`daily-chart-${expenses.length}`}
+          ></div>
+        ) : (
+          <div className="text-center py-8 text-gray-500 h-[300px] flex flex-col items-center justify-center">
+            <i className="fas fa-chart-bar text-3xl mb-2 text-elora-mint opacity-40"></i>
+            <p className="mb-3">沒有任何消費明細</p>
+            <button 
+              className="px-4 py-2 bg-[#E07A8D] hover:bg-[#F09CA7] text-white rounded-lg text-sm shadow-sm hover:shadow-md transition-all duration-300 ripple-effect floating"
               onClick={() => setShowExpenseForm(true)}
-              className="w-16 h-16 sm:w-14 sm:h-14 bg-gradient-to-r from-[#E07A8D] to-[#F09CA7] rounded-full shadow-xl hover:shadow-2xl flex items-center justify-center text-white transform hover:scale-110 active:scale-95 transition-all duration-300 relative overflow-hidden focus:outline-none focus:ring-4 focus:ring-pink-300 focus:ring-opacity-50"
-              aria-label="新增支出"
             >
-              <i className="fas fa-plus text-2xl sm:text-xl relative z-10"></i>
-              {/* 波紋效果元素 */}
-              <div className="absolute inset-0 bg-white opacity-0 hover:opacity-20 transition-opacity duration-300 rounded-full"></div>
-              {/* 脈衝效果 - 使用兩層不同速度的脈衝 */}
-              <div className="absolute inset-0 rounded-full animate-ping opacity-30 bg-gradient-to-r from-[#E07A8D] to-[#F09CA7] duration-1000"></div>
-              <div className="absolute inset-0 rounded-full animate-ping opacity-20 bg-gradient-to-r from-[#E07A8D] to-[#F09CA7] duration-1500 delay-500"></div>
+              <i className="fas fa-plus-circle mr-2"></i>
+              新增消費明細
             </button>
-            {/* 新增支出按鈕的懸停提示 */}
-            <div className="absolute -top-12 right-0 bg-[#333333] text-white text-xs px-3 py-1.5 rounded-md opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-300 whitespace-nowrap shadow-md transform group-hover:-translate-y-1">
-              <div className="flex items-center gap-1">
-                <i className="fas fa-receipt text-xs"></i>
-                <span>新增支出</span>
-              </div>
-              {/* 小三角形 */}
-              <div className="absolute w-3 h-3 bg-[#333333] transform rotate-45 right-4 bottom-[-6px]"></div>
+          </div>
+        )}
+      </div>
+      
+      {/* 今日支出 - 放在每日消費趨勢下方 */}
+      <div className="bg-white bg-opacity-95 rounded-xl shadow-md border-l-4 border-elora-pink p-5 mb-6">
+        <div className="flex flex-col mb-4">
+          {/* 刪除選項卡切換 */}
+          
+          <div className="mb-3">
+            <h2 className="text-xl font-bold text-elora-pink">
+              {selectedDateOption === "today"
+                ? "今日消費明細"
+                : selectedDateOption === "yesterday"
+                  ? "昨日消費明細"
+                  : selectedDateOption === "month"
+                    ? "本月消費明細"
+                    : selectedDateOption === "this_week"
+                      ? "本週消費明細"
+                      : selectedDateOption === "last_week"
+                        ? "上週消費明細"
+                        : selectedDateOption === "month_select"
+                          ? `${selectedMonth.split('-')[0]}年${selectedMonth.split('-')[1]}月消費明細`
+                          : selectedDateOption === "earlier"
+                            ? format(selectedDate, "yyyy年M月d日") + " 消費明細"
+                            : "全部消費明細"}
+              </h2>
+            </div>
+
+            {/* 日期切換按鈕 - 簡約優雅設計 */}
+            <div className="flex flex-wrap gap-1.5 mb-4">
+              <button
+                onClick={() => {
+                  setSelectedDate(getTodayDate());
+                  setSelectedDateOption("today");
+                }}
+                className={`px-3 py-1.5 text-xs rounded-md flex items-center gap-1 transition-colors duration-200 ${
+                  selectedDateOption === "today"
+                    ? "bg-[#8A7C9F] text-white border border-[#8A7C9F]"
+                    : "bg-[#F9F7FB] text-[#6D6D6D] border border-[#E8E4ED] hover:bg-[#F2EDF7]"
+                }`}
+              >
+                <i className="fas fa-calendar-day text-[10px]"></i>
+                今天
+              </button>
+              <button
+                onClick={() => {
+                  const yesterday = new Date(getTodayDate());
+                  yesterday.setDate(yesterday.getDate() - 1);
+                  setSelectedDate(yesterday);
+                  setSelectedDateOption("yesterday");
+                }}
+                className={`px-3 py-1.5 text-xs rounded-md flex items-center gap-1 transition-colors duration-200 ${
+                  selectedDateOption === "yesterday"
+                    ? "bg-[#8A7C9F] text-white border border-[#8A7C9F]"
+                    : "bg-[#F9F7FB] text-[#6D6D6D] border border-[#E8E4ED] hover:bg-[#F2EDF7]"
+                }`}
+              >
+                <i className="fas fa-calendar-minus text-[10px]"></i>
+                昨天
+              </button>
+              <button
+                onClick={() => {
+                  // 獲取本週的起始日期
+                  const today = new Date();
+                  const currentDay = today.getDay() || 7; // 處理週日為0的情況
+                  const firstDayOfWeek = new Date(today);
+                  firstDayOfWeek.setDate(today.getDate() - (currentDay - 1));
+                  firstDayOfWeek.setHours(0, 0, 0, 0);
+                  setSelectedDate(firstDayOfWeek);
+                  setSelectedDateOption("this_week");
+                }}
+                className={`px-3 py-1.5 text-xs rounded-md flex items-center gap-1 transition-colors duration-200 ${
+                  selectedDateOption === "this_week"
+                    ? "bg-[#8A7C9F] text-white border border-[#8A7C9F]"
+                    : "bg-[#F9F7FB] text-[#6D6D6D] border border-[#E8E4ED] hover:bg-[#F2EDF7]"
+                }`}
+              >
+                <i className="fas fa-calendar-week text-[10px]"></i>
+                本週
+              </button>
+              <button
+                onClick={() => {
+                  // 獲取上週的起始日期
+                  const today = new Date();
+                  const currentDay = today.getDay() || 7; // 處理週日為0的情況
+                  const firstDayOfLastWeek = new Date(today);
+                  firstDayOfLastWeek.setDate(today.getDate() - (currentDay - 1) - 7);
+                  firstDayOfLastWeek.setHours(0, 0, 0, 0);
+                  setSelectedDate(firstDayOfLastWeek);
+                  setSelectedDateOption("last_week");
+                }}
+                className={`px-3 py-1.5 text-xs rounded-md flex items-center gap-1 transition-colors duration-200 ${
+                  selectedDateOption === "last_week"
+                    ? "bg-[#8A7C9F] text-white border border-[#8A7C9F]"
+                    : "bg-[#F9F7FB] text-[#6D6D6D] border border-[#E8E4ED] hover:bg-[#F2EDF7]"
+                }`}
+              >
+                <i className="fas fa-calendar-alt text-[10px]"></i>
+                上週
+              </button>
+              <button
+                onClick={() => {
+                  setSelectedDateOption("month");
+                }}
+                className={`px-3 py-1.5 text-xs rounded-md flex items-center gap-1 transition-colors duration-200 ${
+                  selectedDateOption === "month"
+                    ? "bg-[#8A7C9F] text-white border border-[#8A7C9F]"
+                    : "bg-[#F9F7FB] text-[#6D6D6D] border border-[#E8E4ED] hover:bg-[#F2EDF7]"
+                }`}
+              >
+                <i className="fas fa-calendar text-[10px]"></i>
+                本月
+              </button>
+              <button
+                onClick={() => {
+                  setShowDatePicker(true);
+                }}
+                className={`px-3 py-1.5 text-xs rounded-md flex items-center gap-1 transition-colors duration-200 ${
+                  selectedDateOption === "earlier"
+                    ? "bg-[#8A7C9F] text-white border border-[#8A7C9F]"
+                    : "bg-[#F9F7FB] text-[#6D6D6D] border border-[#E8E4ED] hover:bg-[#F2EDF7]"
+                }`}
+              >
+                <i className="fas fa-calendar-plus text-[10px]"></i>
+                選擇日期
+              </button>
+              <button
+                onClick={() => {
+                  // 打開選擇月份對話框
+                  setShowMonthPicker(true);
+                }}
+                className={`px-3 py-1.5 text-xs rounded-md flex items-center gap-1 transition-colors duration-200 ${
+                  selectedDateOption === "month_select"
+                    ? "bg-[#8A7C9F] text-white border border-[#8A7C9F]"
+                    : "bg-[#F9F7FB] text-[#6D6D6D] border border-[#E8E4ED] hover:bg-[#F2EDF7]"
+                }`}
+              >
+                <i className="fas fa-calendar-alt text-[10px]"></i>
+                選擇月份
+              </button>
+              <button
+                onClick={() => {
+                  setSelectedDateOption("all");
+                }}
+                className={`px-3 py-1.5 text-xs rounded-md flex items-center gap-1 transition-colors duration-200 ${
+                  selectedDateOption === "all"
+                    ? "bg-[#8A7C9F] text-white border border-[#8A7C9F]"
+                    : "bg-[#F9F7FB] text-[#6D6D6D] border border-[#E8E4ED] hover:bg-[#F2EDF7]"
+                }`}
+              >
+                <i className="fas fa-infinity text-[10px]"></i>
+                全部
+              </button>
             </div>
           </div>
-        </div>
-      )}
 
-      {/* 分帳群組邀請列表 */}
-      {showGroupInvites && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
-            <GroupInviteList
-              onClose={() => setShowGroupInvites(false)}
-            />
+          <p className="text-gray-500">
+            總計:{" "}
+            {filteredTransactions.length > 0
+              ? new Intl.NumberFormat("zh-TW", {
+                  style: "currency",
+                  currency: "TWD",
+                  minimumFractionDigits: 0,
+                  maximumFractionDigits: 0,
+                }).format(
+                  filteredTransactions.reduce(
+                    (total, expense) => total + expense.amount,
+                    0,
+                  ),
+                )
+              : "$0"}
+          </p>
+
+          {filteredTransactions.length > 0 ? (
+            <>
+            <div className="space-y-4">
+                {filteredTransactions.map((transaction) => (
+                  <div
+                    key={transaction.id}
+                    className="flex items-center justify-between pb-3 border-b border-gray-100 last:border-0"
+                  >
+                  <div className="flex items-center gap-3">
+                      <div
+                        className="w-12 h-12 rounded-lg flex items-center justify-center text-white"
+                        style={{
+                          backgroundColor: getCategoryColor(
+                            typeof transaction.category === "string"
+                              ? transaction.category
+                              : transaction.category?.name || "其他",
+                          ),
+                        }}
+                      >
+                        <i
+                          className={`fas ${typeof transaction.category === "string" ? getCategoryIcon(transaction.category) : transaction.category?.icon || "fa-question"} text-xl`}
+                        ></i>
+                    </div>
+                    <div>
+                        <p className="font-medium text-gray-800">
+                          {typeof transaction.category === "string"
+                            ? transaction.category
+                            : transaction.category?.name || "未分類"}
+                          {transaction.notes && (
+                            <span className="ml-2 font-normal text-gray-500 text-sm">
+                              {transaction.notes.length > 30
+                                ? `${transaction.notes.substring(0, 30)}...`
+                                : transaction.notes}
+                            </span>
+                          )}
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          {transaction.date.toLocaleDateString()}
+                        </p>
           </div>
-        </div>
-      )}
+</div>
+                    <div className="flex items-center gap-3">
+                      <p className="font-medium text-gray-700">
+                        NT$ {transaction.amount}
+                      </p>
+                      <div className="flex gap-2">
+                      <button 
+                        onClick={() => editExpense(transaction)}
+                          className="w-10 h-10 flex items-center justify-center text-gray-600 hover:text-white bg-[#E0D4F0] hover:bg-blue-500 rounded-full transition-all duration-200"
+                          title="編輯消費明細"
+                      >
+                          <i className="fas fa-edit text-lg"></i>
+                      </button>
+                      <button 
+                        onClick={(e) => {
+                          e.preventDefault(); // 阻止默認行為
+                          e.stopPropagation(); // 阻止事件冒泡
+                            console.log(
+                              "垃圾桶按鈕點擊，ID:",
+                              transaction.id,
+                            );
+                          deleteExpense(transaction.id);
+                        }}
+                          className="w-10 h-10 flex items-center justify-center text-gray-600 hover:text-white bg-[#E0D4F0] hover:bg-red-500 rounded-full transition-all duration-200"
+                          title="刪除消費明細"
+                      >
+                          <i className="fas fa-trash text-lg"></i>
+                      </button>
+                      </div>
+                    </div>
+                  </div>
+</div>
+              )}
+            </div>
+            <div className="mt-6 pt-4 border-t border-gray-200 flex justify-end">
+              <p className="text-lg font-bold text-gray-800">
+                總計:{" "}
+                {new Intl.NumberFormat("zh-TW", {
+                  style: "currency",
+                  currency: "TWD",
+                  minimumFractionDigits: 0,
+                  maximumFractionDigits: 0,
+                }).format(
+                  filteredTransactions.reduce(
+                    (total, expense) => total + expense.amount,
+                    0,
+                  ),
+                )}
+              </p>
+            </div>
+          </>
+        ) : (
+          <div className="text-center py-8 text-gray-500 flex flex-col items-center justify-center h-[200px]">
+            <i className="fas fa-receipt text-3xl mb-2 text-gray-300"></i>
+            <p className="mb-3">
+              {selectedDateOption === "today"
+                ? "今天還沒有記錄任何消費"
+                : selectedDateOption === "yesterday"
+                  ? "昨天沒有消費記錄"
+                  : selectedDateOption === "month"
+                    ? "本月沒有消費記錄"
+                    : `${format(selectedDate, "yyyy年M月d日")} 沒有消費記錄`}
+            </p>
+            <button 
+              className="px-4 py-2 bg-[#E07A8D] hover:bg-[#F09CA7] text-white rounded-lg text-sm shadow-sm hover:shadow-md transition-all duration-300 ripple-effect floating"
+              onClick={() => setShowExpenseForm(true)}
+            >
+              <i className="fas fa-plus-circle mr-2"></i>
+              新增消費明細
+  </button>
+</div>
+        )}
+</div>
+</div>
     </div>
   );
 };

@@ -164,7 +164,7 @@ const LeaderboardInviteList: React.FC<LeaderboardInviteListProps> = ({ onClose }
         <div className="flex items-center">
           <button 
             onClick={handleReturnToLeaderboardManager}
-            className="mr-3 p-2 text-[#A487C3] hover:text-[#8A5DC8] bg-white hover:bg-[#F8F3FF] rounded-lg transition-all duration-300 shadow-sm hover:shadow-md"
+            className="mr-3 p-2 text-[#A487C3] hover:text-white bg-white hover:bg-[#A487C3] rounded-lg transition-all duration-300 shadow-sm hover:shadow-md"
           >
             <i className="fas fa-arrow-left"></i>
           </button>
@@ -218,7 +218,7 @@ const LeaderboardInviteList: React.FC<LeaderboardInviteListProps> = ({ onClose }
               className="border rounded-lg p-4 bg-white shadow-sm hover:shadow-md transition-shadow"
             >
               <div className="flex items-start gap-3 mb-3">
-                <div className="w-10 h-10 bg-elora-pink-light rounded-full flex items-center justify-center text-elora-purple flex-shrink-0">
+                <div className="w-10 h-10 bg-[#A487C3] rounded-full flex items-center justify-center text-white flex-shrink-0">
                   {invite.from.photoURL ? (
                     <img src={invite.from.photoURL} alt={invite.from.nickname} className="w-full h-full rounded-full object-cover" />
                   ) : (
@@ -239,7 +239,7 @@ const LeaderboardInviteList: React.FC<LeaderboardInviteListProps> = ({ onClose }
               <div className="flex justify-end gap-2">
                 <button 
                   onClick={() => handleRejectInvite(invite.id, invite.leaderboardName)}
-                  className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed border border-gray-200"
                   disabled={!!processingInvites[invite.id]}
                 >
                   {processingInvites[invite.id] ? (
@@ -250,7 +250,7 @@ const LeaderboardInviteList: React.FC<LeaderboardInviteListProps> = ({ onClose }
                 </button>
                 <button 
                   onClick={() => handleAcceptInvite(invite.id, invite.leaderboardName)}
-                  className="px-4 py-2 bg-[#A487C3] hover:bg-[#C6B2DD] text-white rounded-lg text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-4 py-2 bg-[#A487C3] hover:bg-[#8A5DC8] text-white rounded-lg text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   disabled={!!processingInvites[invite.id]}
                 >
                   {processingInvites[invite.id] ? (

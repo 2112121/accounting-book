@@ -1,0 +1,645 @@
+/* 分帳群組表單樣式 */
+
+/* 基本漸入動畫 */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* 縮放漸入動畫 */
+@keyframes fadeScale {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* 從上滑入動畫 */
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 從下滑入動畫 */
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 從左滑入動畫 */
+@keyframes slideRight {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* 從右滑入動畫 */
+@keyframes slideLeft {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* 旋轉淡入動畫 */
+@keyframes rotateFadeIn {
+  from {
+    opacity: 0;
+    transform: rotate(-10deg) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: rotate(0) scale(1);
+  }
+}
+
+/* 淡入彈跳動畫 */
+@keyframes bounceFadeIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  70% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* 漸入效果 */
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+/* 縮放漸入效果 */
+.animate-fade-scale {
+  animation: fadeScale 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* 滑入效果 */
+.animate-slide-down {
+  animation: slideDown 0.3s ease-out;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.3s ease-out;
+}
+
+.animate-slide-right {
+  animation: slideRight 0.3s ease-out;
+}
+
+.animate-slide-left {
+  animation: slideLeft 0.3s ease-out;
+}
+
+/* 旋轉淡入 */
+.animate-rotate-fade-in {
+  animation: rotateFadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* 淡入彈跳 */
+.animate-bounce-fade-in {
+  animation: bounceFadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* 表單項目漸入效果 */
+.group {
+  animation: fadeIn 0.5s ease-in-out;
+  transition: all 0.3s;
+}
+
+/* 按鈕懸停效果 */
+.budget-toggle-button {
+  transition: all 0.3s ease;
+}
+
+.budget-toggle-button:hover {
+  transform: translateY(-2px);
+}
+
+/* 標題文字漸變效果 */
+.gradient-text {
+  background: linear-gradient(45deg, #A487C3, #6E55A3);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* 按鈕陰影效果 */
+.shadow-button {
+  box-shadow: 0 4px 6px -1px rgba(164, 135, 195, 0.2), 0 2px 4px -1px rgba(164, 135, 195, 0.1);
+  transition: all 0.3s;
+}
+
+.shadow-button:hover {
+  box-shadow: 0 6px 8px -1px rgba(164, 135, 195, 0.3), 0 3px 6px -1px rgba(164, 135, 195, 0.15);
+  transform: translateY(-2px);
+}
+
+/* 表單區域懸浮效果 */
+.hover-shadow {
+  transition: all 0.3s;
+}
+
+.hover-shadow:hover {
+  box-shadow: 0 4px 12px rgba(164, 135, 195, 0.15);
+  transform: translateY(-2px);
+}
+
+/* 選擇圖標脈衝效果 */
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.pulse-icon {
+  animation: pulse 2s infinite;
+}
+
+/* 進度條閃爍效果 */
+@keyframes glow {
+  0% {
+    opacity: 0.8;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.8;
+  }
+}
+
+.animate-glow {
+  animation: glow 2s infinite;
+}
+
+/* 成員卡片效果 */
+.member-card {
+  transition: all 0.3s;
+}
+
+.member-card:hover {
+  background-color: #f8f5ff;
+  transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(164, 135, 195, 0.12);
+}
+
+/* 確認按鈕脈衝效果 */
+@keyframes confirm-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(164, 135, 195, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(164, 135, 195, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(164, 135, 195, 0);
+  }
+}
+
+.confirm-button {
+  animation: confirm-pulse 2s infinite;
+}
+
+/* 新增效果 - 鏡像反射效果 */
+.reflection-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.reflection-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(
+    to right,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.3) 100%
+  );
+  transform: skewX(-25deg);
+  transition: all 0.75s;
+}
+
+.reflection-card:hover::before {
+  left: 125%;
+}
+
+/* 新增效果 - 平滑變色過渡 */
+.color-transition {
+  transition: background-color 0.5s ease, border-color 0.5s ease, color 0.5s ease;
+}
+
+/* 新增效果 - 3D懸浮按鈕 */
+.btn-3d {
+  position: relative;
+  transition: all 0.2s;
+  transform-style: preserve-3d;
+  transform: perspective(800px);
+}
+
+.btn-3d:hover {
+  transform: perspective(800px) translateZ(10px);
+}
+
+.btn-3d:active {
+  transform: perspective(800px) translateZ(2px);
+}
+
+/* 新增效果 - 光暈邊框 */
+.glow-border {
+  position: relative;
+  z-index: 0;
+}
+
+.glow-border::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: -1px;
+  border-radius: inherit;
+  background: linear-gradient(45deg, #A487C3, #8A5DC8, #6E55A3, #A487C3);
+  background-size: 200% 200%;
+  animation: glowingBorder 3s linear infinite;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.glow-border:hover::before {
+  opacity: 1;
+}
+
+@keyframes glowingBorder {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* 新增效果 - 悸動效果 */
+@keyframes heartbeat {
+  0% { transform: scale(1); }
+  14% { transform: scale(1.1); }
+  28% { transform: scale(1); }
+  42% { transform: scale(1.1); }
+  70% { transform: scale(1); }
+}
+
+.heartbeat {
+  animation: heartbeat 2s ease-in-out infinite;
+}
+
+/* 打字機效果 */
+@keyframes typing {
+  from { width: 0; }
+  to { width: 100%; }
+}
+
+.typing-effect {
+  overflow: hidden;
+  white-space: nowrap;
+  border-right: 2px solid #A487C3;
+  width: 0;
+  animation: typing 2s steps(30, end) forwards, blink-caret 0.75s step-end infinite;
+}
+
+@keyframes blink-caret {
+  from, to { border-color: transparent; }
+  50% { border-color: #A487C3; }
+}
+
+/* 頁面過渡效果 */
+.page-transition-enter {
+  opacity: 0;
+  transform: scale(0.9);
+}
+
+.page-transition-enter-active {
+  opacity: 1;
+  transform: scale(1);
+  transition: opacity 300ms, transform 300ms;
+}
+
+.page-transition-exit {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.page-transition-exit-active {
+  opacity: 0;
+  transform: scale(0.9);
+  transition: opacity 300ms, transform 300ms;
+}
+
+/* 自定義滾動條 */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #d8c8ea;
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #A487C3;
+}
+
+/* 卡片翻轉效果 */
+.flip-card {
+  perspective: 1000px;
+  transform-style: preserve-3d;
+  transition: transform 0.6s;
+}
+
+.flip-card-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  text-align: center;
+  transition: transform 0.6s;
+  transform-style: preserve-3d;
+}
+
+.flip-card:hover .flip-card-inner {
+  transform: rotateY(180deg);
+}
+
+.flip-card-front, .flip-card-back {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  border-radius: inherit;
+}
+
+.flip-card-front {
+  background-color: white;
+}
+
+.flip-card-back {
+  background-color: #F0EAFA;
+  transform: rotateY(180deg);
+}
+
+/* 隱藏元素淡入效果 */
+.fade-in-element {
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.5s ease, visibility 0.5s ease;
+}
+
+.parent:hover .fade-in-element {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* 波紋點擊效果 */
+.ripple {
+  position: relative;
+  overflow: hidden;
+}
+
+.ripple:after {
+  content: "";
+  display: block;
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  background-image: radial-gradient(circle, #fff 10%, transparent 10.01%);
+  background-repeat: no-repeat;
+  background-position: 50%;
+  transform: scale(10, 10);
+  opacity: 0;
+  transition: transform 0.5s, opacity 1s;
+}
+
+.ripple:active:after {
+  transform: scale(0, 0);
+  opacity: 0.3;
+  transition: 0s;
+}
+
+/* 分帳群組支出表單樣式 */
+
+/* 漸入效果 */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* 彈出效果 */
+@keyframes scaleIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* 滑入效果 */
+@keyframes slideDown {
+  from {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* 淡入淡出效果 */
+@keyframes pulse {
+  0% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.6;
+  }
+}
+
+/* 元素飄動效果 */
+@keyframes float {
+  0% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+  100% {
+    transform: translateY(0px);
+  }
+}
+
+/* 按鈕光芒效果 */
+@keyframes buttonGlow {
+  0% {
+    box-shadow: 0 0 5px rgba(164, 135, 195, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(164, 135, 195, 0.8);
+  }
+  100% {
+    box-shadow: 0 0 5px rgba(164, 135, 195, 0.5);
+  }
+}
+
+/* 動畫類 */
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-out forwards;
+}
+
+.animate-scaleIn {
+  animation: scaleIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+.animate-slideDown {
+  animation: slideDown 0.3s ease-out forwards;
+}
+
+.animate-pulse {
+  animation: pulse 2s infinite ease-in-out;
+}
+
+.animate-float {
+  animation: float 3s infinite ease-in-out;
+}
+
+.animate-buttonGlow {
+  animation: buttonGlow 2s infinite ease-in-out;
+}
+
+/* 自定義滾動條 */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background-color: #f5f5f5;
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: #d8d0e3;
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: #a487c3;
+}
+
+/* 分攤方式按鈕點亮效果 */
+.method-active {
+  border-color: #a487c3;
+  background-color: #f8f3ff;
+  color: #8a5dc8;
+  box-shadow: 0 2px 8px rgba(164, 135, 195, 0.3);
+  transform: translateY(-1px);
+}
+
+/* 支出類別項卡片效果 */
+.category-item {
+  transition: all 0.2s ease;
+}
+
+.category-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.category-item.active {
+  box-shadow: 0 0 0 2px #a487c3, 0 4px 10px rgba(164, 135, 195, 0.3);
+}
+
+/* 成員卡片懸浮效果 */
+.member-card {
+  transition: all 0.2s ease;
+}
+
+.member-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* 成員支付者標記動畫 */
+.payer-badge {
+  animation: fadeIn 0.5s ease-out;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  box-shadow: 0 2px 5px rgba(99, 102, 241, 0.3);
+}
+
+/* 輸入框聚焦效果增強 */
+.input-enhanced:focus {
+  box-shadow: 0 0 0 3px rgba(164, 135, 195, 0.3);
+  border-color: #a487c3;
+}
+
+/* 錯誤消息提示樣式 */
+.error-message {
+  animation: fadeIn 0.3s ease-out, shake 0.5s ease-in-out;
+}
+
+/* 成功消息提示樣式 */
+.success-message {
+  animation: fadeIn 0.3s ease-out, pulse 2s infinite ease-in-out;
+} 

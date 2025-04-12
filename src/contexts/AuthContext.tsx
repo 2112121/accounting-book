@@ -18,7 +18,7 @@ import {
   fetchSignInMethodsForEmail
 } from '../firebase';
 import { db, storage } from '../firebase';
-import { doc, setDoc, getDoc, updateDoc, collection, query, where, getDocs, serverTimestamp, arrayUnion, arrayRemove, limit, addDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, updateDoc, collection, query, where, getDocs, serverTimestamp, arrayUnion, arrayRemove, limit, addDoc, deleteDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 // 更新類型定義
@@ -98,6 +98,7 @@ export interface LeaderboardInvite {
 interface AuthContextType {
   currentUser: User | null;
   userNickname: string | null;
+  userProfileColor: string | null;
   register: (email: string, password: string, nickname: string) => Promise<User | void>;
   login: (email: string, password: string) => Promise<User | void>;
   loginWithGoogle: () => Promise<User | void>;
@@ -108,6 +109,7 @@ interface AuthContextType {
   updateUserNickname: (nickname: string) => Promise<void>;
   updateUserPassword: (currentPassword: string, newPassword: string) => Promise<void>;
   updateUserAvatar: (file: File) => Promise<string>;
+  updateUserProfileColor: (colorCode: string | null) => Promise<void>;
   // 排行榜和好友相關
   getLeaderboards: () => Promise<Leaderboard[]>;
   createLeaderboard: (name: string, memberIds: string[], timeRange: TimeRangeType, customStartDate?: Date, customEndDate?: Date) => Promise<string>;
@@ -117,6 +119,8 @@ interface AuthContextType {
   acceptFriendRequest: (requestId: string) => Promise<void>;
   rejectFriendRequest: (requestId: string) => Promise<void>;
   getFriendRequests: () => Promise<FriendRequest[]>;
+  getSentFriendRequests: () => Promise<FriendRequest[]>;
+  cancelFriendRequest: (requestId: string) => Promise<void>;
   removeFriend: (friendId: string) => Promise<void>;
   updatePrivacySettings: (leaderboardId: string, allowViewDetail: boolean) => Promise<void>;
   deleteLeaderboard: (leaderboardId: string) => Promise<void>;
@@ -125,6 +129,8 @@ interface AuthContextType {
   rejectLeaderboardInvite: (inviteId: string) => Promise<void>;
   // 新增：更新排行榜成員支出記錄
   updateLeaderboardMemberExpenses: (leaderboard: Leaderboard) => Promise<void>;
+  // 新增：手動同步排行榜數據
+  syncLeaderboardData: (leaderboardId: string) => Promise<void>;
   loading: boolean;
 }
 
@@ -148,6 +154,7 @@ interface AuthProviderProps {
 export function AuthProvider({ children }: AuthProviderProps) {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [userNickname, setUserNickname] = useState<string | null>(null);
+  const [userProfileColor, setUserProfileColor] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   // 註冊新用戶
@@ -176,17 +183,24 @@ export function AuthProvider({ children }: AuthProviderProps) {
         });
         console.log(`用戶資料已更新，暱稱設為: ${nickname}`);
         
+        // 生成好友碼
+        const friendCode = generateFriendCode(auth.currentUser.uid);
+        
         // 創建 Firestore 用戶文檔
         const userRef = doc(db, "users", auth.currentUser.uid);
         await setDoc(userRef, {
           email: email,
           nickname: nickname,
           displayName: nickname,
+          photoURL: '',
           createdAt: serverTimestamp(),
+          lastLogin: serverTimestamp(),
           friends: [],
-          leaderboards: []
+          leaderboards: [],
+          friendCode: friendCode,
+          profileColor: null
         });
-        console.log('Firestore 用戶文檔已創建');
+        console.log('Firestore 用戶文檔已創建，好友碼:', friendCode);
       }
       
       console.log('註冊流程完成，返回用戶資料');
@@ -237,51 +251,53 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // Google 登入
   async function loginWithGoogle(): Promise<User | void> {
     try {
-      console.log('嘗試使用 Google 登入');
-      const provider = new GoogleAuthProvider();
-      const result = await signInWithPopup(auth, provider);
-      console.log('Google 登入成功');
+      setLoading(true);
+      const result = await signInWithPopup(auth, googleProvider);
       
-      // 檢查用戶是否已有 Firestore 文檔，如果沒有則創建
-      if (result.user) {
-        const userRef = doc(db, "users", result.user.uid);
-        const userDoc = await getDoc(userRef);
+      // 檢查用戶是否已存在
+      const userDoc = await getDoc(doc(db, 'users', result.user.uid));
+      
+      if (!userDoc.exists()) {
+        // 新用戶，創建用戶檔案
+        const nickname = result.user.displayName || result.user.email?.split('@')[0] || '未命名用戶';
+        const friendCode = generateFriendCode(result.user.uid);
         
-        if (!userDoc.exists()) {
-          console.log("Google 登入用戶無文檔，創建新文檔");
-          // 生成好友碼
-          const friendCode = generateFriendCode(result.user.uid);
-          
-          // 創建用戶文檔
-          await setDoc(userRef, {
-            email: result.user.email,
-            nickname: result.user.displayName || result.user.email?.split('@')[0] || '未命名用戶',
-            displayName: result.user.displayName,
-            photoURL: result.user.photoURL,
-            friendCode: friendCode,
-            createdAt: serverTimestamp(),
-            friends: [],
-            leaderboards: []
-          });
-          
-          console.log("已為 Google 登入用戶創建文檔並設置好友碼:", friendCode);
-        } else {
-          // 檢查用戶是否有好友碼，沒有則添加
-          const userData = userDoc.data();
-          
-          if (!userData.friendCode) {
-            console.log("Google 登入用戶無好友碼，添加好友碼");
-            const friendCode = generateFriendCode(result.user.uid);
-            await updateDoc(userRef, { friendCode });
-            console.log("已為 Google 登入用戶添加好友碼:", friendCode);
-          }
-        }
+        await setDoc(doc(db, 'users', result.user.uid), {
+          email: result.user.email || '',
+          nickname: nickname,
+          photoURL: result.user.photoURL || '',
+          createdAt: serverTimestamp(),
+          lastLogin: serverTimestamp(),
+          friendCode: friendCode,
+          friends: [],
+          leaderboards: []
+        });
+      } else {
+        // 已存在的用戶，更新登入時間
+        await updateDoc(doc(db, 'users', result.user.uid), {
+          lastLogin: serverTimestamp()
+        });
       }
       
+      // 確保用戶有好友碼
+      await ensureUserHasFriendCode();
+      
       return result.user;
-    } catch (error) {
-      console.error('Google 登入失敗:', error);
+    } catch (error: any) {
+      console.error("Google登入錯誤:", error);
+      
+      // 特別處理用戶關閉彈窗的情況
+      if (error.code === 'auth/popup-closed-by-user') {
+        throw { 
+          code: error.code, 
+          message: '登入視窗已被關閉，請再次嘗試登入'
+        };
+      }
+      
+      // 其他錯誤情況
       throw error;
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -338,7 +354,82 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   // 更新暱稱函數
   async function updateUserNickname(nickname: string) {
-    return updateUserProfile({ nickname });
+    if (!currentUser) throw new Error("用戶未登入");
+    
+    try {
+      // 首先更新用戶個人資料
+      await updateUserProfile({ nickname });
+      
+      console.log("開始同步更新排行榜中的用戶暱稱...");
+      
+      // 獲取用戶參與的所有排行榜
+      const userRef = doc(db, "users", currentUser.uid);
+      const userDoc = await getDoc(userRef);
+      
+      if (!userDoc.exists()) {
+        console.log("用戶文檔不存在，無法同步更新排行榜");
+        return;
+      }
+      
+      const userData = userDoc.data();
+      const leaderboardIds = userData.leaderboards || [];
+      
+      if (leaderboardIds.length === 0) {
+        console.log("用戶未參與任何排行榜，無需同步更新");
+        return;
+      }
+      
+      console.log(`用戶參與了 ${leaderboardIds.length} 個排行榜，開始更新暱稱...`);
+      
+      // 對每個排行榜進行更新
+      const updatePromises = leaderboardIds.map(async (leaderboardId: string) => {
+        try {
+          const leaderboardRef = doc(db, "leaderboards", leaderboardId);
+          const leaderboardDoc = await getDoc(leaderboardRef);
+          
+          if (!leaderboardDoc.exists()) {
+            console.log(`排行榜 ${leaderboardId} 不存在，跳過更新`);
+            return;
+          }
+          
+          const leaderboardData = leaderboardDoc.data();
+          const members = leaderboardData.members || [];
+          
+          // 查找並更新當前用戶的暱稱
+          let updated = false;
+          const updatedMembers = members.map((member: LeaderboardMember) => {
+            if (member.userId === currentUser.uid) {
+              updated = true;
+              return {
+                ...member,
+                nickname: nickname
+              };
+            }
+            return member;
+          });
+          
+          // 如果找到並更新了用戶，則寫回排行榜
+          if (updated) {
+            await updateDoc(leaderboardRef, {
+              members: updatedMembers
+            });
+            console.log(`已更新排行榜 "${leaderboardData.name}" (${leaderboardId}) 中的用戶暱稱`);
+          } else {
+            console.log(`排行榜 "${leaderboardData.name}" (${leaderboardId}) 中未找到當前用戶，跳過更新`);
+          }
+        } catch (error) {
+          console.error(`更新排行榜 ${leaderboardId} 中的用戶暱稱失敗:`, error);
+        }
+      });
+      
+      // 等待所有更新完成
+      await Promise.all(updatePromises);
+      console.log("所有排行榜中的用戶暱稱已更新");
+      
+    } catch (error) {
+      console.error("更新暱稱過程中發生錯誤:", error);
+      throw error;
+    }
   }
   
   // 更新頭像函數
@@ -464,7 +555,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
           endDate: endDate
         };
         
-        // 更新成員的消費總額
+        // 每次加載排行榜都強制更新成員的消費總額
+        console.log(`強制更新排行榜成員支出數據: ${leaderboard.id} - ${leaderboard.name}`);
         await updateLeaderboardMemberExpenses(leaderboard);
         
         return leaderboard;
@@ -499,240 +591,209 @@ export function AuthProvider({ children }: AuthProviderProps) {
       return;
     }
     
+    // 获取当前日期，但只保留日期部分，忽略时间部分
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    
+    // 创建结束日期的副本，但只保留日期部分，忽略时间部分
+    const endDateOnly = new Date(endDate);
+    endDateOnly.setHours(0, 0, 0, 0);
+    
+    // 修改判断逻辑，如果当天是结束日期，也视为"正在进行中"，确保包括当天的数据
+    const isOngoing = now <= endDateOnly;
+    
+    // 对于已结束的排行榜，我们需要确保设置的结束日期包含当天的最后一秒
+    // 例如：如果结束日期是4月4日，我们需要包含4月4日23:59:59的所有数据
+    const actualEndDate = new Date(endDate);
+    actualEndDate.setHours(23, 59, 59, 999);
+    
     console.log(`更新排行榜 ${leaderboard.id} (${leaderboard.name}) 的成員支出:`, {
       排行榜ID: leaderboard.id,
       排行榜名稱: leaderboard.name,
       開始日期: startDate.toLocaleDateString(),
       結束日期: endDate.toLocaleDateString(),
-      時間範圍類型: leaderboard.timeRange
+      查詢結束日期: isOngoing ? '當前日期' : actualEndDate.toLocaleString(),
+      時間範圍類型: leaderboard.timeRange,
+      是否進行中: isOngoing ? '是' : '否',
+      是否已結束: now > endDateOnly ? '是' : '否',
+      當前時間: new Date().toLocaleString()
     });
     
-    // 對每個成員獲取時間範圍內的支出
-    const updatedMembers = [];
-    
-    for (const member of leaderboard.members) {
-      try {
-        const userId = member.userId;
+    try {
+      // 獲取所有成員的ID
+      const memberUserIds = leaderboard.members.map(member => member.userId);
+      console.log(`排行榜有 ${memberUserIds.length} 位成員，將獲取其在統計週期內的支出`);
+      
+      // 將開始日期轉換為 Timestamp
+      const startTimestamp = Timestamp.fromDate(startDate);
+      
+      // 对于已结束的排行榜，或当前日期就是结束日期的情况，都使用actualEndDate
+      const endTimestamp = Timestamp.fromDate(actualEndDate);
+      
+      if (isOngoing && now < endDateOnly) {
+        console.log(`進行中排行榜查詢: 起始日期 ${startDate.toLocaleDateString()} 至現在`);
+      } else {
+        console.log(`完整週期排行榜查詢: ${startDate.toLocaleDateString()} - ${actualEndDate.toLocaleString()}`);
+      }
+      
+      // 初始化用戶支出統計
+      const userExpenses: {[userId: string]: {
+        totalExpense: number,
+        expenseIds: string[],
+        expenseSummaries: Array<{id: string, amount: number, date: any, category: any}>
+      }} = {};
+      
+      // 初始化所有成員的費用統計
+      memberUserIds.forEach(userId => {
+        userExpenses[userId] = {
+          totalExpense: 0,
+          expenseIds: [],
+          expenseSummaries: []
+        };
+      });
+      
+      // 查詢所有成員在時間範圍內的支出
+      const expensesRef = collection(db, "expenses");
+      
+      // 透過多個查詢分批獲取數據，以避免Firestore的in子句限制
+      const batchSize = 10; // Firestore 'in' 查詢最多支持10個值
+      for (let i = 0; i < memberUserIds.length; i += batchSize) {
+        const batch = memberUserIds.slice(i, i + batchSize);
+        console.log(`處理第 ${Math.floor(i/batchSize) + 1} 批成員 (${batch.length}個)`);
         
-        console.log(`查詢用戶 ${userId} (${member.nickname || 'unnamed'}) 在時間範圍內的支出:`, {
-          開始日期: startDate.toLocaleDateString(),
-          結束日期: endDate.toLocaleDateString()
-        });
-        
-        // 獲取用戶在指定時間範圍內的支出
-        const expensesRef = collection(db, "expenses");
-        let totalExpense = 0;
-        // 儲存找到的支出記錄ID
-        const expenseIds: string[] = [];
-        // 儲存所有支出記錄的簡要信息，用於數據同步
-        const expenseSummaries: Array<{id: string, amount: number, date: any, category: any}> = [];
-        
-        // 方法1: 使用Timestamp對象查詢
-        try {
-          const startTimestamp = Timestamp.fromDate(startDate);
-          const endTimestamp = Timestamp.fromDate(endDate);
-          
-          console.log(`使用Timestamp查詢: 開始=${startTimestamp.toDate().toLocaleDateString()}, 結束=${endTimestamp.toDate().toLocaleDateString()}`);
-          
-          const q1 = query(
+        // 修改查询条件，统一采用完整的日期范围查询
+        let q;
+        if (isOngoing && now < endDateOnly) {
+          // 对于进行中且当前日期不是结束日期的排行榜，使用开始日期到当前时间
+          q = query(
             expensesRef,
-            where("userId", "==", userId),
+            where("userId", "in", batch),
+            where("date", ">=", startTimestamp)
+          );
+        } else {
+          // 对于已结束的排行榜或当前日期就是结束日期的情况，使用完整日期范围
+          q = query(
+            expensesRef,
+            where("userId", "in", batch),
             where("date", ">=", startTimestamp),
             where("date", "<=", endTimestamp)
           );
+        }
+        
+        console.log(`開始執行批次查詢，查詢條件:`, isOngoing && now < endDateOnly ? 
+          `userId IN [${batch.join(', ')}], date >= ${startDate.toLocaleDateString()}` : 
+          `userId IN [${batch.join(', ')}], date 範圍 ${startDate.toLocaleDateString()} - ${actualEndDate.toLocaleString()}`);
+        
+        const querySnapshot = await getDocs(q);
+        console.log(`第 ${Math.floor(i/batchSize) + 1} 批查詢完成: 找到 ${querySnapshot.size} 條支出記錄`);
+        
+        // 處理查詢結果
+        querySnapshot.forEach((doc) => {
+          const expenseData = doc.data();
+          const userId = expenseData.userId;
           
-          const querySnapshot1 = await getDocs(q1);
-          console.log(`方法1(Timestamp查詢): 用戶 ${userId} 找到 ${querySnapshot1.size} 條支出記錄`);
-          
-          // 計算總支出
-          querySnapshot1.forEach((doc) => {
-            const expenseData = doc.data();
-            if (expenseData.amount) {
-              const amount = typeof expenseData.amount === 'number' 
-                ? expenseData.amount 
-                : parseFloat(expenseData.amount);
+          if (userExpenses[userId]) {
+            // 獲取支出日期
+            const expenseDate = expenseData.date instanceof Timestamp 
+              ? expenseData.date.toDate() 
+              : new Date(expenseData.date);
+            
+            // 解析金額
+            const amount = typeof expenseData.amount === 'number' 
+              ? expenseData.amount 
+              : parseFloat(expenseData.amount);
+            
+            if (!isNaN(amount)) {
+              // 修改过滤逻辑，确保包含结束日期当天的所有数据
+              const shouldInclude = isOngoing && now < endDateOnly
+                ? expenseDate >= startDate 
+                : (expenseDate >= startDate && expenseDate <= actualEndDate);
                 
-              if (!isNaN(amount)) {
-                totalExpense += amount;
-                // 儲存支出記錄ID
-                expenseIds.push(doc.id);
-                // 儲存支出簡要信息
-                expenseSummaries.push({
+              if (shouldInclude) {
+                // 更新該用戶的總支出
+                userExpenses[userId].totalExpense += amount;
+                
+                // 添加支出記錄ID
+                userExpenses[userId].expenseIds.push(doc.id);
+                
+                // 添加支出摘要資訊
+                userExpenses[userId].expenseSummaries.push({
                   id: doc.id,
                   amount: amount,
                   date: expenseData.date,
                   category: expenseData.category
                 });
-                console.log(`方法1添加支出: ${amount}, 累計: ${totalExpense}, 記錄ID: ${doc.id}`);
+                
+                console.log(`用戶 ${userId} 添加支出: ${amount}, 日期: ${expenseDate.toLocaleDateString()}, 累計: ${userExpenses[userId].totalExpense}`);
+              } else {
+                console.log(`排除範圍外支出: ${expenseDate.toLocaleDateString()} 不在有效日期範圍內 [${startDate.toLocaleDateString()} ~ ${actualEndDate.toLocaleString()}]`);
               }
+            } else {
+              console.warn(`無效的支出金額: ${expenseData.amount}, 記錄ID: ${doc.id}`);
             }
-          });
-        } catch (err) {
-          console.warn(`Timestamp查詢方法失敗:`, err);
-        }
-        
-        // 方法2: 使用字符串日期查詢
-        try {
-          if (totalExpense === 0) {
-            const startDateStr = startDate.toISOString().split('T')[0];
-            const endDateStr = endDate.toISOString().split('T')[0];
-            
-            console.log(`使用字符串日期查詢: 開始=${startDateStr}, 結束=${endDateStr}`);
-            
-            const q2 = query(
-              expensesRef,
-              where("userId", "==", userId),
-              where("date", ">=", startDateStr),
-              where("date", "<=", endDateStr)
-            );
-            
-            const querySnapshot2 = await getDocs(q2);
-            console.log(`方法2(字符串日期查詢): 用戶 ${userId} 找到 ${querySnapshot2.size} 條支出記錄`);
-            
-            // 計算總支出
-            querySnapshot2.forEach((doc) => {
-              const expenseData = doc.data();
-              if (expenseData.amount) {
-                const amount = typeof expenseData.amount === 'number' 
-                  ? expenseData.amount 
-                  : parseFloat(expenseData.amount);
-                  
-                if (!isNaN(amount)) {
-                  totalExpense += amount;
-                  // 儲存支出記錄ID
-                  expenseIds.push(doc.id);
-                  // 儲存支出簡要信息
-                  expenseSummaries.push({
-                    id: doc.id,
-                    amount: amount,
-                    date: expenseData.date,
-                    category: expenseData.category
-                  });
-                  console.log(`方法2添加支出: ${amount}, 累計: ${totalExpense}, 記錄ID: ${doc.id}`);
-                }
-              }
-            });
+          } else {
+            console.warn(`支出記錄中的用戶ID ${userId} 不在排行榜成員列表中`);
           }
-        } catch (err) {
-          console.warn(`字符串日期查詢方法失敗:`, err);
-        }
-        
-        // 方法3: 獲取全部支出記錄並手動篩選 - 最可靠但效率較低的方法
-        try {
-          if (totalExpense === 0) {
-            console.log(`使用全量查詢並手動篩選日期範圍`);
-            
-            const q3 = query(
-              expensesRef,
-              where("userId", "==", userId)
-            );
-            
-            const querySnapshot3 = await getDocs(q3);
-            console.log(`方法3(全量查詢): 用戶 ${userId} 總共有 ${querySnapshot3.size} 條支出記錄`);
-            
-            let matchCount = 0;
-            
-            // 手動篩選符合日期範圍的記錄
-            querySnapshot3.forEach((doc) => {
-              const expenseData = doc.data();
-              let expenseDate: Date | null = null;
-              
-              // 嘗試解析多種可能的日期格式
-              if (expenseData.date) {
-                if (typeof expenseData.date === 'string') {
-                  // 字符串格式日期
-                  expenseDate = new Date(expenseData.date);
-                } else if (typeof expenseData.date.toDate === 'function') {
-                  // Firestore Timestamp 對象
-                  expenseDate = expenseData.date.toDate();
-                } else if (expenseData.date.seconds) {
-                  // Firestore Timestamp 對象的另一種訪問方式
-                  expenseDate = new Date(expenseData.date.seconds * 1000);
-                } else if (expenseData.date instanceof Date) {
-                  // 原生 Date 對象
-                  expenseDate = expenseData.date;
-                }
-              }
-              
-              // 檢查日期是否在範圍內
-              if (expenseDate) {
-                console.log(`支出日期: ${expenseDate.toLocaleDateString()} vs 範圍: ${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()}`);
-                
-                // 將日期設置為當天的零點以便比較
-                const expenseDateZero = new Date(expenseDate);
-                expenseDateZero.setHours(0, 0, 0, 0);
-                
-                const startDateZero = new Date(startDate);
-                startDateZero.setHours(0, 0, 0, 0);
-                
-                const endDateZero = new Date(endDate);
-                endDateZero.setHours(23, 59, 59, 999);
-                
-                const isInRange = expenseDateZero >= startDateZero && expenseDateZero <= endDateZero;
-                
-                if (isInRange) {
-                  matchCount++;
-                  if (expenseData.amount) {
-                    const amount = typeof expenseData.amount === 'number' 
-                      ? expenseData.amount 
-                      : parseFloat(expenseData.amount);
-                      
-                    if (!isNaN(amount)) {
-                      totalExpense += amount;
-                      // 儲存支出記錄ID
-                      expenseIds.push(doc.id);
-                      // 儲存支出簡要信息
-                      expenseSummaries.push({
-                        id: doc.id,
-                        amount: amount,
-                        date: expenseData.date,
-                        category: expenseData.category
-                      });
-                      console.log(`方法3添加支出: ${amount}, 累計: ${totalExpense}, 日期: ${expenseDate.toLocaleDateString()}, 記錄ID: ${doc.id}`);
-                    }
-                  }
-                }
-              }
-            });
-            
-            console.log(`方法3匹配到 ${matchCount} 條在日期範圍內的記錄`);
-          }
-        } catch (err) {
-          console.warn(`全量查詢方法失敗:`, err);
-        }
-        
-        console.log(`最終結果: 用戶 ${userId} (${member.nickname || 'unnamed'}) 在該時間範圍內的總支出: ${totalExpense}, 共 ${expenseIds.length} 條記錄`);
-        
-        // 更新成員支出和相關數據
-        updatedMembers.push({
-          ...member,
-          totalExpense,
-          // 保存支出記錄ID，用於後續查詢
-          expenseIds: expenseIds,
-          // 保存簡要支出信息，用於數據同步
-          expenseSummaries: expenseSummaries
         });
-      } catch (error) {
-        console.error(`獲取成員(${member.userId})支出失敗:`, error);
-        // 保留原有數據
-        updatedMembers.push(member);
       }
-    }
-    
-    // 更新排行榜成員數據
-    if (updatedMembers.length > 0) {
+      
+      // 更新成員數據
+      const updatedMembers = await Promise.all(leaderboard.members.map(async member => {
+        const userId = member.userId;
+        const userExpenseData = userExpenses[userId] || {
+          totalExpense: 0, 
+          expenseIds: [], 
+          expenseSummaries: []
+        };
+        
+        // 獲取最新的用戶昵稱
+        let nickname = member.nickname || '';
+        try {
+          const userDoc = await getDoc(doc(db, "users", userId));
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            if (userData.nickname) {
+              nickname = userData.nickname;
+              console.log(`更新用戶 ${userId} 的昵稱: ${member.nickname || 'unnamed'} -> ${nickname}`);
+            }
+          }
+        } catch (error) {
+          console.error(`獲取用戶 ${userId} 的最新昵稱失敗:`, error);
+        }
+        
+        console.log(`最終結果: 用戶 ${userId} (${nickname || 'unnamed'}) 在該時間範圍內的總支出: ${userExpenseData.totalExpense}, 共 ${userExpenseData.expenseIds.length} 條記錄`);
+        
+        return {
+          ...member,
+          nickname, // 使用最新的昵稱
+          totalExpense: userExpenseData.totalExpense,
+          expenseIds: userExpenseData.expenseIds,
+          expenseSummaries: userExpenseData.expenseSummaries
+        };
+      }));
+      
+      // 更新排行榜成員數據
+      const isLeaderboardEnded = new Date() > endDate;
+      let membersToUpdate = updatedMembers;
+      
+      // 如果排行榜已結束，則按支出排序
+      if (isLeaderboardEnded) {
+        membersToUpdate = [...updatedMembers].sort((a, b) => b.totalExpense - a.totalExpense);
+        console.log(`排行榜已結束，按支出金額對成員進行排序`);
+      }
+      
+      // 更新數據庫
       try {
         const leaderboardRef = doc(db, "leaderboards", leaderboard.id);
         await updateDoc(leaderboardRef, {
-          members: updatedMembers
+          members: membersToUpdate
         });
-        
-        // 更新傳入的排行榜對象
-        leaderboard.members = updatedMembers;
-        console.log(`排行榜 ${leaderboard.id} (${leaderboard.name}) 成員支出更新成功，成員數: ${updatedMembers.length}`);
+        console.log(`已更新排行榜 ${leaderboard.id} 的成員支出數據，${isLeaderboardEnded ? '並按支出排序' : ''}`);
       } catch (error) {
-        console.error('更新排行榜成員支出失敗:', error);
+        console.error(`更新排行榜 ${leaderboard.id} 的成員支出數據失敗:`, error);
       }
+    } catch (error) {
+      console.error(`獲取排行榜成員支出失敗:`, error);
     }
   }
 
@@ -1226,6 +1287,62 @@ export function AuthProvider({ children }: AuthProviderProps) {
     return requests;
   }
 
+  // 獲取已發送的好友請求
+  async function getSentFriendRequests(): Promise<FriendRequest[]> {
+    if (!currentUser) throw new Error("用戶未登入");
+    
+    const requestsRef = collection(db, "friendRequests");
+    const q = query(
+      requestsRef,
+      where("from.userId", "==", currentUser.uid),
+      where("status", "==", "pending")
+    );
+    
+    const querySnapshot = await getDocs(q);
+    const requests: FriendRequest[] = [];
+    
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      requests.push({
+        id: doc.id,
+        from: data.from,
+        to: data.to,
+        status: data.status,
+        createdAt: data.createdAt.toDate()
+      });
+    });
+    
+    return requests;
+  }
+
+  // 取消已發送的好友請求
+  async function cancelFriendRequest(requestId: string): Promise<void> {
+    if (!currentUser) throw new Error("用戶未登入");
+    
+    // 獲取請求詳情
+    const requestRef = doc(db, "friendRequests", requestId);
+    const requestDoc = await getDoc(requestRef);
+    
+    if (!requestDoc.exists()) {
+      throw new Error("好友請求不存在");
+    }
+    
+    const requestData = requestDoc.data();
+    
+    // 檢查請求是否由當前用戶發送
+    if (requestData.from.userId !== currentUser.uid) {
+      throw new Error("你無權取消此請求");
+    }
+    
+    // 檢查請求狀態
+    if (requestData.status !== "pending") {
+      throw new Error("該請求已被處理，無法取消");
+    }
+    
+    // 刪除請求
+    await deleteDoc(requestRef);
+  }
+
   // 移除好友
   async function removeFriend(friendId: string): Promise<void> {
     if (!currentUser) throw new Error("用戶未登入");
@@ -1272,16 +1389,41 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   // 登入後檢查並確保用戶有好友碼
   async function ensureUserHasFriendCode() {
-    if (!currentUser) return;
+    if (!currentUser) {
+      console.log('無法確保好友碼：用戶未登入');
+      return;
+    }
     
-    const userRef = doc(db, "users", currentUser.uid);
-    const userDoc = await getDoc(userRef);
-    
-    if (userDoc.exists()) {
+    try {
+      console.log(`檢查用戶 ${currentUser.uid} 的好友碼`);
+      const userRef = doc(db, "users", currentUser.uid);
+      const userDoc = await getDoc(userRef);
+      
+      if (!userDoc.exists()) {
+        console.log('用戶文檔不存在，創建新文檔並生成好友碼');
+        // 用戶文檔不存在時創建一個新的
+        const friendCode = generateFriendCode(currentUser.uid);
+        await setDoc(userRef, {
+          email: currentUser.email || '',
+          nickname: currentUser.displayName || currentUser.email?.split('@')[0] || '未命名用戶',
+          displayName: currentUser.displayName || currentUser.email?.split('@')[0] || '未命名用戶',
+          photoURL: currentUser.photoURL || '',
+          createdAt: serverTimestamp(),
+          lastLogin: serverTimestamp(),
+          friends: [],
+          leaderboards: [],
+          friendCode: friendCode,
+          profileColor: null
+        });
+        console.log(`為新用戶創建文檔並設置好友碼: ${friendCode}`);
+        return;
+      }
+      
       const userData = userDoc.data();
       
       // 檢查用戶是否有好友碼
       if (!userData.friendCode) {
+        console.log('現有用戶缺少好友碼，生成並更新');
         // 生成新的好友碼
         const friendCode = generateFriendCode(currentUser.uid);
         
@@ -1290,10 +1432,31 @@ export function AuthProvider({ children }: AuthProviderProps) {
           friendCode: friendCode
         });
         
-        console.log("已為用戶生成新的好友碼:", friendCode);
+        console.log(`已為用戶生成新的好友碼: ${friendCode}`);
       } else {
-        console.log("用戶已有好友碼:", userData.friendCode);
+        console.log(`用戶已有好友碼: ${userData.friendCode}`);
       }
+      
+      // 檢查其他可能缺失的必要字段
+      const missingFields: Record<string, any> = {};
+      
+      if (!userData.createdAt) {
+        console.log('用戶缺少 createdAt 字段，添加默認值');
+        missingFields.createdAt = serverTimestamp();
+      }
+      
+      if (!userData.lastLogin) {
+        console.log('用戶缺少 lastLogin 字段，添加當前時間');
+        missingFields.lastLogin = serverTimestamp();
+      }
+      
+      if (Object.keys(missingFields).length > 0) {
+        console.log('更新用戶缺失的字段:', Object.keys(missingFields).join(', '));
+        await updateDoc(userRef, missingFields);
+        console.log('缺失字段更新完成');
+      }
+    } catch (err) {
+      console.error('確保用戶好友碼時出錯:', err);
     }
   }
 
@@ -1490,63 +1653,159 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }
 
-  // 監聽 Auth 狀態變化
+  // 添加手動同步排行榜數據的函數
+  async function syncLeaderboardData(leaderboardId: string): Promise<void> {
+    if (!currentUser) throw new Error("用戶未登入");
+    
+    try {
+      // 獲取排行榜數據
+      const leaderboardRef = doc(db, "leaderboards", leaderboardId);
+      const leaderboardDoc = await getDoc(leaderboardRef);
+      
+      if (!leaderboardDoc.exists()) {
+        throw new Error("排行榜不存在");
+      }
+      
+      const lbData = leaderboardDoc.data();
+      
+      // 轉換日期
+      let startDate = lbData.startDate;
+      let endDate = lbData.endDate;
+      
+      if (startDate && typeof startDate.toDate === 'function') {
+        startDate = startDate.toDate();
+      }
+      
+      if (endDate && typeof endDate.toDate === 'function') {
+        endDate = endDate.toDate();
+      }
+      
+      let createdAt = new Date();
+      if (lbData.createdAt && typeof lbData.createdAt.toDate === 'function') {
+        createdAt = lbData.createdAt.toDate();
+      }
+      
+      const leaderboard: Leaderboard = {
+        id: leaderboardId,
+        name: lbData.name,
+        createdBy: lbData.createdBy,
+        members: lbData.members || [],
+        createdAt: createdAt,
+        timeRange: lbData.timeRange,
+        startDate: startDate,
+        endDate: endDate
+      };
+      
+      // 更新排行榜數據
+      console.log(`手動同步排行榜數據: ${leaderboard.name}`);
+      await updateLeaderboardMemberExpenses(leaderboard);
+      
+      console.log(`排行榜數據同步完成: ${leaderboard.name}`);
+    } catch (error) {
+      console.error("同步排行榜數據失敗:", error);
+      throw error;
+    }
+  }
+
+  // 新增：更新用戶頭像顏色
+  async function updateUserProfileColor(colorCode: string | null) {
+    if (!currentUser) throw new Error('用戶未登錄');
+    
+    try {
+      // 更新 Firestore 中的用戶檔案
+      const userRef = doc(db, "users", currentUser.uid);
+      
+      if (colorCode === null) {
+        // 如果取消顏色頭像，只需要移除profileColor屬性
+        await updateDoc(userRef, { 
+          profileColor: null
+        });
+      } else {
+        // 設置顏色頭像時，設置profileColor並清除photoURL
+        await updateDoc(userRef, { 
+          profileColor: colorCode,
+          photoURL: null 
+        });
+        
+        // 更新 Auth 檔案
+        await fbUpdateProfile(currentUser, {
+          photoURL: null // 清除 photoURL，因為我們現在使用顏色頭像
+        });
+      }
+      
+      // 更新本地狀態
+      setUserProfileColor(colorCode);
+      
+      console.log(colorCode ? '用戶頭像顏色已更新' : '用戶頭像顏色已取消');
+    } catch (error) {
+      console.error('更新用戶頭像顏色失敗:', error);
+      throw error;
+    }
+  }
+
+  // 用戶狀態變更監聽器
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged(async (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setCurrentUser(user);
       
       if (user) {
         try {
-          // 獲取用戶暱稱
+          // 獲取用戶檔案
           const userRef = doc(db, "users", user.uid);
-          const userDoc = await getDoc(userRef);
+          const userSnap = await getDoc(userRef);
           
-          if (userDoc.exists()) {
-            const userData = userDoc.data();
-            setUserNickname(userData.nickname);
+          if (userSnap.exists()) {
+            const userData = userSnap.data();
+            setUserNickname(userData.nickname || userData.displayName || '');
+            setUserProfileColor(userData.profileColor || null); // 新增：設置用戶頭像顏色
             
-            // 檢查用戶是否有好友碼，如果沒有則生成並存儲
+            // 檢查用戶是否有好友碼，如果沒有則生成並更新
             if (!userData.friendCode) {
-              console.log("用戶無好友碼，自動生成並存儲");
               const friendCode = generateFriendCode(user.uid);
               await updateDoc(userRef, { friendCode });
-              console.log("已為用戶生成好友碼:", friendCode);
-            } else {
-              console.log("用戶已有好友碼:", userData.friendCode);
+              console.log("已為現有用戶更新好友碼:", friendCode);
             }
           } else {
-            // 如果用戶檔案不存在，創建一個新的用戶文檔
-            console.log("用戶文檔不存在，創建新文檔");
+            // 生成好友碼
             const friendCode = generateFriendCode(user.uid);
+            
+            // 創建新用戶資料
             await setDoc(userRef, {
               email: user.email,
-              nickname: user.displayName || user.email?.split('@')[0] || '未命名用戶',
-              displayName: user.displayName,
-              photoURL: user.photoURL,
-              friendCode: friendCode,
+              nickname: user.displayName || user.email?.split('@')[0] || '',
+              displayName: user.displayName || user.email?.split('@')[0] || '',
               createdAt: serverTimestamp(),
+              photoURL: user.photoURL || '',
+              profileColor: null, // 新增：初始頭像顏色為空
               friends: [],
-              leaderboards: []
+              leaderboards: [],
+              friendCode: friendCode // 確保新用戶有好友碼
             });
-            setUserNickname(user.displayName);
-            console.log("已創建用戶文檔並生成好友碼:", friendCode);
+            
+            console.log("已為新用戶創建好友碼:", friendCode);
+            setUserNickname(user.displayName || user.email?.split('@')[0] || '');
           }
+          
+          // 確保用戶有好友碼
+          await ensureUserHasFriendCode();
         } catch (error) {
-          console.error("Error fetching user data", error);
+          console.error("讀取用戶資料時發生錯誤:", error);
         }
       } else {
         setUserNickname(null);
+        setUserProfileColor(null); // 新增：清除用戶頭像顏色
       }
       
       setLoading(false);
     });
-
+    
     return unsubscribe;
   }, []);
 
   const value = {
     currentUser,
     userNickname,
+    userProfileColor,
     register,
     login,
     loginWithGoogle,
@@ -1557,6 +1816,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     updateUserNickname,
     updateUserPassword,
     updateUserAvatar,
+    updateUserProfileColor,
     getLeaderboards,
     createLeaderboard,
     getFriends,
@@ -1565,6 +1825,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
     acceptFriendRequest,
     rejectFriendRequest,
     getFriendRequests,
+    getSentFriendRequests,
+    cancelFriendRequest,
     removeFriend,
     updatePrivacySettings,
     deleteLeaderboard,
@@ -1572,6 +1834,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     acceptLeaderboardInvite,
     rejectLeaderboardInvite,
     updateLeaderboardMemberExpenses,
+    syncLeaderboardData,
     loading
   };
 
