@@ -391,7 +391,7 @@ const FriendManagement: React.FC<FriendManagementProps> = ({ onClose }) => {
       
       {/* Tab 按鈕 */}
       <div className="mb-6 mt-2">
-        <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2">
+        <div className="flex gap-3 overflow-x-auto pb-4 px-1 no-scrollbar">
           {tabs.map((tab) => (
             <button
               key={tab.id}
@@ -401,7 +401,7 @@ const FriendManagement: React.FC<FriendManagementProps> = ({ onClose }) => {
                 setFriendCodeQuery('');
                 setSearchResults([]);
               }}
-              className={`px-4 py-2 rounded-lg text-sm whitespace-nowrap transition-all duration-200 flex items-center ${
+              className={`min-w-[120px] px-4 py-3 rounded-lg text-sm whitespace-nowrap transition-all duration-200 flex items-center justify-center ${
                 activeTab === tab.id
                   ? 'bg-[#A487C3] text-white'
                   : 'text-[#A487C3] bg-white'
@@ -429,11 +429,11 @@ const FriendManagement: React.FC<FriendManagementProps> = ({ onClose }) => {
               <p className="text-gray-500">載入中...</p>
             </div>
           ) : friends.length > 0 ? (
-            <div className="space-y-2">
+            <div className="space-y-3">
               {friends.map(friend => (
                 <div 
                   key={friend.id}
-                  className="flex flex-wrap sm:flex-nowrap items-center justify-between p-4 bg-white border border-gray-200 hover:border-[#A487C3] rounded-lg transition-all duration-300 hover:shadow-md group"
+                  className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 bg-white border border-gray-200 hover:border-[#A487C3] rounded-lg transition-all duration-300 hover:shadow-md group"
                 >
                   <div className="flex items-center gap-3 w-full sm:w-auto mb-3 sm:mb-0">
                     <div className="w-12 h-12 rounded-full bg-[#F8F5FF] flex items-center justify-center text-[#A487C3] uppercase border-2 border-[#E8DFFC] shadow-sm overflow-hidden group-hover:scale-105 transition-transform duration-300">
@@ -450,7 +450,7 @@ const FriendManagement: React.FC<FriendManagementProps> = ({ onClose }) => {
                   </div>
                   <button
                     onClick={() => handleRemoveFriend(friend.id)}
-                    className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg flex items-center justify-center w-full sm:w-auto focus:outline-none border border-gray-200 transition-all duration-300"
+                    className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg flex items-center justify-center w-full sm:w-auto focus:outline-none border border-gray-200 transition-all duration-300 min-w-[120px]"
                   >
                     <i className="fas fa-user-times mr-2"></i>
                     <span>移除好友</span>
@@ -464,7 +464,7 @@ const FriendManagement: React.FC<FriendManagementProps> = ({ onClose }) => {
               <p className="text-sm text-gray-400">使用搜尋功能添加新好友</p>
               <button
                 onClick={() => setActiveTab('search')}
-                className="mt-3 px-4 py-2 bg-[#A487C3] hover:bg-[#8A5DC8] text-white rounded-lg text-sm transition-all duration-300 shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-white friend-btn friend-btn-primary"
+                className="mt-3 px-4 py-2 bg-[#A487C3] hover:bg-[#8A5DC8] text-white rounded-lg text-sm transition-all duration-300 shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-white friend-btn friend-btn-primary w-full sm:w-auto sm:min-w-[200px]"
               >
                 <i className="fas fa-search mr-2"></i>
                 搜尋好友
@@ -611,7 +611,10 @@ const FriendManagement: React.FC<FriendManagementProps> = ({ onClose }) => {
       {/* 好友請求 */}
       {activeTab === 'requests' && (
         <div className="space-y-4">
-          <h3 className="font-medium mb-3">好友請求</h3>
+          <h3 className="font-medium mb-3 flex items-center text-lg text-[#8A5DC8]">
+            <i className="fas fa-envelope mr-2"></i>
+            好友請求
+          </h3>
           
           {loading ? (
             <div className="text-center py-4">
@@ -638,11 +641,11 @@ const FriendManagement: React.FC<FriendManagementProps> = ({ onClose }) => {
                     </div>
                   </div>
                   
-                  <div className="flex flex-col sm:flex-row gap-2">
+                  <div className="flex flex-col sm:flex-row gap-2 w-full">
                     <button
                       onClick={() => handleAcceptFriendRequest(request.id)}
                       disabled={loading}
-                      className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm disabled:opacity-50 transition-all duration-300 shadow-sm hover:shadow-md flex items-center justify-center"
+                      className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm disabled:opacity-50 transition-all duration-300 shadow-sm hover:shadow-md flex items-center justify-center flex-1 min-w-[100px]"
                     >
                       <i className="fas fa-check mr-2"></i>
                       接受
@@ -650,7 +653,7 @@ const FriendManagement: React.FC<FriendManagementProps> = ({ onClose }) => {
                     <button
                       onClick={() => handleRejectFriendRequest(request.id)}
                       disabled={loading}
-                      className="px-4 py-2 bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 hover:border-gray-300 rounded-lg text-sm disabled:opacity-50 transition-all duration-300 shadow-sm hover:shadow-md flex items-center justify-center"
+                      className="px-4 py-2 bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 hover:border-gray-300 rounded-lg text-sm disabled:opacity-50 transition-all duration-300 shadow-sm hover:shadow-md flex items-center justify-center flex-1 min-w-[100px]"
                     >
                       <i className="fas fa-times mr-2"></i>
                       拒絕
@@ -660,8 +663,77 @@ const FriendManagement: React.FC<FriendManagementProps> = ({ onClose }) => {
               ))}
             </div>
           ) : (
-            <div className="text-center py-6 bg-gray-50 rounded-lg">
-              <p className="text-gray-500">沒有待處理的好友請求</p>
+            <div className="py-16 px-6 bg-gradient-to-br from-[#F9F6FF] to-white rounded-xl border border-[#E8DFFC] shadow-sm overflow-hidden relative">
+              {/* 裝飾背景 */}
+              <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-l from-[#F0E8FF] to-transparent opacity-60 rounded-full transform -translate-y-1/3 translate-x-1/3"></div>
+              <div className="absolute bottom-0 left-0 w-64 h-64 bg-gradient-to-r from-[#F0E8FF] to-transparent opacity-60 rounded-full transform translate-y-1/3 -translate-x-1/3"></div>
+              
+              {/* 內容容器 */}
+              <div className="relative z-10 flex flex-col items-center max-w-lg mx-auto">
+                {/* 圖標 */}
+                <div className="mb-10 relative">
+                  <div className="absolute -inset-10 bg-white/50 rounded-full filter blur-xl"></div>
+                  <div className="relative w-32 h-32 flex items-center justify-center">
+                    <div className="absolute inset-0 rounded-full bg-gradient-to-r from-[#A487C3]/20 to-[#A487C3]/10 animate-pulse"></div>
+                    <div className="absolute -inset-0.5 rounded-full bg-gradient-to-r from-[#A487C3]/30 to-[#A487C3]/10 opacity-70"></div>
+                    <div className="relative w-24 h-24 rounded-full bg-white shadow-xl flex items-center justify-center border-4 border-white">
+                      <div className="text-[#A487C3] transform transition-transform">
+                        <i className="fas fa-envelope text-5xl"></i>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 標題與描述 */}
+                <h3 className="text-center text-2xl font-bold text-[#7D5BA6] mb-4">尚無待處理的好友請求</h3>
+                <p className="text-center text-gray-600 mb-10 max-w-sm">
+                  您目前沒有收到任何好友請求。您可以邀請朋友加入，或搜尋好友來建立連結！
+                </p>
+
+                {/* 按鈕區域 */}
+                <div className="w-full flex flex-col items-center space-y-6 mb-10">
+                  {/* 雙按鈕 */}
+                  <div className="w-full flex flex-col sm:flex-row sm:justify-center gap-4">
+                    <button
+                      onClick={() => setActiveTab('search')}
+                      className="flex-1 max-w-xs px-5 py-3.5 bg-[#A487C3] hover:bg-[#8A5DC8] text-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 flex items-center justify-center"
+                    >
+                      <i className="fas fa-search mr-2.5"></i>
+                      搜尋新好友
+                    </button>
+                    
+                    <button 
+                      onClick={copyFriendCode}
+                      className="flex-1 max-w-xs px-5 py-3.5 bg-white hover:bg-[#F0E8FF] text-[#A487C3] border border-[#E8DFFC] rounded-xl shadow-md hover:shadow-lg transition-all duration-300 flex items-center justify-center"
+                    >
+                      <i className="fas fa-share-alt mr-2.5"></i>
+                      分享好友碼
+                    </button>
+                  </div>
+                  
+                  {/* 好友碼顯示 */}
+                  <div className="mt-4 w-full max-w-xs py-4 px-6 bg-white rounded-xl border border-[#E8DFFC] shadow-sm flex items-center justify-between">
+                    <div className="flex items-center">
+                      <div className="w-12 h-12 rounded-full bg-[#F9F6FF] flex items-center justify-center text-[#A487C3] mr-4">
+                        <i className="fas fa-id-card text-xl"></i>
+                      </div>
+                      <span className="font-mono font-bold text-2xl text-[#A487C3]">{myFriendCode}</span>
+                    </div>
+                    <button 
+                      onClick={copyFriendCode}
+                      className="w-10 h-10 rounded-full flex items-center justify-center bg-[#F9F6FF] hover:bg-[#A487C3] text-[#A487C3] hover:text-white transition-all duration-300"
+                    >
+                      <i className="fas fa-copy"></i>
+                    </button>
+                  </div>
+                </div>
+                
+                {/* 提示信息 */}
+                <div className="flex items-center justify-center text-xs text-gray-500 max-w-xs text-center">
+                  <i className="fas fa-lightbulb text-yellow-500 mr-2 flex-shrink-0"></i>
+                  <span>通過分享您的好友碼，讓朋友更快地找到您</span>
+                </div>
+              </div>
             </div>
           )}
         </div>
@@ -799,7 +871,7 @@ const FriendManagement: React.FC<FriendManagementProps> = ({ onClose }) => {
                       <button
                         onClick={() => handleCancelFriendRequest(request.id)}
                         disabled={loading}
-                        className="px-4 py-2 bg-white hover:bg-red-50 text-gray-700 hover:text-red-600 rounded-lg text-sm border border-gray-200 hover:border-red-200 flex items-center gap-2 shadow-sm transition-all duration-200 hover:shadow transform hover:-translate-y-0.5"
+                        className="px-4 py-2 bg-white hover:bg-red-50 text-gray-700 hover:text-red-600 rounded-lg text-sm border border-gray-200 hover:border-red-200 flex items-center gap-2 shadow-sm transition-all duration-200 hover:shadow transform hover:-translate-y-0.5 min-w-[120px]"
                       >
                         <i className="fas fa-times"></i>
                         <span>取消請求</span>
@@ -810,26 +882,75 @@ const FriendManagement: React.FC<FriendManagementProps> = ({ onClose }) => {
               ))}
             </div>
           ) : (
-            <div className="text-center py-12 bg-gradient-to-b from-white to-gray-50 rounded-xl border border-gray-200 shadow-sm">
-              <div className="relative w-20 h-20 mx-auto mb-4">
-                <div className="absolute inset-0 bg-blue-100 rounded-full opacity-50 animate-ping"></div>
-                <div className="relative w-20 h-20 flex items-center justify-center bg-white rounded-full border-2 border-blue-100 shadow-md">
-                  <i className="fas fa-paper-plane text-3xl text-blue-400"></i>
+            <div className="py-16 px-6 bg-gradient-to-br from-[#F9F6FF] to-white rounded-xl border border-[#E8DFFC] shadow-sm overflow-hidden relative">
+              {/* 裝飾背景 */}
+              <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-l from-[#F0E8FF] to-transparent opacity-60 rounded-full transform -translate-y-1/3 translate-x-1/3"></div>
+              <div className="absolute bottom-0 left-0 w-64 h-64 bg-gradient-to-r from-[#F0E8FF] to-transparent opacity-60 rounded-full transform translate-y-1/3 -translate-x-1/3"></div>
+              
+              {/* 內容容器 */}
+              <div className="relative z-10 flex flex-col items-center max-w-lg mx-auto">
+                {/* 圖標 */}
+                <div className="mb-10 relative">
+                  <div className="absolute -inset-10 bg-white/50 rounded-full filter blur-xl"></div>
+                  <div className="relative w-32 h-32 flex items-center justify-center">
+                    <div className="absolute inset-0 rounded-full bg-gradient-to-r from-[#A487C3]/20 to-[#A487C3]/10 animate-pulse"></div>
+                    <div className="absolute -inset-0.5 rounded-full bg-gradient-to-r from-[#A487C3]/30 to-[#A487C3]/10 opacity-70"></div>
+                    <div className="relative w-24 h-24 rounded-full bg-white shadow-xl flex items-center justify-center border-4 border-white">
+                      <div className="text-[#A487C3] transform transition-transform">
+                        <i className="fas fa-paper-plane text-5xl"></i>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <h4 className="text-lg font-medium text-gray-800 mb-2">尚無發送中的好友請求</h4>
-              <p className="text-gray-500 mb-6 max-w-md mx-auto px-4">您目前沒有等待確認的好友請求，可以通過搜尋功能尋找並添加新好友</p>
-              <button
-                onClick={() => setActiveTab('search')}
-                className="mx-auto px-6 py-3 bg-[#A487C3] hover:bg-[#8A5DC8] text-white rounded-lg text-sm shadow-md hover:shadow-lg transition-all duration-300 flex items-center font-medium"
-              >
-                <i className="fas fa-search mr-2"></i>
-                搜尋好友
-              </button>
-              <div className="mt-6 flex justify-center">
-                <div className="flex items-center space-x-1 text-xs text-gray-500">
-                  <i className="fas fa-lightbulb text-yellow-400"></i>
-                  <span>提示: 您也可以分享您的好友碼，讓朋友更快地找到您</span>
+
+                {/* 標題與描述 */}
+                <h3 className="text-center text-2xl font-bold text-[#7D5BA6] mb-4">尚無發送中的好友請求</h3>
+                <p className="text-center text-gray-600 mb-10 max-w-sm">
+                  您目前沒有等待確認的好友請求。搜尋新好友或分享您的好友碼來擴展您的社交圈！
+                </p>
+
+                {/* 按鈕區域 */}
+                <div className="w-full flex flex-col items-center space-y-4 mb-10">
+                  <button
+                    onClick={() => setActiveTab('search')}
+                    className="w-full max-w-xs px-6 py-4 bg-gradient-to-r from-[#A487C3] to-[#8A5DC8] text-white text-base rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center font-medium group relative overflow-hidden"
+                  >
+                    <span className="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity duration-300"></span>
+                    <i className="fas fa-search mr-3 text-lg"></i>
+                    <span>搜尋好友</span>
+                  </button>
+                  
+                  <div className="text-[#A487C3] font-medium py-2">或者</div>
+                  
+                  {/* 好友碼卡片 */}
+                  <div className="w-full max-w-xs bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden">
+                    <div className="px-4 py-3 bg-[#F9F6FF] border-b border-[#E8DFFC]">
+                      <h4 className="font-medium text-[#7D5BA6] flex items-center">
+                        <i className="fas fa-share-alt mr-2"></i>
+                        分享您的好友碼
+                      </h4>
+                    </div>
+                    <div className="p-4 flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 rounded-full bg-[#F0E8FF] flex items-center justify-center text-[#A487C3]">
+                          <i className="fas fa-id-card"></i>
+                        </div>
+                        <span className="font-mono font-bold text-xl text-[#A487C3] tracking-wider">{myFriendCode}</span>
+                      </div>
+                      <button 
+                        onClick={copyFriendCode}
+                        className="w-10 h-10 bg-[#F0E8FF] hover:bg-[#A487C3] text-[#A487C3] hover:text-white rounded-full flex items-center justify-center transition-colors duration-300"
+                      >
+                        <i className="fas fa-copy"></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* 提示信息 */}
+                <div className="flex items-center text-xs text-gray-500">
+                  <i className="fas fa-lightbulb text-yellow-500 mr-2"></i>
+                  <span>好友可以使用您的好友碼更快地找到您</span>
                 </div>
               </div>
             </div>

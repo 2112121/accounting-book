@@ -1111,15 +1111,17 @@ const ConfirmExpenseForm: React.FC<ConfirmExpenseFormProps> = ({
                   ))}
                 </div>
                 
-                {/* 計算機按鈕 */}
-                <button
-                  type="button"
-                  onClick={() => setShowCalculator(true)}
-                  className="ml-2 bg-gradient-to-r from-[#7A5DC8] to-[#A487C3] hover:from-[#6A4DB8] hover:to-[#9477B3] text-white p-2 rounded-lg transition-colors shadow-sm hover:shadow flex items-center justify-center"
-                  title="打開計算機"
-                >
-                  <i className="fas fa-calculator"></i>
-                </button>
+                {/* 計算機按鈕 - 只在指定金額模式下顯示 */}
+                {splitMethod === 'custom' && (
+                  <button
+                    type="button"
+                    onClick={() => setShowCalculator(true)}
+                    className="ml-2 bg-gradient-to-r from-[#7A5DC8] to-[#A487C3] hover:from-[#6A4DB8] hover:to-[#9477B3] text-white p-2 rounded-lg transition-colors shadow-sm hover:shadow flex items-center justify-center"
+                    title="打開計算機"
+                  >
+                    <i className="fas fa-calculator"></i>
+                  </button>
+                )}
               </div>
               <div className="text-xs text-gray-500 pl-2 flex items-center">
                 <i className="fas fa-info-circle mr-1.5 text-[#A487C3]"></i>

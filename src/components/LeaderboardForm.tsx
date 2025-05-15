@@ -279,25 +279,52 @@ const LeaderboardForm: React.FC<LeaderboardFormProps> = ({ onClose }) => {
       return;
     }
 
-    setLeaderboards((prev) =>
-      prev.map((board) =>
-        board.id === leaderboardId ? { ...board, name: newName } : board,
-      ),
-    );
+    setLoading(true);
+    setError("");
 
-    setSuccess("排行榜名稱已更新");
-    setTimeout(() => setSuccess(""), 3000);
+    try {
+      // 獲取排行榜文檔引用
+      const leaderboardRef = doc(db, "leaderboards", leaderboardId);
 
-    // 如果正在編輯的排行榜是當前顯示的排行榜，更新當前顯示
-    if (selectedLeaderboard && selectedLeaderboard.id === leaderboardId) {
-      setSelectedLeaderboard({
-        ...selectedLeaderboard,
-        name: newName,
-      });
+      // 更新Firebase中的排行榜名稱
+      updateDoc(leaderboardRef, { name: newName })
+        .then(() => {
+          console.log(`排行榜 ${leaderboardId} 名稱已更新為 ${newName}`);
+          
+          // 更新本地排行榜列表
+          setLeaderboards((prev) =>
+            prev.map((board) =>
+              board.id === leaderboardId ? { ...board, name: newName } : board,
+            ),
+          );
+
+          // 如果正在編輯的排行榜是當前顯示的排行榜，更新當前顯示
+          if (selectedLeaderboard && selectedLeaderboard.id === leaderboardId) {
+            setSelectedLeaderboard({
+              ...selectedLeaderboard,
+              name: newName,
+            });
+          }
+
+          // 顯示成功訊息
+          setSuccess("排行榜名稱已更新");
+          setTimeout(() => setSuccess(""), 3000);
+
+          // 重置編輯狀態
+          setEditingLeaderboard(null);
+        })
+        .catch((error) => {
+          console.error("更新排行榜名稱失敗:", error);
+          setError(`更新排行榜名稱失敗: ${error.message}`);
+        })
+        .finally(() => {
+          setLoading(false);
+        });
+    } catch (error: any) {
+      console.error("處理排行榜名稱更新失敗:", error);
+      setError(`更新排行榜名稱失敗: ${error.message}`);
+      setLoading(false);
     }
-
-    // 重置編輯狀態
-    setEditingLeaderboard(null);
   };
 
   // 格式化日期函數

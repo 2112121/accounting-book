@@ -375,13 +375,19 @@ const BudgetSetting: React.FC<BudgetSettingProps> = ({ onClose }) => {
             }
           }
           
+          // 特別處理investment類別名稱
+          let categoryName = item.categoryName;
+          if (item.categoryId === 'investment') {
+            categoryName = '投資';
+          }
+          
           // 返回處理後的預算項目
           return {
             id: item.id,
             period: item.period || 'monthly',
             amount: Number(item.amount) || 0,
             categoryId: item.categoryId || 'overall',
-            categoryName: item.categoryName || '總體',
+            categoryName: categoryName || '總體',
             startDate: startDateField,
             endDate: endDateField,
             budgetType: item.budgetType || (item.categoryId === 'overall' ? 'overall' : 'multi'),
@@ -493,6 +499,14 @@ const BudgetSetting: React.FC<BudgetSettingProps> = ({ onClose }) => {
         return category ? category.name : catId;
       });
       categoryName = categoryNames.join('+');
+    } else if (selectedCategory === 'investment') {
+      categoryName = '投資'; // 特別處理investment類別
+    } else if (budgetType !== 'overall' && selectedCategory !== 'overall') {
+      // 查找單一類別的名稱
+      const category = categories.find(c => c.id === selectedCategory);
+      if (category) {
+        categoryName = category.name;
+      }
     }
     
     // 更新预算项
@@ -589,6 +603,14 @@ const BudgetSetting: React.FC<BudgetSettingProps> = ({ onClose }) => {
         return category ? category.name : catId;
       });
       categoryName = categoryNames.join('+');
+    } else if (selectedCategory === 'investment') {
+      categoryName = '投資'; // 特別處理investment類別
+    } else if (budgetType !== 'overall' && selectedCategory !== 'overall') {
+      // 查找單一類別的名稱
+      const category = categories.find(c => c.id === selectedCategory);
+      if (category) {
+        categoryName = category.name;
+      }
     }
     
     // 创建新预算项
@@ -630,25 +652,51 @@ const BudgetSetting: React.FC<BudgetSettingProps> = ({ onClose }) => {
         amount: newBudgetItem.amount
       };
       
-      setBudget({
+      const updatedBudget = {
         ...budget,
         budgetItems: updatedItems
-      });
+      };
       
-      setSuccess('預算設置已更新');
+      // 更新本地狀態
+      setBudget(updatedBudget);
+      
+      // 保存到Firestore
+      saveBudget(updatedBudget)
+        .then(() => {
+          setSuccess('預算設置已更新並保存');
+          // 重置所有表單字段
+          resetForm();
+        })
+        .catch((error) => {
+          console.error('保存預算失敗:', error);
+          setError('已新增至預算列表，請點擊底部的"保存所有設置"按鈕完成保存');
+        });
     } else {
       // 添加新项目
       console.log('添加新預算項目:', newBudgetItem);
-      setBudget({
-      ...budget,
+      const updatedBudget = {
+        ...budget,
         budgetItems: [...budget.budgetItems, newBudgetItem]
-      });
-    
-      setSuccess('預算設置已添加');
+      };
+      
+      // 更新本地狀態
+      setBudget(updatedBudget);
+      
+      // 保存到Firestore
+      saveBudget(updatedBudget)
+        .then(() => {
+          setSuccess('預算設置已添加並保存');
+          // 重置所有表單字段
+          resetForm();
+        })
+        .catch((error) => {
+          console.error('保存預算失敗:', error);
+          setError('已新增至預算列表，請點擊底部的"保存所有設置"按鈕完成保存');
+        });
     }
     
     // 重置表单
-    setAmount('');
+    /* setAmount(''); */
     
     // 隐藏成功消息
     setTimeout(() => {
@@ -677,41 +725,14 @@ const BudgetSetting: React.FC<BudgetSettingProps> = ({ onClose }) => {
         // 保存到Firestore數據庫
         await saveBudget(updatedBudget);
         setSuccess('預算項目已刪除');
-      } catch (saveError) {
-        console.error('通過saveBudget刪除失敗，嘗試直接更新:', saveError);
-        
-        // 嘗試備用保存方法
-        if (currentUser) {
-          try {
-            // 直接使用最簡單的方式更新數據
-            const budgetRef = doc(db, 'budgets', currentUser.uid);
-            
-            // 只更新預算項目列表
-            await setDoc(budgetRef, { 
-              budgetItems: updatedItems.map(item => ({
-                id: item.id,
-                period: item.period,
-                amount: Number(item.amount),
-                categoryId: item.categoryId,
-                categoryName: item.categoryName,
-                budgetType: item.budgetType || 'multi'
-              })),
-              lastUpdated: serverTimestamp()
-            }, { merge: true });
-            
-            setSuccess('預算項目已刪除');
-          } catch (finalError) {
-            console.error('備用保存方法也失敗:', finalError);
-            setError('刪除預算項目時發生錯誤，但您仍然可以看到已更新的列表。請稍後點擊"保存所有設置"嘗試再次保存。');
-          }
-        } else {
-          setError('您似乎已登出，請重新登入後再試。');
-        }
+      } catch (finalError) {
+        console.error('備用保存方法也失敗:', finalError);
+        setError('已從列表中移除，請點擊底部的"保存所有設置"按鈕完成保存');
       }
     } catch (error) {
       console.error('刪除預算項目失敗:', error);
       // 即使保存失敗，我們仍然保持本地刪除狀態，但提示用戶保存失敗
-      setError('刪除預算項目時發生錯誤，但您仍然可以看到已更新的列表。請稍後點擊"保存所有設置"嘗試再次保存。');
+      setError('已從列表中移除，請點擊底部的"保存所有設置"按鈕完成保存');
     } finally {
       setLoading(false);
       
@@ -762,6 +783,11 @@ const BudgetSetting: React.FC<BudgetSettingProps> = ({ onClose }) => {
             item.amount = item.amount || 0;
             item.categoryId = item.categoryId || 'overall';
             item.categoryName = item.categoryName || '总体';
+          }
+          
+          // 特別處理investment類別名稱
+          if (item.categoryId === 'investment') {
+            item.categoryName = '投資';
           }
           
           // 處理日期欄位
@@ -845,7 +871,7 @@ const BudgetSetting: React.FC<BudgetSettingProps> = ({ onClose }) => {
         .filter(item => item.categoryId !== 'overall' && item.period === (saveData.period || 'monthly'))
         .map(item => ({
           categoryId: item.categoryId,
-          categoryName: item.categoryName,
+          categoryName: item.categoryId === 'investment' ? '投資' : item.categoryName,
           amount: item.amount
         }));
       
@@ -925,7 +951,7 @@ const BudgetSetting: React.FC<BudgetSettingProps> = ({ onClose }) => {
                   period: item.period,
                   amount: item.amount,
                   categoryId: item.categoryId,
-                  categoryName: item.categoryName,
+                  categoryName: item.categoryId === 'investment' ? '投資' : item.categoryName,
                   budgetType: item.budgetType || (item.categoryId === 'overall' ? 'overall' : 'multi'),
                   ...(item.budgetType === 'multi' && item.categories ? { categories: item.categories } : {})
                 }))

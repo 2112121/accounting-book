@@ -77,6 +77,10 @@ const App: React.FC = () => {
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null); // 正在編輯的支出
   const [successMessage, setSuccessMessage] = useState("記帳成功！"); // 自定義成功訊息
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null); // 選中的支出類別
+  const [pieChartMode, setPieChartMode] = useState<'current' | 'selected' | 'all'>('all'); // 圓餅圖顯示模式
+  const [pieChartMonth, setPieChartMonth] = useState<string>(
+    new Date().toISOString().slice(0, 7) // 默認為當前月份，格式為 YYYY-MM
+  );
 const chartRef = useRef<HTMLDivElement>(null);
   const dailyChartRef = useRef<HTMLDivElement>(null);
   const {
@@ -346,8 +350,132 @@ const chartRef = useRef<HTMLDivElement>(null);
       return;
     }
 
+    // 根據模式選擇數據
+    let dataToUse: Expense[] = [];
+    console.log("原始數據筆數:", expenses.length);
+    
+    // 使用最嚴格的年月直接比較，完全避開日期範圍比較
+    if (pieChartMode === 'current') {
+      // 獲取當前年月
+      const today = new Date();
+      const currentMonth = today.getMonth(); // 0-11
+      const currentYear = today.getFullYear();
+      
+      console.log(`嚴格過濾當前月份: ${currentYear}年${currentMonth + 1}月`);
+      
+      // 逐條檢查每筆支出記錄
+      expenses.forEach(expense => {
+        try {
+          if (!expense.date) {
+            console.warn(`支出 ${expense.id} 沒有日期資料，已跳過`);
+            return;
+          }
+          
+          // 確保使用新的日期對象避免引用問題
+          const expDate = expense.date instanceof Date ? 
+            new Date(expense.date.getTime()) : 
+            new Date(expense.date);
+            
+          // 檢查日期是否有效
+          if (isNaN(expDate.getTime())) {
+            console.warn(`支出 ${expense.id} 日期無效: ${expense.date}，已跳過`);
+            return;
+          }
+          
+          // 直接比較年月
+          const expMonth = expDate.getMonth();
+          const expYear = expDate.getFullYear();
+          
+          const matchesCurrentMonth = (expYear === currentYear && expMonth === currentMonth);
+          
+          // 打印詳細信息用於調試
+          console.log(`檢查支出 ${expense.id}:`, {
+            原始日期值: String(expense.date),
+            解析後日期: expDate.toISOString(),
+            年份: expYear === currentYear ? '✓' : '✗',
+            月份: expMonth === currentMonth ? '✓' : '✗',
+            匹配當月: matchesCurrentMonth ? '✓' : '✗',
+            類別: typeof expense.category === 'string' ? expense.category : expense.category?.name,
+            金額: expense.amount,
+            說明: expense.notes
+          });
+          
+          // 只添加匹配當月的支出
+          if (matchesCurrentMonth) {
+            dataToUse.push(expense);
+          }
+        } catch (err) {
+          console.error(`處理支出 ${expense.id} 時出錯:`, err);
+        }
+      });
+      
+      console.log(`當月過濾結果: 總計 ${dataToUse.length} 筆支出記錄`);
+      
+      // 再次確認過濾後的每筆記錄
+      dataToUse.forEach((exp, idx) => {
+        const expDate = exp.date instanceof Date ? exp.date : new Date(exp.date);
+        console.log(`當月數據 #${idx}:`, {
+          id: exp.id,
+          日期: expDate.toISOString().split('T')[0],
+          年月: `${expDate.getFullYear()}/${expDate.getMonth()+1}`,
+          類別: typeof exp.category === 'string' ? exp.category : exp.category?.name,
+          金額: exp.amount
+        });
+      });
+    } 
+    else if (pieChartMode === 'selected') {
+      // 使用用戶選擇的月份
+      const [year, month] = pieChartMonth.split('-').map(Number);
+      // 注意：月份需要-1因為JavaScript的月份是0-11
+      const targetMonth = month - 1;
+      
+      console.log(`嚴格過濾選定月份: ${year}年${month}月 (內部月份索引: ${targetMonth})`);
+      
+      // 逐條檢查每筆支出記錄
+      expenses.forEach(expense => {
+        try {
+          if (!expense.date) {
+            console.warn(`支出 ${expense.id} 沒有日期資料，已跳過`);
+            return;
+          }
+          
+          // 確保使用新的日期對象避免引用問題
+          const expDate = expense.date instanceof Date ? 
+            new Date(expense.date.getTime()) : 
+            new Date(expense.date);
+            
+          // 檢查日期是否有效
+          if (isNaN(expDate.getTime())) {
+            console.warn(`支出 ${expense.id} 日期無效: ${expense.date}，已跳過`);
+            return;
+          }
+          
+          // 直接比較年月
+          const expMonth = expDate.getMonth();
+          const expYear = expDate.getFullYear();
+          
+          const matchesSelectedMonth = (expYear === year && expMonth === targetMonth);
+          
+          // 只添加匹配選擇月份的支出
+          if (matchesSelectedMonth) {
+            dataToUse.push(expense);
+            console.log(`選擇月份匹配: ${expense.id}, ${expDate.toISOString().split('T')[0]}, ${typeof expense.category === 'string' ? expense.category : expense.category?.name}, $${expense.amount}`);
+          }
+        } catch (err) {
+          console.error(`處理支出 ${expense.id} 時出錯:`, err);
+        }
+      });
+      
+      console.log(`選擇月份過濾結果: 總計 ${dataToUse.length} 筆支出記錄`);
+    } 
+    else {
+      // 全部數據模式 - 直接使用所有支出
+      dataToUse = [...expenses];
+      console.log("使用全部數據, 筆數:", dataToUse.length);
+    }
+
     // 檢查是否有數據
-    if (!expenses || expenses.length === 0) {
+    if (!dataToUse || dataToUse.length === 0) {
       console.log("沒有支出數據，顯示空圓餅圖");
       createEmptyPieChart();
       return;
@@ -364,14 +492,14 @@ const chartRef = useRef<HTMLDivElement>(null);
 
     // 創建新實例
     try {
-      console.log("開始初始化圓餅圖，數據筆數:", expenses.length);
+      console.log("開始初始化圓餅圖，數據筆數:", dataToUse.length);
       const chart = echarts.init(chartRef.current);
 
       // 計算分類支出
       const categorySum: Record<string, number> = {};
       let totalAmount = 0;
 
-      expenses.forEach((expense) => {
+      dataToUse.forEach((expense) => {
         // 處理 category 可能是字符串或對象的情況
         const categoryName =
           typeof expense.category === "string"
@@ -886,32 +1014,78 @@ const chartRef = useRef<HTMLDivElement>(null);
             try {
               // 安全地處理日期轉換
               let expenseDate;
-              if (data.date && typeof data.date.toDate === "function") {
-                // Firestore Timestamp 對象
-                expenseDate = data.date.toDate();
-              } else if (data.date && data.date._seconds) {
-                // Firestore Timestamp 從JSON
-                expenseDate = new Date(data.date._seconds * 1000);
-              } else if (data.date instanceof Date) {
-                // 已經是日期對象
-                expenseDate = data.date;
-              } else if (typeof data.date === "string") {
-                // 字符串日期
-                expenseDate = new Date(data.date);
-              } else {
-                // 默認為當前日期
-                console.warn(`無效的日期格式: ${JSON.stringify(data.date)}`);
-                expenseDate = new Date();
+              try {
+                if (data.date && typeof data.date.toDate === "function") {
+                  // Firestore Timestamp 對象
+                  expenseDate = data.date.toDate();
+                  console.log(`文檔 ${doc.id}: 從Timestamp轉換日期:`, expenseDate.toISOString());
+                } else if (data.date && data.date._seconds) {
+                  // Firestore Timestamp 從JSON
+                  expenseDate = new Date(data.date._seconds * 1000);
+                  console.log(`文檔 ${doc.id}: 從_seconds轉換日期:`, expenseDate.toISOString());
+                } else if (data.date instanceof Date) {
+                  // 已經是日期對象
+                  expenseDate = new Date(data.date.getTime());
+                  console.log(`文檔 ${doc.id}: 使用日期對象:`, expenseDate.toISOString());
+                } else if (typeof data.date === "string") {
+                  // 字符串日期 - 確保正確解析
+                  // 為了解決時區問題，我們需要保留原始字符串的日期部分
+                  // 格式可能是 YYYY-MM-DD 或 YYYY/MM/DD
+                  const dateString = data.date.trim();
+                  if (dateString.match(/^\d{4}[-/]\d{1,2}[-/]\d{1,2}$/)) {
+                    // 標準化日期字符串格式為 YYYY-MM-DD
+                    const [year, month, day] = dateString.split(/[-/]/).map(Number);
+                    
+                    // 創建本地時間的日期對象，避免時區轉換問題
+                    expenseDate = new Date(year, month - 1, day, 0, 0, 0);
+                    console.log(`文檔 ${doc.id}: 從日期字符串 "${dateString}" 轉換:`, expenseDate.toISOString());
+                  } else {
+                    // 嘗試作為標準ISO字符串解析
+                    expenseDate = new Date(dateString);
+                    console.log(`文檔 ${doc.id}: 從一般字符串轉換:`, expenseDate.toISOString());
+                  }
+                } else {
+                  // 默認為當前日期
+                  console.warn(`文檔 ${doc.id}: 無效的日期格式:`, JSON.stringify(data.date));
+                  expenseDate = new Date();
+                }
+                
+                // 確保日期有效
+                if (isNaN(expenseDate.getTime())) {
+                  throw new Error(`無效日期: ${data.date}`);
+                }
+                
+                // 標準化為當天的0點，避免時區和時間部分差異
+                const normalizedDate = new Date(
+                  expenseDate.getFullYear(),
+                  expenseDate.getMonth(),
+                  expenseDate.getDate(),
+                  0, 0, 0
+                );
+                
+                fetchedExpenses.push({
+                  id: doc.id,
+                  amount: data.amount,
+                  category: data.category,
+                  // 使用標準化後的日期
+                  date: normalizedDate,
+                  notes: data.notes || "",
+                  userId: data.userId,
+                });
+                
+                console.log(`成功處理文檔 ${doc.id} 的日期:`, normalizedDate.toISOString());
+              } catch (e) {
+                console.error(`處理文檔 ${doc.id} 的日期時出錯:`, e);
+                // 如果日期處理出錯，仍然添加記錄但使用當前日期
+                fetchedExpenses.push({
+                  id: doc.id,
+                  amount: data.amount,
+                  category: data.category,
+                  date: new Date(), // 默認使用當前日期
+                  notes: data.notes || "",
+                  userId: data.userId,
+                });
               }
-
-              fetchedExpenses.push({
-            id: doc.id,
-            amount: data.amount,
-            category: data.category,
-                date: expenseDate,
-                notes: data.notes || "",
-            userId: data.userId,
-              });
             } catch (e) {
               console.error(`處理消費明細 ${doc.id} 時出錯:`, e);
             }
@@ -2447,15 +2621,110 @@ useEffect(() => {
     };
   }, []);
 
+  // 在getCategoryIcon和getCategoryColor函数之间添加getCategoryName函数
+  const getCategoryName = (categoryId: string): string => {
+    const nameMap: {[key: string]: string} = {
+      'food': '餐飲',
+      'transportation': '交通',
+      'entertainment': '娛樂',
+      'shopping': '購物',
+      'education': '教育',
+      'medical': '醫療',
+      'investment': '投資',
+      'utilities': '住支',
+      'rent': '租金',
+      'travel': '旅行',
+      'income': '收入',
+      'other': '其他',
+      'overall': '總體',
+      'multi': '多類別'
+    };
+    
+    // 特別處理investment類別
+    if (categoryId === 'investment') return '投資';
+    
+    return nameMap[categoryId] || categoryId;
+  };
+
   // 根據選定類別過濾支出
   const getCategoryExpenses = () => {
     if (!selectedCategory) return [];
 
-    return expenses.filter((expense) => {
+    // 先根据圆饼图模式过滤数据
+    let filteredByMode = expenses;
+    
+    // 使用与圆饼图相同的过滤逻辑
+    if (pieChartMode === 'current') {
+      // 獲取當前年月
+      const today = new Date();
+      const currentMonth = today.getMonth(); // 0-11
+      const currentYear = today.getFullYear();
+      
+      console.log(`類別支出明細 - 過濾當前月份: ${currentYear}年${currentMonth + 1}月`);
+      
+      // 按當前月份過濾
+      filteredByMode = expenses.filter(expense => {
+        try {
+          if (!expense.date) return false;
+          
+          const expDate = expense.date instanceof Date ? 
+            new Date(expense.date.getTime()) : 
+            new Date(expense.date);
+            
+          if (isNaN(expDate.getTime())) return false;
+          
+          // 直接比較年月
+          const expMonth = expDate.getMonth();
+          const expYear = expDate.getFullYear();
+          
+          return (expYear === currentYear && expMonth === currentMonth);
+        } catch (err) {
+          console.error(`處理支出 ${expense.id} 時出錯:`, err);
+          return false;
+        }
+      });
+      
+      console.log(`類別支出明細 - 當月過濾結果: ${filteredByMode.length} 筆記錄`);
+    } 
+    else if (pieChartMode === 'selected') {
+      // 使用用戶選擇的月份
+      const [year, month] = pieChartMonth.split('-').map(Number);
+      const targetMonth = month - 1; // JavaScript月份從0開始
+      
+      console.log(`類別支出明細 - 過濾選定月份: ${year}年${month}月`);
+      
+      // 按選定月份過濾
+      filteredByMode = expenses.filter(expense => {
+        try {
+          if (!expense.date) return false;
+          
+          const expDate = expense.date instanceof Date ? 
+            new Date(expense.date.getTime()) : 
+            new Date(expense.date);
+            
+          if (isNaN(expDate.getTime())) return false;
+          
+          // 直接比較年月
+          const expMonth = expDate.getMonth();
+          const expYear = expDate.getFullYear();
+          
+          return (expYear === year && expMonth === targetMonth);
+        } catch (err) {
+          console.error(`處理支出 ${expense.id} 時出錯:`, err);
+          return false;
+        }
+      });
+      
+      console.log(`類別支出明細 - 選定月份過濾結果: ${filteredByMode.length} 筆記錄`);
+    }
+    // 'all' 模式使用所有支出數據
+
+    // 然後再按類別過濾
+    return filteredByMode.filter((expense) => {
       const categoryName =
         typeof expense.category === "string"
-          ? expense.category
-          : expense.category?.name || "未分類";
+          ? (expense.category === 'investment' ? '投資' : getCategoryName(expense.category))
+          : (expense.category?.id === 'investment' ? '投資' : expense.category?.name || "未分類");
 
       return categoryName === selectedCategory;
     });
@@ -2776,6 +3045,18 @@ useEffect(() => {
     }
   }, []);
 
+  // 在圓餅圖模式或選擇月份變化時重新初始化圖表
+  useEffect(() => {
+    if (expenses.length > 0 && chartRef.current) {
+      console.log('圓餅圖顯示模式變更為:', pieChartMode, pieChartMode === 'selected' ? pieChartMonth : '');
+      initPieChart();
+      
+      // 重新計算類別支出明細，確保與圓餅圖顯示的數據一致
+      const updatedCategoryExpenses = getCategoryExpenses();
+      console.log(`更新類別支出明細: ${updatedCategoryExpenses.length} 筆記錄`);
+    }
+  }, [pieChartMode, pieChartMonth]);
+
   return (
     <div className="bg-[#F5F5FA] min-h-screen font-sans">
       {/* 頂部導航欄 */}
@@ -3011,6 +3292,17 @@ useEffect(() => {
               <i className="fas fa-list-ul"></i>
               <span>歷史消費明細</span>
             </button>
+            
+            <button 
+              className="px-5 py-3 bg-[#4EA8DE] hover:bg-[#3D97CD] text-white rounded-xl shadow-sm hover:shadow-md flex items-center gap-2 font-medium transition-all duration-300"
+              onClick={() => {
+                // 導航到收入管理頁面
+                window.location.href = '/income';
+              }}
+            >
+              <i className="fas fa-coins"></i>
+              <span>收入管理</span>
+            </button>
           </div>
           
           {/* 成功提示消息 - 固定在畫面中央 */}
@@ -3043,7 +3335,70 @@ useEffect(() => {
           {/* 支出分析卡片 */}
           <div className="relative bg-white bg-opacity-95 backdrop-blur-sm rounded-xl shadow-md border-l-4 border-[#3AA6B9] p-5 mb-6 hover:shadow-lg transition-all duration-300">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-bold text-[#3AA6B9]">支出分析</h2>
+              <div className="flex items-center flex-wrap">
+                <h2 className="text-lg font-bold text-[#3AA6B9]">支出分析</h2>
+                <div className="ml-4 flex items-center space-x-2">
+                  <button 
+                    className={`text-xs px-2 py-1 rounded-md transition-colors ${pieChartMode === 'all' ? 'bg-[#3AA6B9] text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+                    onClick={() => setPieChartMode('all')}
+                  >
+                    全部
+                  </button>
+                  <button 
+                    className={`text-xs px-2 py-1 rounded-md transition-colors ${pieChartMode === 'current' ? 'bg-[#3AA6B9] text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+                    onClick={() => setPieChartMode('current')}
+                  >
+                    當月
+                  </button>
+                  <div className="relative">
+                    <button 
+                      className={`text-xs px-2 py-1 rounded-md transition-colors flex items-center ${pieChartMode === 'selected' ? 'bg-[#3AA6B9] text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+                      onClick={(e) => {
+                        // 设置为选择月份模式
+                        setPieChartMode('selected');
+                        
+                        // 获取输入元素
+                        const inputEl = document.getElementById('pieChartMonthInput') as HTMLInputElement;
+                        if (inputEl) {
+                          // 禁止事件冒泡，防止重复触发
+                          e.stopPropagation();
+                          
+                          try {
+                            // 尝试使用现代API打开日期选择器
+                            if (typeof inputEl.showPicker === 'function') {
+                              inputEl.showPicker();
+                            } else {
+                              // 回退方法：模拟点击
+                              inputEl.focus();
+                              inputEl.click();
+                            }
+                          } catch (err) {
+                            console.log('无法打开月份选择器，使用备用方法', err);
+                            // 备用方法
+                            inputEl.focus();
+                            inputEl.click();
+                          }
+                        }
+                      }}
+                    >
+                      選擇月份
+                    </button>
+                    <input 
+                      id="pieChartMonthInput"
+                      type="month"
+                      value={pieChartMonth}
+                      onChange={(e) => {
+                        setPieChartMonth(e.target.value);
+                        setPieChartMode('selected');
+                      }}
+                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                      onClick={(e: React.MouseEvent) => {
+                        e.stopPropagation(); // 防止事件冒泡
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
               {selectedCategory && (
                 <button
                   onClick={resetCategorySelection}
@@ -4485,6 +4840,8 @@ useEffect(() => {
               <div className="absolute w-3 h-3 bg-[#333333] transform rotate-45 right-4 bottom-[-6px]"></div>
             </div>
           </div>
+          
+          {/* 收入管理按鈕和提示 - 移除此區塊 */}
           
           {/* 新增支出按鈕和提示 */}
           <div className="group relative">
