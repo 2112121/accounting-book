@@ -1,6 +1,7 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import App from './App.tsx'
+import { RouterProvider } from 'react-router-dom'
+import router from './routes'
 import './index.css'
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { AuthProvider } from './contexts/AuthContext'
@@ -139,7 +140,7 @@ root.render(
   <React.StrictMode>
     <ErrorBoundary>
       <AuthProvider>
-        <App />
+        <RouterProvider router={router} />
       </AuthProvider>
     </ErrorBoundary>
   </React.StrictMode>

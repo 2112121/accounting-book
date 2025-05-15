@@ -171,6 +171,48 @@ const BudgetProgressBars: React.FC = () => {
   const [collapsed, setCollapsed] = useState<boolean>(false);
   const [categories, setCategories] = useState<{id: string, name: string}[]>([]);
   
+  // 強制修復所有預算顯示中的investment為投資
+  const forceFixInvestmentDisplay = () => {
+    console.log('強制修復所有預算顯示...');
+    // 修復現有budgetProgress項目
+    const fixedProgress = budgetProgress.map(item => {
+      if (item.categoryId === 'investment' || 
+          item.categoryName === 'investment' || 
+          (typeof item.categoryName === 'string' && item.categoryName.includes('investment'))) {
+        console.log('修復預算顯示: ', item.categoryId, item.categoryName, ' -> 投資');
+        return {
+          ...item,
+          categoryName: item.categoryName === 'investment' ? '投資' : item.categoryName.replace('investment', '投資')
+        };
+      }
+      return item;
+    });
+    
+    if (JSON.stringify(fixedProgress) !== JSON.stringify(budgetProgress)) {
+      console.log('預算顯示已修復');
+      setBudgetProgress(fixedProgress);
+    }
+    
+    // 修復現有budgetItems項目
+    const fixedItems = budgetItems.map(item => {
+      if (item.categoryId === 'investment' || 
+          item.categoryName === 'investment' || 
+          (typeof item.categoryName === 'string' && item.categoryName.includes('investment'))) {
+        console.log('修復預算項目: ', item.categoryId, item.categoryName, ' -> 投資');
+        return {
+          ...item,
+          categoryName: item.categoryName === 'investment' ? '投資' : item.categoryName.replace('investment', '投資')
+        };
+      }
+      return item;
+    });
+    
+    if (JSON.stringify(fixedItems) !== JSON.stringify(budgetItems)) {
+      console.log('預算項目已修復');
+      setBudgetItems(fixedItems);
+    }
+  };
+  
   // 當沒有預算項目時自動摺疊
   useEffect(() => {
     if (!loading && budgetProgress.length === 0) {
@@ -294,6 +336,13 @@ const BudgetProgressBars: React.FC = () => {
     }
   }, [budgetItems, expenses]);
   
+  // 每當預算進度數據更新時，強制修復investment顯示
+  useEffect(() => {
+    if (budgetProgress.length > 0) {
+      forceFixInvestmentDisplay();
+    }
+  }, [budgetProgress]);
+  
   // 載入預算項目
   const loadBudgetItems = async () => {
     try {
@@ -345,7 +394,7 @@ const BudgetProgressBars: React.FC = () => {
                 period: item.period || 'monthly',
                 amount: typeof item.amount === 'number' ? item.amount : parseFloat(item.amount) || 0,
                 categoryId: item.categoryId || 'overall',
-                categoryName: item.categoryName || '總體',
+                categoryName: item.categoryId === 'investment' ? '投資' : (item.categoryName || getCategoryName(item.categoryId) || '總體'),
                 ...(startDate ? { startDate } : {}),
                 ...(endDate ? { endDate } : {}),
                 budgetType: item.budgetType || 'multi',
@@ -366,7 +415,7 @@ const BudgetProgressBars: React.FC = () => {
                 period: item.period || 'monthly',
                 amount: typeof item.amount === 'number' ? item.amount : parseFloat(item.amount) || 0,
                 categoryId: item.categoryId || 'overall',
-                categoryName: item.categoryName || '總體',
+                categoryName: item.categoryId === 'investment' ? '投資' : (item.categoryName || getCategoryName(item.categoryId) || '總體'),
                 budgetType: item.budgetType || 'multi',
                 categories: item.categories || []
               } as BudgetItem;
@@ -444,7 +493,7 @@ const BudgetProgressBars: React.FC = () => {
                   period: data.period || 'monthly',
                   amount: typeof cat.amount === 'number' ? cat.amount : parseFloat(cat.amount) || 0,
                   categoryId: cat.categoryId,
-                  categoryName: cat.categoryName,
+                  categoryName: cat.categoryId === 'investment' ? '投資' : (cat.categoryName || getCategoryName(cat.categoryId) || '總體'),
                   startDate,
                   endDate,
                   budgetType: 'multi'
@@ -756,6 +805,24 @@ const BudgetProgressBars: React.FC = () => {
   
   // 計算預算進度
   const calculateBudgetProgress = () => {
+    // 修復所有budgetItems，確保"investment"類別的categoryName顯示為中文"投資"
+    const fixedItems = budgetItems.map(item => {
+      if (item.categoryId === 'investment' && item.categoryName !== '投資') {
+        console.log('修復類別名稱: ', item.categoryId, item.categoryName, '->', '投資');
+        return {
+          ...item,
+          categoryName: '投資'
+        };
+      }
+      return item;
+    });
+    
+    // 如果有需要修復的項目，更新budgetItems
+    if (JSON.stringify(fixedItems) !== JSON.stringify(budgetItems)) {
+      console.log('已修復預算項目中的investment類別名稱');
+      setBudgetItems(fixedItems);
+    }
+    
     const now = new Date();
     
     // 計算各種時間範圍，精確到毫秒
@@ -931,11 +998,31 @@ const BudgetProgressBars: React.FC = () => {
       const isOverBudget = currentAmount >= budget.amount;
       
       // 添加到進度列表
+      const categoryDisplayName = (() => {
+        // 首先检查是否为multi类型预算
+        if (budgetType === 'multi') {
+          return categoryDisplay;
+        }
+        
+        // 检查是否为investment类别
+        if (budget.categoryId === 'investment') {
+          return '投資';
+        }
+        
+        // 检查categoryName是否包含investment
+        if (typeof budget.categoryName === 'string' && budget.categoryName.includes('investment')) {
+          return budget.categoryName.replace(/investment/g, '投資');
+        }
+        
+        // 使用默认中文名称
+        return getCategoryName(budget.categoryId);
+      })();
+      
       progress.push({
         id: budget.id,
         period: periodName,
         categoryId: budgetType === 'multi' ? 'multi' : budget.categoryId,
-        categoryName: budgetType === 'multi' ? categoryDisplay : (budget.categoryId === 'overall' ? '總體' : budget.categoryName),
+        categoryName: categoryDisplayName,
         budgetAmount: budget.amount,
         currentAmount,
         percentage,
@@ -960,8 +1047,42 @@ const BudgetProgressBars: React.FC = () => {
       return a.categoryName.localeCompare(b.categoryName);
     });
     
+    // 最終修復所有progress項目，確保investment類別顯示中文'投資'
+    progress.forEach(item => {
+      if (item.categoryId === 'investment' && item.categoryName !== '投資') {
+        console.log('修復預算進度中的類別名稱:', item.categoryId, item.categoryName, '->', '投資');
+        item.categoryName = '投資';
+      }
+    });
+    
     setBudgetProgress(progress);
     console.log('預算進度計算完成:', progress);
+  };
+  
+  // 獲取類別ID對應的中文名稱
+  const getCategoryName = (categoryId: string): string => {
+    console.log('獲取類別名稱:', categoryId);
+    const nameMap: {[key: string]: string} = {
+      'food': '餐飲',
+      'transportation': '交通',
+      'entertainment': '娛樂',
+      'shopping': '購物',
+      'education': '教育',
+      'medical': '醫療',
+      'investment': '投資',
+      'utilities': '住支',
+      'rent': '租金',
+      'travel': '旅行',
+      'income': '收入',
+      'other': '其他',
+      'overall': '總體',
+      'multi': '多類別'
+    };
+    
+    // 確保函數始終返回有效的中文名稱，特別處理'investment'
+    if (categoryId === 'investment') return '投資';
+    
+    return nameMap[categoryId] || categoryId;
   };
   
   // 添加獲取不同類別圖標的輔助函數
@@ -1159,7 +1280,16 @@ const BudgetProgressBars: React.FC = () => {
                   <div className="flex-1">
                     <div className="flex flex-wrap justify-between items-center">
                       <h3 className="font-bold text-gray-800 text-sm mr-2">
-                        {progress.period} {progress.categoryName}預算
+                        {(() => {
+                          let displayText = `${progress.period} ${progress.categoryName}預算`;
+                          // 確保任何地方出現的'investment'都會被替換成'投資'
+                          if (progress.categoryId === 'investment' || 
+                              (typeof progress.categoryName === 'string' && 
+                               (progress.categoryName === 'investment' || progress.categoryName.includes('investment')))) {
+                            displayText = displayText.replace(/investment/g, '投資');
+                          }
+                          return displayText;
+                        })()}
                       </h3>
                       <div className="flex items-center">
                         <span className="text-gray-600 font-medium mr-1 text-xs">預算</span>

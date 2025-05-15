@@ -4,6 +4,7 @@ import { Friend } from '../contexts/AuthContext';
 import { collection, query, where, getDocs, Timestamp, getDoc, doc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { SplitParticipant } from './SplitExpenseManagement';
+import Calculator from './Calculator';
 
 // 支出類別列表
 const categories = [
@@ -69,6 +70,9 @@ const SplitExpenseForm: React.FC<SplitExpenseFormProps> = ({ onSave, onCancel, e
   const [calculatorInput, setCalculatorInput] = useState<string>('');
   const [calculatorResult, setCalculatorResult] = useState<string>('0');
   
+  // 添加state來跟踪當前使用計算機的成員ID
+  const [calculatorMemberId, setCalculatorMemberId] = useState<string>('');
+
   // 加載數據
   useEffect(() => {
     if (currentUser) {
@@ -251,6 +255,24 @@ const SplitExpenseForm: React.FC<SplitExpenseFormProps> = ({ onSave, onCancel, e
   // 關閉計算機
   const closeCalculator = () => {
     setShowCalculator(false);
+  };
+  
+  // 使用計算結果作為金額
+  const useCalculatorResult = (result: string) => {
+    if (result && result !== '錯誤') {
+      // 使用計算結果設置當前成員的金額
+      const currentMemberId = calculatorMemberId;
+      if (currentMemberId && participants.length > 0) {
+        updateParticipantAmount(currentMemberId, parseFloat(result));
+      }
+      closeCalculator();
+    }
+  };
+  
+  // 打開計算機來設置成員的金額
+  const openCalculatorForMember = (memberId: string) => {
+    setCalculatorMemberId(memberId);
+    setShowCalculator(true);
   };
   
   // 添加一個處理類別選擇的函數
@@ -757,8 +779,7 @@ const SplitExpenseForm: React.FC<SplitExpenseFormProps> = ({ onSave, onCancel, e
                   <button
                     type="button"
                     onClick={() => setShowCalculator(true)}
-                    className="ml-3 bg-[#A487C3] hover:bg-[#8A5DC8] text-white p-2 rounded-lg transition-colors shadow-sm hover:shadow flex items-center justify-center"
-                    title="打開計算機"
+                    className="ml-3 p-2 bg-gray-100 hover:bg-gray-200 rounded-md"
                   >
                     <i className="fas fa-calculator"></i>
                   </button>
@@ -767,155 +788,14 @@ const SplitExpenseForm: React.FC<SplitExpenseFormProps> = ({ onSave, onCancel, e
               
               {/* 計算機彈窗 */}
               {showCalculator && (
-                <div 
-                  className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50 animate-fadeIn"
-                  onClick={(e) => {
-                    // 點擊背景關閉計算機，但阻止事件向下傳遞
-                    e.stopPropagation();
-                    closeCalculator();
-                  }}
-                >
-                  <div 
-                    className="bg-white rounded-xl shadow-xl w-72 overflow-hidden"
-                    onClick={(e) => {
-                      // 阻止點擊計算機本體時事件冒泡到背景
-                      e.stopPropagation();
-                    }}
-                  >
-                    <div className="bg-gradient-to-r from-[#7A5DC8] to-[#A487C3] px-4 py-3 text-white flex justify-between items-center">
-                      <h3 className="font-bold flex items-center">
-                        <i className="fas fa-calculator mr-2"></i>
-                        計算機
-                      </h3>
-                      <button 
-                        onClick={closeCalculator}
-                        className="text-white hover:bg-white/20 h-7 w-7 rounded-full flex items-center justify-center"
-                      >
-                        <i className="fas fa-times"></i>
-                      </button>
-                    </div>
-                    
-                    <div className="p-3">
-                      {/* 計算機屏幕 */}
-                      <div className="bg-gray-100 p-3 rounded-lg mb-3">
-                        <div className="text-gray-600 text-sm mb-1 h-5 overflow-x-auto whitespace-nowrap">
-                          {calculatorInput || ' '}
-                        </div>
-                        <div className="text-right text-xl font-bold text-gray-800">
-                          {calculatorResult}
-                        </div>
-                      </div>
-                      
-                      {/* 計算機按鈕 */}
-                      <div className="grid grid-cols-4 gap-2">
-                        {/* 第一行 */}
-                        <button onClick={() => handleCalculatorClick('C')} 
-                          type="button"
-                          className="bg-red-500 hover:bg-red-600 text-white py-3 rounded-lg text-center">C</button>
-                        <button onClick={() => handleCalculatorClick('(')} 
-                          type="button"
-                          className="bg-gray-200 hover:bg-gray-300 py-3 rounded-lg text-center">(</button>
-                        <button onClick={() => handleCalculatorClick(')')} 
-                          type="button"
-                          className="bg-gray-200 hover:bg-gray-300 py-3 rounded-lg text-center">)</button>
-                        <button onClick={() => handleCalculatorClick('÷')} 
-                          type="button"
-                          className="bg-[#E0D5F0] hover:bg-[#D0C5E0] py-3 rounded-lg text-center">÷</button>
-                        
-                        {/* 第二行 */}
-                        <button onClick={() => handleCalculatorClick('7')} 
-                          type="button"
-                          className="bg-gray-200 hover:bg-gray-300 py-3 rounded-lg text-center">7</button>
-                        <button onClick={() => handleCalculatorClick('8')} 
-                          type="button"
-                          className="bg-gray-200 hover:bg-gray-300 py-3 rounded-lg text-center">8</button>
-                        <button onClick={() => handleCalculatorClick('9')} 
-                          type="button"
-                          className="bg-gray-200 hover:bg-gray-300 py-3 rounded-lg text-center">9</button>
-                        <button onClick={() => handleCalculatorClick('×')} 
-                          type="button"
-                          className="bg-[#E0D5F0] hover:bg-[#D0C5E0] py-3 rounded-lg text-center">×</button>
-                        
-                        {/* 第三行 */}
-                        <button onClick={() => handleCalculatorClick('4')} 
-                          type="button"
-                          className="bg-gray-200 hover:bg-gray-300 py-3 rounded-lg text-center">4</button>
-                        <button onClick={() => handleCalculatorClick('5')} 
-                          type="button"
-                          className="bg-gray-200 hover:bg-gray-300 py-3 rounded-lg text-center">5</button>
-                        <button onClick={() => handleCalculatorClick('6')} 
-                          type="button"
-                          className="bg-gray-200 hover:bg-gray-300 py-3 rounded-lg text-center">6</button>
-                        <button onClick={() => handleCalculatorClick('-')} 
-                          type="button"
-                          className="bg-[#E0D5F0] hover:bg-[#D0C5E0] py-3 rounded-lg text-center">-</button>
-                        
-                        {/* 第四行 */}
-                        <button onClick={() => handleCalculatorClick('1')} 
-                          type="button"
-                          className="bg-gray-200 hover:bg-gray-300 py-3 rounded-lg text-center">1</button>
-                        <button onClick={() => handleCalculatorClick('2')} 
-                          type="button"
-                          className="bg-gray-200 hover:bg-gray-300 py-3 rounded-lg text-center">2</button>
-                        <button onClick={() => handleCalculatorClick('3')} 
-                          type="button"
-                          className="bg-gray-200 hover:bg-gray-300 py-3 rounded-lg text-center">3</button>
-                        <button onClick={() => handleCalculatorClick('+')} 
-                          type="button"
-                          className="bg-[#E0D5F0] hover:bg-[#D0C5E0] py-3 rounded-lg text-center">+</button>
-                        
-                        {/* 第五行 */}
-                        <button onClick={() => handleCalculatorClick('0')} 
-                          type="button"
-                          className="bg-gray-200 hover:bg-gray-300 py-3 rounded-lg text-center col-span-2">0</button>
-                        <button onClick={() => handleCalculatorClick('.')} 
-                          type="button"
-                          className="bg-gray-200 hover:bg-gray-300 py-3 rounded-lg text-center">.</button>
-                        <button onClick={() => handleCalculatorClick('=')} 
-                          type="button"
-                          className="bg-[#A487C3] hover:bg-[#8A5DC8] text-white py-3 rounded-lg text-center">=</button>
-                        
-                        {/* 刪除按鈕 */}
-                        <button onClick={() => handleCalculatorClick('←')} 
-                          type="button"
-                          className="bg-gray-300 hover:bg-gray-400 py-3 rounded-lg text-center col-span-4 mt-2 flex items-center justify-center">
-                          <i className="fas fa-backspace mr-2"></i> 退格
-                        </button>
-                        
-                        {/* 使用結果按鈕 */}
-                        {calculatorResult !== '0' && calculatorResult !== '錯誤' && (
-                          <button 
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation(); // 阻止事件冒泡
-                              // 將結果複製到剪貼板
-                              navigator.clipboard.writeText(calculatorResult);
-                              closeCalculator();
-                              // 顯示提示訊息
-                              setSuccess(`結果 ${calculatorResult} 已複製到剪貼板`);
-                              setTimeout(() => setSuccess(''), 3000);
-                            }} 
-                            className="bg-green-500 hover:bg-green-600 text-white py-3 rounded-lg text-center col-span-4 mt-2 flex items-center justify-center"
-                          >
-                            <i className="fas fa-copy mr-2"></i> 複製結果並關閉
-                          </button>
-                        )}
-                        
-                        {/* 單純關閉按鈕 */}
-                        <button 
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation(); // 阻止事件冒泡
-                            closeCalculator();
-                          }} 
-                          className="bg-gray-500 hover:bg-gray-600 text-white py-3 rounded-lg text-center col-span-4 mt-2 flex items-center justify-center"
-                        >
-                          <i className="fas fa-times-circle mr-2"></i> 關閉計算機
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                <Calculator 
+                  onClose={closeCalculator}
+                  onUseResult={useCalculatorResult}
+                  initialValue={calculatorMemberId && participants.length > 0
+                    ? participants.find(p => p.userId === calculatorMemberId)?.amount.toString() || ''
+                    : ''}
+                  onlyCopy={false}
+                />
               )}
               
               <div className="p-4 bg-[#F8F3FF] rounded-lg mb-4">

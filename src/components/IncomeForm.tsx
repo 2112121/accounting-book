@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from "react";
 import Calculator from './Calculator';
 
-interface ExpenseFormProps {
-  onSave: (expense: {
+interface IncomeFormProps {
+  onSave: (income: {
     amount: number;
     category: string;
     date: string;
@@ -10,7 +10,7 @@ interface ExpenseFormProps {
     attachments?: File[];
   }) => void;
   onCancel: () => void;
-  expense?: {
+  income?: {
     id: string;
     amount: number;
     category: string;
@@ -39,13 +39,13 @@ interface CurrencyInfo {
   symbol: string;
 }
 
-const ExpenseForm: React.FC<ExpenseFormProps> = ({
+const IncomeForm: React.FC<IncomeFormProps> = ({
   onSave,
   onCancel,
-  expense,
+  income,
 }) => {
   const [amount, setAmount] = useState<string>("");
-  const [category, setCategory] = useState<string>("餐飲");
+  const [category, setCategory] = useState<string>("薪資");
   const [date, setDate] = useState<string>("");
   const [notes, setNotes] = useState<string>("");
   const [error, setError] = useState<string>("");
@@ -64,16 +64,14 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
   const [calculatorInput, setCalculatorInput] = useState<string>('');
   const [calculatorResult, setCalculatorResult] = useState<string>('0');
 
+  // 收入類別列表
   const categories = [
-    { id: "food", name: "餐飲", icon: "fa-utensils" },
-    { id: "transportation", name: "交通", icon: "fa-car" },
-    { id: "entertainment", name: "娛樂", icon: "fa-film" },
-    { id: "shopping", name: "購物", icon: "fa-shopping-bag" },
-    { id: "education", name: "教育", icon: "fa-book" },
-    { id: "medical", name: "醫療", icon: "fa-heartbeat" },
+    { id: "salary", name: "薪資", icon: "fa-money-bill-wave" },
+    { id: "bonus", name: "獎金", icon: "fa-gift" },
     { id: "investment", name: "投資", icon: "fa-chart-line" },
-    { id: "utilities", name: "住支", icon: "fa-home" },
-    { id: "other", name: "其他", icon: "fa-ellipsis-h" },
+    { id: "sidejob", name: "副業", icon: "fa-briefcase" },
+    { id: "gift", name: "禮金", icon: "fa-envelope" },
+    { id: "other", name: "其他", icon: "fa-question" },
   ];
 
   // 支援的貨幣列表
@@ -102,28 +100,28 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
   // 組件初始化時設置當前日期
   useEffect(() => {
     // 初始化加載時設置日期
-    if (!expense) {
+    if (!income) {
       const currentDate = getTodayDate();
       console.log("設置初始日期為:", currentDate);
       setDate(currentDate);
     }
   }, []); // 僅在組件掛載時執行一次
 
-  // 當 expense 變更時，更新表單值
+  // 當 income 變更時，更新表單值
   useEffect(() => {
-    if (expense) {
-      setAmount(expense.amount.toString());
-      setCategory(expense.category);
-      setDate(expense.date);
-      setNotes(expense.notes || "");
-      // 重置貨幣為TWD，因為已存儲的支出都是以TWD為單位
+    if (income) {
+      setAmount(income.amount.toString());
+      setCategory(income.category);
+      setDate(income.date);
+      setNotes(income.notes || "");
+      // 重置貨幣為TWD，因為已存儲的收入都是以TWD為單位
       setSelectedCurrency("TWD");
       setConvertedAmount(null);
       setExchangeRate(null);
     } else {
       // 如果不是編輯模式，重置表單值
       setAmount("");
-      setCategory("餐飲");
+      setCategory("薪資");
       // 重置日期為今天
       const todayDate = getTodayDate();
       console.log("重置日期為今天:", todayDate);
@@ -134,7 +132,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
       setConvertedAmount(null);
       setExchangeRate(null);
     }
-  }, [expense]);
+  }, [income]);
 
   // 獲取匯率的函數
   const fetchExchangeRate = async (
@@ -269,7 +267,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
           ? additionalNote
           : "";
 
-      console.log("提交支出表單:", {
+      console.log("提交收入表單:", {
         amount: finalAmount,
         category,
         date,
@@ -290,9 +288,9 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
       console.log("提交結果:", result);
 
       // 重置表單
-      if (!expense) {
+      if (!income) {
         setAmount("");
-        setCategory("餐飲");
+        setCategory("薪資");
         setDate(getTodayDate());
         setNotes("");
         setSelectedCurrency("TWD");
@@ -368,12 +366,12 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
   return (
     <div className="p-3">
       <div className="flex justify-between items-center mb-3">
-        <h2 className="text-xl font-bold text-[#333333]">
-          {expense ? "編輯支出" : "新增支出"}
+        <h2 className="text-xl font-bold text-[#4EA8DE]">
+          {income ? "編輯收入" : "新增收入"}
         </h2>
         <button 
           onClick={onCancel}
-          className="text-white hover:text-white bg-[#A487C3] hover:bg-[#8A5DC8] w-7 h-7 flex items-center justify-center border border-[#F5F5F5] rounded-full shadow-sm hover:shadow-md transition-all"
+          className="text-white hover:text-white bg-[#4EA8DE] hover:bg-[#3D97CD] w-7 h-7 flex items-center justify-center border border-[#F5F5F5] rounded-full shadow-sm hover:shadow-md transition-all"
           aria-label="關閉表單"
         >
           <i className="fas fa-times text-sm"></i>
@@ -411,7 +409,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               placeholder="輸入金額"
-              className="w-full pl-[4.5rem] pr-12 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#A487C3] focus:border-[#A487C3] text-sm text-gray-800"
+              className="w-full pl-[4.5rem] pr-12 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4EA8DE] focus:border-[#4EA8DE] text-sm text-gray-800"
               required
               step="0.01"
               min="0"
@@ -421,7 +419,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
               <button
                 type="button"
                 onClick={() => setShowCalculator(true)}
-                className="p-1.5 bg-gray-100 hover:bg-gray-200 rounded-md text-[#A487C3] hover:text-[#8A5DC8] transition-all flex items-center justify-center shadow-sm"
+                className="p-1.5 bg-gray-100 hover:bg-gray-200 rounded-md text-[#4EA8DE] hover:text-[#3D97CD] transition-all flex items-center justify-center shadow-sm"
                 title="打開計算機"
               >
                 <i className="fas fa-calculator"></i>
@@ -432,12 +430,12 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
           {/* 提示說明 - 移到貨幣選擇器下面 */}
           <div className="mt-1 space-y-1">
             <div className="text-xs text-gray-500 flex items-center">
-              <i className="fas fa-info-circle mr-1.5 text-[#A487C3]"></i>
+              <i className="fas fa-info-circle mr-1.5 text-[#4EA8DE]"></i>
               <span>點擊左側按鈕可切換貨幣，右側按鈕可開啟計算機</span>
             </div>
             <div className="text-xs text-gray-500 flex items-center">
-              <i className="fas fa-money-bill-wave mr-1.5 text-[#A487C3]"></i>
-              <span>所有支出均以新台幣(NT$)記錄於系統中</span>
+              <i className="fas fa-money-bill-wave mr-1.5 text-[#4EA8DE]"></i>
+              <span>所有收入均以新台幣(NT$)記錄於系統中</span>
             </div>
           </div>
 
@@ -446,7 +444,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
             <div className="mt-1 bg-white border border-gray-200 rounded-lg shadow-lg p-2 z-10 relative max-h-48 overflow-y-auto animate-fadeIn" style={{boxShadow: '0 4px 20px rgba(0,0,0,0.1)'}}>
               <div className="pb-2 mb-2 border-b border-gray-100 px-1">
                 <h4 className="text-xs font-medium text-gray-700 flex items-center">
-                  <i className="fas fa-money-bill-wave text-[#A487C3] mr-1.5"></i>
+                  <i className="fas fa-money-bill-wave text-[#4EA8DE] mr-1.5"></i>
                   選擇貨幣
                 </h4>
               </div>
@@ -458,7 +456,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
                       onClick={() => handleCurrencyChange(currency.code)}
                       className={`w-full text-xs py-2 px-2 rounded-md text-left flex flex-col ${
                         selectedCurrency === currency.code
-                          ? "bg-gradient-to-r from-[#A487C3] to-[#8A5DC8] text-white font-bold border border-[#8A5DC8]"
+                          ? "bg-gradient-to-r from-[#4EA8DE] to-[#3D97CD] text-white font-bold border border-[#3D97CD]"
                           : "bg-white text-gray-700 hover:bg-gray-50 border border-gray-200"
                       } transition-all duration-200 hover:shadow-sm`}
                     >
@@ -480,7 +478,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
             <div className="mt-1 text-xs text-gray-600 flex items-center bg-blue-50 p-1.5 rounded-md">
               {isConverting ? (
                 <span className="flex items-center">
-                  <div className="w-3 h-3 border-t-2 border-b-2 border-[#A487C3] rounded-full animate-spin mr-1.5"></div>
+                  <div className="w-3 h-3 border-t-2 border-b-2 border-[#4EA8DE] rounded-full animate-spin mr-1.5"></div>
                   <span>轉換中...</span>
                 </span>
               ) : (
@@ -520,7 +518,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
                 onClick={() => setCategory(cat.name)}
                 className={`flex flex-col items-center justify-center p-1.5 rounded-lg text-xs transition-all ${
                   category === cat.name
-                    ? "bg-[#F0EAFA] text-[#A487C3] font-medium shadow-sm border border-[#D8CAE9]"
+                    ? "bg-[#EBF6FF] text-[#4EA8DE] font-medium shadow-sm border border-[#B8E3FF]"
                     : "bg-white text-gray-600 hover:bg-gray-50 border border-gray-200"
                 }`}
               >
@@ -541,7 +539,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
             id="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#A487C3] focus:border-[#A487C3] text-sm text-gray-800"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4EA8DE] focus:border-[#4EA8DE] text-sm text-gray-800"
             required
           />
         </div>
@@ -555,7 +553,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
             id="notes"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#A487C3] focus:border-[#A487C3] text-sm text-gray-800"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4EA8DE] focus:border-[#4EA8DE] text-sm text-gray-800"
             placeholder="輸入備註"
             rows={2}
           />
@@ -573,7 +571,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
           <button
             type="submit"
             disabled={isSubmitting}
-            className="flex-1 py-2 px-4 bg-[#A487C3] hover:bg-[#9678B6] text-white rounded-lg transition-colors text-sm font-medium disabled:opacity-70 disabled:cursor-not-allowed"
+            className="flex-1 py-2 px-4 bg-[#4EA8DE] hover:bg-[#3D97CD] text-white rounded-lg transition-colors text-sm font-medium disabled:opacity-70 disabled:cursor-not-allowed"
           >
             {isSubmitting ? (
               <div className="flex items-center justify-center">
@@ -581,7 +579,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
                 處理中...
               </div>
             ) : (
-              expense ? "保存修改" : "新增支出"
+              income ? "保存修改" : "新增收入"
             )}
           </button>
         </div>
@@ -600,4 +598,4 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
   );
 };
 
-export default ExpenseForm;
+export default IncomeForm; 
