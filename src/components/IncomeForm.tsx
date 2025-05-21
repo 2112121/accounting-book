@@ -71,6 +71,9 @@ const IncomeForm: React.FC<IncomeFormProps> = ({
     { id: "investment", name: "投資", icon: "fa-chart-line" },
     { id: "sidejob", name: "副業", icon: "fa-briefcase" },
     { id: "gift", name: "禮金", icon: "fa-envelope" },
+    { id: "sponsorship", name: "包養", icon: "fa-heart" },
+    { id: "subsidy", name: "補貼", icon: "fa-hand-holding-usd" },
+    { id: "insurance", name: "保險理賠", icon: "fa-shield-alt" },
     { id: "other", name: "其他", icon: "fa-question" },
   ];
 

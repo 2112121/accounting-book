@@ -3413,17 +3413,25 @@ useEffect(() => {
                 className={`${selectedCategory ? "md:w-3/5" : "w-full"} transition-all duration-300`}
               >
             {expenses && expenses.length > 0 ? (
-                  <div
-                    ref={chartRef}
-                    style={{
-                      height: "260px", // 原先是 "300px"，減小高度
-                      width: "100%",
-                      display: "flex",
-                      justifyContent: "center",
-                      alignItems: "center",
-                    }}
-                    key={`pie-chart-${selectedCategory ? "selected" : "overview"}-${chartsKey}`}
-                  />
+                  <div className="flex flex-col items-center">
+                    <div
+                      ref={chartRef}
+                      style={{
+                        height: "260px", // 原先是 "300px"，減小高度
+                        width: "100%",
+                        display: "flex",
+                        justifyContent: "center",
+                        alignItems: "center",
+                      }}
+                      key={`pie-chart-${selectedCategory ? "selected" : "overview"}-${chartsKey}`}
+                    />
+                    {!selectedCategory && (
+                      <p className="text-xs text-gray-500 italic mt-1">
+                        <i className="fas fa-info-circle mr-1"></i>
+                        點擊圖表上的類別查看詳細支出明細
+                      </p>
+                    )}
+                  </div>
             ) : (
               <div className="text-center py-8 text-gray-500 h-[260px] flex flex-col items-center justify-center">
                     <i className="fas fa-chart-pie text-3xl mb-2 text-elora-purple opacity-40"></i>
@@ -3442,63 +3450,83 @@ useEffect(() => {
               {/* 選定類別支出明細 */}
               {selectedCategory && (
                 <div className="md:w-2/5 md:pl-4 mt-4 md:mt-0">
-                  <div className="bg-gradient-to-br from-elora-cream-light to-white rounded-lg p-3 h-[300px] overflow-y-auto shadow-inner">
-                    <h3 className="font-medium text-[#2E2E2E] mb-3 flex items-center">
-                      <i
-                        className={`fas ${getCategoryIcon(selectedCategory)} mr-2`}
-                        style={{ color: getCategoryColor(selectedCategory) }}
-                      ></i>
-                      {selectedCategory} 支出明細
-                    </h3>
+                  <div className="bg-white rounded-lg p-4 h-[300px] flex flex-col shadow-lg border border-gray-100">
+                    <div className="overflow-y-auto flex-1 pr-1">
+                    <div className="flex items-center justify-between mb-3 pb-2 border-b border-gray-100">
+                      <div className="flex items-center">
+                        <div className="w-8 h-8 rounded-full flex items-center justify-center mr-2" 
+                          style={{ backgroundColor: getCategoryColor(selectedCategory) }}>
+                          <i className={`fas ${getCategoryIcon(selectedCategory)} text-white`}></i>
+                        </div>
+                        <h3 className="font-medium text-gray-800">
+                          {selectedCategory} <span className="text-sm text-gray-500">支出明細</span>
+                        </h3>
+                      </div>
+                      <div className="bg-gray-100 text-xs py-1 px-2 rounded-full font-medium text-gray-600">
+                        {categoryExpenses.length} 筆記錄
+                      </div>
+                    </div>
 
                     {categoryExpenses.length > 0 ? (
-                      <div className="space-y-3">
+                      <div className="space-y-2 pb-2">
                         {categoryExpenses.map((expense, index) => (
                           <div
                             key={expense.id}
-                            className="bg-white p-3 rounded-lg shadow-sm border-l-2 border-[#3AA6B9] hover:shadow-md transition-all duration-300"
+                            className="bg-gray-50 p-3 rounded-lg hover:bg-gray-100 transition-all duration-200 border-l-3"
                             style={{
-                              animation: `fadeSlideIn 0.5s ease-out ${index * 0.1}s both`,
-                              opacity: 0,
-                              transform: 'translateY(20px)'
+                              borderLeftColor: getCategoryColor(selectedCategory),
+                              animation: `fadeSlideIn 0.3s ease-out ${index * 0.05}s both`,
                             }}
                           >
-                            <div className="flex justify-between items-center">
-                              <div className="flex items-center">
-                                <span className="font-medium text-[#2E2E2E]">
+                            <div className="flex justify-between items-start">
+                              <div className="flex flex-col">
+                                <span className="font-medium text-gray-800 text-md">
                                   {formatAmount(expense.amount)}
                                 </span>
                                 {expense.notes && (
-                                  <span className="text-xs text-[#6E6E6E] ml-2">
-                                    {expense.notes.length > 10
-                                      ? `${expense.notes.substring(0, 10)}...`
+                                  <span className="text-xs text-gray-500 mt-1">
+                                    {expense.notes.length > 20
+                                      ? `${expense.notes.substring(0, 20)}...`
                                       : expense.notes}
                                   </span>
                                 )}
                               </div>
-                              <span className="text-sm text-[#6E6E6E]">
-                                {expense.date.toLocaleDateString()}
-                              </span>
+                              <div className="text-right">
+                                <span className="text-xs font-medium bg-white px-2 py-1 rounded-md text-gray-600 inline-block">
+                                  {expense.date.toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric' })}
+                                </span>
+                              </div>
                             </div>
                           </div>
                         ))}
                       </div>
                     ) : (
-                      <div className="text-center py-4 text-[#6E6E6E]">
+                      <div className="text-center py-10 text-gray-500">
+                        <i className="fas fa-search mb-2 text-2xl opacity-30"></i>
                         <p>沒有找到 {selectedCategory} 類別的支出</p>
                       </div>
                     )}
+                    </div>
 
-                    <div className="mt-4 pt-2 border-t border-gray-200">
-                      <p className="text-right font-medium text-[#2E2E2E]">
-                        總計:{" "}
-                        {formatAmount(
-                          categoryExpenses.reduce(
-                            (total, exp) => total + exp.amount,
-                            0,
-                          ),
-                        )}
-                      </p>
+                    <div className="mt-4 pt-2 sticky bottom-0">
+                      <div className="bg-[#F8FBFE] rounded-lg p-3 shadow-sm border border-gray-100">
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <span className="text-xs text-gray-500">類別總計</span>
+                            <h4 className="font-medium text-gray-700">{selectedCategory}</h4>
+                          </div>
+                          <div className="text-right">
+                            <span className="font-bold text-xl text-[#3AA6B9]">
+                              {formatAmount(
+                                categoryExpenses.reduce(
+                                  (total, exp) => total + exp.amount,
+                                  0,
+                                ),
+                              )}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>

@@ -28,6 +28,9 @@ const incomeCategories = [
   { id: "investment", name: "投資", icon: "fa-chart-line" },
   { id: "sidejob", name: "副業", icon: "fa-briefcase" },
   { id: "gift", name: "禮金", icon: "fa-envelope" },
+  { id: "sponsorship", name: "包養", icon: "fa-heart" },
+  { id: "subsidy", name: "補貼", icon: "fa-hand-holding-usd" },
+  { id: "insurance", name: "保險理賠", icon: "fa-shield-alt" },
   { id: "other", name: "其他", icon: "fa-question" },
 ];
 
@@ -49,6 +52,11 @@ const IncomePage: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [legendSelectedMap, setLegendSelectedMap] = useState<Record<string, boolean>>({});
   const [chartsKey, setChartsKey] = useState<number>(Date.now());
+  const [chartFilterMode, setChartFilterMode] = useState<'all' | 'month' | 'custom'>('all');
+  const [pieChartMonth, setPieChartMonth] = useState<string>(() => {
+    const today = new Date();
+    return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+  });
   
   // 每日趨勢圖相關
   const dailyChartRef = useRef<HTMLDivElement>(null);
@@ -79,6 +87,9 @@ const IncomePage: React.FC = () => {
       投資: "#90F1EF",
       副業: "#FAC6CD",
       禮金: "#E6CEAC",
+      包養: "#FF8CAB",
+      補貼: "#A3D9A5",
+      保險理賠: "#7CD5F3",
       其他: "#A487C3",
     };
 
@@ -149,6 +160,12 @@ const IncomePage: React.FC = () => {
       };
 
       chart.setOption(option);
+      
+      // 添加點擊事件處理，空圖表點擊無操作
+      chart.on('click', function (params: any) {
+        console.log('空圖表被點擊，不執行任何操作');
+      });
+      
       setChartInstance(chart);
     } catch (e) {
       console.error("創建空圓餅圖出錯:", e);
@@ -164,7 +181,28 @@ const IncomePage: React.FC = () => {
       return;
     }
 
-    const dataToUse = incomes;
+    // 根據過濾模式選擇數據
+    let dataToUse = incomes;
+    
+    if (chartFilterMode === 'month') {
+      const today = new Date();
+      const currentMonth = today.getMonth();
+      const currentYear = today.getFullYear();
+      
+      dataToUse = incomes.filter(income => {
+        const incomeDate = new Date(income.date);
+        return incomeDate.getMonth() === currentMonth && 
+               incomeDate.getFullYear() === currentYear;
+      });
+    } else if (chartFilterMode === 'custom' && pieChartMonth) {
+      const [year, month] = pieChartMonth.split('-').map(Number);
+      
+      dataToUse = incomes.filter(income => {
+        const incomeDate = new Date(income.date);
+        return incomeDate.getMonth() === month - 1 && 
+               incomeDate.getFullYear() === year;
+      });
+    }
 
     // 如果數據為空，顯示空圖表
     if (!dataToUse || dataToUse.length === 0) {
@@ -342,6 +380,14 @@ const IncomePage: React.FC = () => {
         console.log("圖例選擇變更:", params);
         // 更新React狀態中的圖例選擇
         setLegendSelectedMap(params.selected);
+      });
+      
+      // 添加點擊事件處理，點擊切換到該類別明細
+      chart.on('click', function (params: any) {
+        if (params.seriesType === 'pie') {
+          console.log('點擊了收入類別:', params.name);
+          setSelectedCategory(params.name);
+        }
       });
 
       // 設置實例後保存
@@ -681,7 +727,7 @@ const IncomePage: React.FC = () => {
       // 初始化每日趨勢圖
       initDailyChart();
     }
-  }, [loading, incomes, selectedCategory]);
+  }, [loading, incomes, selectedCategory, chartFilterMode, pieChartMonth]);
   
   // 窗口大小變化時重繪圖表
   useEffect(() => {
@@ -792,6 +838,7 @@ const IncomePage: React.FC = () => {
   // 重置分類選擇
   const resetCategorySelection = () => {
     setSelectedCategory(null);
+    // 保持當前圖表過濾模式
     // 重新渲染圖表
     setChartsKey(Date.now());
   };
@@ -963,35 +1010,27 @@ const IncomePage: React.FC = () => {
     let filteredByMode = incomes;
     
     // 使用與圓餅圖相同的過濾邏輯
-    const today = new Date();
-    const currentMonth = today.getMonth(); // 0-11
-    const currentYear = today.getFullYear();
+    if (chartFilterMode === 'month') {
+      const today = new Date();
+      const currentMonth = today.getMonth();
+      const currentYear = today.getFullYear();
+      
+      filteredByMode = incomes.filter(income => {
+        const incomeDate = new Date(income.date);
+        return incomeDate.getMonth() === currentMonth && 
+               incomeDate.getFullYear() === currentYear;
+      });
+    } else if (chartFilterMode === 'custom' && pieChartMonth) {
+      const [year, month] = pieChartMonth.split('-').map(Number);
+      
+      filteredByMode = incomes.filter(income => {
+        const incomeDate = new Date(income.date);
+        return incomeDate.getMonth() === month - 1 && 
+               incomeDate.getFullYear() === year;
+      });
+    }
     
-    console.log(`類別收入明細 - 過濾當前月份: ${currentYear}年${currentMonth + 1}月`);
-    
-    // 按當前月份過濾
-    filteredByMode = incomes.filter(income => {
-      try {
-        if (!income.date) return false;
-        
-        const incDate = income.date instanceof Date ? 
-          new Date(income.date.getTime()) : 
-          new Date(income.date);
-          
-        if (isNaN(incDate.getTime())) return false;
-        
-        // 直接比較年月
-        const incMonth = incDate.getMonth();
-        const incYear = incDate.getFullYear();
-        
-        return (incYear === currentYear && incMonth === currentMonth);
-      } catch (err) {
-        console.error(`處理收入 ${income.id} 時出錯:`, err);
-        return false;
-      }
-    });
-    
-    console.log(`類別收入明細 - 當月過濾結果: ${filteredByMode.length} 筆記錄`);
+    console.log(`類別收入明細 - 過濾模式: ${chartFilterMode}`);
     
     // 再按類別過濾
     return filteredByMode.filter(income => {
@@ -1251,7 +1290,59 @@ const IncomePage: React.FC = () => {
         {/* 收入分析卡片 */}
         <div className="relative bg-white bg-opacity-95 backdrop-blur-sm rounded-xl shadow-md border-l-4 border-[#4EA8DE] p-5 mb-6 hover:shadow-lg transition-all duration-300">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-bold text-[#4EA8DE]">收入分析</h2>
+            <div className="flex items-center flex-wrap">
+              <h2 className="text-lg font-bold text-[#4EA8DE]">收入分析</h2>
+              <div className="ml-4 flex items-center space-x-2">
+                <button
+                  onClick={() => {
+                    setChartFilterMode('all');
+                    setChartsKey(Date.now());
+                  }}
+                  className={`text-xs px-2 py-1 rounded-md transition-colors ${
+                    chartFilterMode === 'all' 
+                      ? 'bg-[#4EA8DE] text-white' 
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                >
+                  全部
+                </button>
+                <button
+                  onClick={() => {
+                    setChartFilterMode('month');
+                    setChartsKey(Date.now());
+                  }}
+                  className={`text-xs px-2 py-1 rounded-md transition-colors ${
+                    chartFilterMode === 'month' 
+                      ? 'bg-[#4EA8DE] text-white' 
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                >
+                  當月
+                </button>
+                <div className="relative">
+                  <button
+                    className={`text-xs px-2 py-1 rounded-md transition-colors flex items-center ${
+                      chartFilterMode === 'custom' 
+                        ? 'bg-[#4EA8DE] text-white' 
+                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    }`}
+                  >
+                    選擇月份
+                  </button>
+                  <input
+                    id="pieChartMonthInput"
+                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                    type="month"
+                    value={pieChartMonth}
+                    onChange={(e) => {
+                      setPieChartMonth(e.target.value);
+                      setChartFilterMode('custom');
+                      setChartsKey(Date.now());
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
             {selectedCategory && (
               <button
                 onClick={resetCategorySelection}
@@ -1266,17 +1357,25 @@ const IncomePage: React.FC = () => {
               className={`${selectedCategory ? "md:w-3/5" : "w-full"} transition-all duration-300`}
             >
               {incomes && incomes.length > 0 ? (
-                <div
-                  ref={chartRef}
-                  style={{
-                    height: "260px",
-                    width: "100%",
-                    display: "flex",
-                    justifyContent: "center",
-                    alignItems: "center",
-                  }}
-                  key={`pie-chart-${selectedCategory ? "selected" : "overview"}-${chartsKey}`}
-                />
+                <div className="flex flex-col items-center">
+                  <div
+                    ref={chartRef}
+                    style={{
+                      height: "260px",
+                      width: "100%",
+                      display: "flex",
+                      justifyContent: "center",
+                      alignItems: "center",
+                    }}
+                    key={`pie-chart-${selectedCategory ? "selected" : "overview"}-${chartsKey}`}
+                  />
+                  {!selectedCategory && (
+                    <p className="text-xs text-gray-500 italic mt-1">
+                      <i className="fas fa-info-circle mr-1"></i>
+                      點擊圖表上的類別查看詳細收入明細
+                    </p>
+                  )}
+                </div>
               ) : (
                 <div className="flex items-center justify-center h-[260px]">
                   <div className="text-center">
@@ -1289,65 +1388,86 @@ const IncomePage: React.FC = () => {
               )}
             </div>
             
-            {/* 類別收入明細 */}
-            {selectedCategory && (
-              <div className="md:w-2/5 mt-4 md:mt-0 md:pl-6 flex flex-col">
-                <div className="mb-2">
-                  <h3 className="font-bold text-gray-700">
-                    {selectedCategory}收入明細
-                    <span className="text-sm font-normal ml-2 text-gray-500">
-                      (本月)
-                    </span>
-                  </h3>
-                </div>
-                
-                <div className="flex-grow overflow-auto pr-2" style={{ maxHeight: "220px" }}>
-                  {categoryIncomes.length > 0 ? (
-                    <div className="space-y-3">
-                      {categoryIncomes.map((income) => (
-                        <div
-                          key={income.id}
-                          className="p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors duration-200"
-                        >
-                          <div className="flex justify-between items-center">
-                            <div>
-                              <p className="text-sm text-gray-500">
-                                {income.date.toLocaleDateString("zh-TW")}
-                              </p>
-                              {income.notes && (
-                                <p className="text-sm text-gray-700 mt-1">
-                                  {income.notes}
-                                </p>
-                              )}
-                            </div>
-                            <div className="text-right">
-                              <p className="font-bold text-[#4EA8DE]">
-                                NT$ {income.amount.toLocaleString("zh-TW")}
-                              </p>
+            {/* 類別收入明細 */}            
+            {selectedCategory && (              
+              <div className="md:w-2/5 md:pl-4 mt-4 md:mt-0">                
+                <div className="bg-white rounded-lg p-4 h-[300px] flex flex-col shadow-lg border border-gray-100">                  
+                  <div className="overflow-y-auto flex-1 pr-1">                    
+                    <div className="flex items-center justify-between mb-3 pb-2 border-b border-gray-100">                      
+                      <div className="flex items-center">                        
+                        <div className="w-8 h-8 rounded-full flex items-center justify-center mr-2" style={{ backgroundColor: getCategoryColor(selectedCategory) }}>                          
+                          <i className={`fas ${getCategoryIcon(selectedCategory)} text-white`}></i>                        
+                        </div>                        
+                        <h3 className="font-medium text-gray-800">                          
+                          {selectedCategory} <span className="text-sm text-gray-500">收入明細</span>                        
+                        </h3>                      
+                      </div>                      
+                      <div className="bg-gray-100 text-xs py-1 px-2 rounded-full font-medium text-gray-600">                        
+                        {categoryIncomes.length} 筆記錄                      
+                      </div>                    
+                    </div>
+
+                    {categoryIncomes.length > 0 ? (                      
+                      <div className="space-y-2 pb-2">                        
+                        {categoryIncomes.map((income, index) => (                          
+                          <div
+                            key={income.id}
+                            className="bg-gray-50 p-3 rounded-lg hover:bg-gray-100 transition-all duration-200 border-l-3"
+                            style={{
+                              borderLeftColor: getCategoryColor(selectedCategory),
+                              animation: `fadeSlideIn 0.3s ease-out ${index * 0.05}s both`
+                            }}
+                          >
+                            <div className="flex justify-between items-start">
+                              <div className="flex flex-col">
+                                <span className="font-medium text-gray-800 text-md">
+                                  NT$ {income.amount.toLocaleString("zh-TW")}
+                                </span>
+                                {income.notes && (
+                                  <span className="text-xs text-gray-500 mt-1">
+                                    {income.notes.length > 20
+                                      ? `${income.notes.substring(0, 20)}...`
+                                      : income.notes}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="text-right">
+                                <span className="text-xs font-medium bg-white px-2 py-1 rounded-md text-gray-600 inline-block">
+                                  {income.date.toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric' })}
+                                </span>
+                              </div>
                             </div>
                           </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-10 text-gray-500">
+                        <i className="fas fa-search mb-2 text-2xl opacity-30"></i>
+                        <p>沒有找到 {selectedCategory} 類別的收入</p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="mt-4 pt-2 sticky bottom-0">
+                    <div className="bg-[#F8FBFE] rounded-lg p-3 shadow-sm border border-gray-100">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <span className="text-xs text-gray-500">類別總計</span>
+                          <h4 className="font-medium text-gray-700">{selectedCategory}</h4>
                         </div>
-                      ))}
+                        <div className="text-right">
+                          <span className="font-bold text-xl text-[#4EA8DE]">
+                            NT$ {categoryIncomes
+                              .reduce((sum, income) => sum + income.amount, 0)
+                              .toLocaleString("zh-TW")}
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                  ) : (
-                    <div className="text-center py-6 text-gray-500">
-                      <p>本月無{selectedCategory}收入記錄</p>
-                    </div>
-                  )}
-                </div>
-                
-                <div className="mt-3 pt-3 border-t border-gray-200">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-500">本月總計</span>
-                    <span className="font-bold text-[#4EA8DE]">
-                      NT$ {categoryIncomes
-                        .reduce((sum, income) => sum + income.amount, 0)
-                        .toLocaleString("zh-TW")}
-                    </span>
                   </div>
                 </div>
               </div>
-            )}
+            )}            
           </div>
         </div>
         
