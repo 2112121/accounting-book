@@ -77,7 +77,7 @@ const App: React.FC = () => {
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null); // 正在編輯的支出
   const [successMessage, setSuccessMessage] = useState("記帳成功！"); // 自定義成功訊息
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null); // 選中的支出類別
-  const [pieChartMode, setPieChartMode] = useState<'current' | 'selected' | 'all'>('all'); // 圓餅圖顯示模式
+  const [pieChartMode, setPieChartMode] = useState<'current' | 'selected' | 'all'>('current'); // 圓餅圖顯示模式
   const [pieChartMonth, setPieChartMonth] = useState<string>(
     new Date().toISOString().slice(0, 7) // 默認為當前月份，格式為 YYYY-MM
   );
@@ -3339,12 +3339,6 @@ useEffect(() => {
                 <h2 className="text-lg font-bold text-[#3AA6B9]">支出分析</h2>
                 <div className="ml-4 flex items-center space-x-2">
                   <button 
-                    className={`text-xs px-2 py-1 rounded-md transition-colors ${pieChartMode === 'all' ? 'bg-[#3AA6B9] text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
-                    onClick={() => setPieChartMode('all')}
-                  >
-                    全部
-                  </button>
-                  <button 
                     className={`text-xs px-2 py-1 rounded-md transition-colors ${pieChartMode === 'current' ? 'bg-[#3AA6B9] text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
                     onClick={() => setPieChartMode('current')}
                   >
@@ -3397,6 +3391,12 @@ useEffect(() => {
                       }}
                     />
                   </div>
+                  <button 
+                    className={`text-xs px-2 py-1 rounded-md transition-colors ${pieChartMode === 'all' ? 'bg-[#3AA6B9] text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+                    onClick={() => setPieChartMode('all')}
+                  >
+                    全部
+                  </button>
                 </div>
               </div>
               {selectedCategory && (
