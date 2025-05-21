@@ -52,7 +52,7 @@ const IncomePage: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [legendSelectedMap, setLegendSelectedMap] = useState<Record<string, boolean>>({});
   const [chartsKey, setChartsKey] = useState<number>(Date.now());
-  const [chartFilterMode, setChartFilterMode] = useState<'all' | 'month' | 'custom'>('all');
+  const [chartFilterMode, setChartFilterMode] = useState<'all' | 'month' | 'custom'>('month');
   const [pieChartMonth, setPieChartMonth] = useState<string>(() => {
     const today = new Date();
     return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
@@ -1214,20 +1214,6 @@ const IncomePage: React.FC = () => {
           </p>
         </div>
         
-        {/* 快速添加收入按鈕 */}
-        <div className="mb-8 relative flex gap-2">
-          <button 
-            className="px-5 py-3 bg-[#4EA8DE] hover:bg-[#3D97CD] text-white rounded-xl shadow-sm hover:shadow-md flex items-center gap-2 font-medium transition-all duration-300"
-            onClick={() => {
-              setShowIncomeForm(true);
-              setEditingIncome(null);
-            }}
-          >
-            <i className="fas fa-plus"></i>
-            <span>新增收入</span>
-          </button>
-        </div>
-        
         {/* 收入統計卡片 */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
           <div 
@@ -1287,25 +1273,26 @@ const IncomePage: React.FC = () => {
           </div>
         </div>
         
+        {/* 快速添加收入按鈕 - 移至卡片下方 */}
+        <div className="mb-8 relative flex gap-2">
+          <button 
+            className="px-5 py-3 bg-[#4EA8DE] hover:bg-[#3D97CD] text-white rounded-xl shadow-sm hover:shadow-md flex items-center gap-2 font-medium transition-all duration-300"
+            onClick={() => {
+              setShowIncomeForm(true);
+              setEditingIncome(null);
+            }}
+          >
+            <i className="fas fa-plus"></i>
+            <span>新增收入</span>
+          </button>
+        </div>
+        
         {/* 收入分析卡片 */}
         <div className="relative bg-white bg-opacity-95 backdrop-blur-sm rounded-xl shadow-md border-l-4 border-[#4EA8DE] p-5 mb-6 hover:shadow-lg transition-all duration-300">
           <div className="flex justify-between items-center mb-4">
             <div className="flex items-center flex-wrap">
               <h2 className="text-lg font-bold text-[#4EA8DE]">收入分析</h2>
               <div className="ml-4 flex items-center space-x-2">
-                <button
-                  onClick={() => {
-                    setChartFilterMode('all');
-                    setChartsKey(Date.now());
-                  }}
-                  className={`text-xs px-2 py-1 rounded-md transition-colors ${
-                    chartFilterMode === 'all' 
-                      ? 'bg-[#4EA8DE] text-white' 
-                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                  }`}
-                >
-                  全部
-                </button>
                 <button
                   onClick={() => {
                     setChartFilterMode('month');
@@ -1341,6 +1328,19 @@ const IncomePage: React.FC = () => {
                     }}
                   />
                 </div>
+                <button
+                  onClick={() => {
+                    setChartFilterMode('all');
+                    setChartsKey(Date.now());
+                  }}
+                  className={`text-xs px-2 py-1 rounded-md transition-colors ${
+                    chartFilterMode === 'all' 
+                      ? 'bg-[#4EA8DE] text-white' 
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                >
+                  全部
+                </button>
               </div>
             </div>
             {selectedCategory && (
