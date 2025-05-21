@@ -1557,6 +1557,13 @@ const IncomePage: React.FC = () => {
               
               <button
                 onClick={() => {
+                  // 獲取本週的起始日期
+                  const today = new Date();
+                  const currentDay = today.getDay() || 7; // 處理週日為0的情況
+                  const firstDayOfWeek = new Date(today);
+                  firstDayOfWeek.setDate(today.getDate() - (currentDay - 1));
+                  firstDayOfWeek.setHours(0, 0, 0, 0);
+                  setSelectedDate(firstDayOfWeek);
                   setSelectedDateOption("this_week");
                 }}
                 className={`px-3 py-1.5 text-xs rounded-md flex items-center gap-1 transition-colors duration-200 ${
@@ -1571,6 +1578,13 @@ const IncomePage: React.FC = () => {
               
               <button
                 onClick={() => {
+                  // 獲取上週的起始日期
+                  const today = new Date();
+                  const currentDay = today.getDay() || 7; // 處理週日為0的情況
+                  const firstDayOfLastWeek = new Date(today);
+                  firstDayOfLastWeek.setDate(today.getDate() - (currentDay - 1) - 7);
+                  firstDayOfLastWeek.setHours(0, 0, 0, 0);
+                  setSelectedDate(firstDayOfLastWeek);
                   setSelectedDateOption("last_week");
                 }}
                 className={`px-3 py-1.5 text-xs rounded-md flex items-center gap-1 transition-colors duration-200 ${
@@ -1579,7 +1593,7 @@ const IncomePage: React.FC = () => {
                     : "bg-[#F9F7FB] text-[#6D6D6D] border border-[#E8E4ED] hover:bg-[#F2EDF7]"
                 }`}
               >
-                <i className="fas fa-calendar-week text-[10px]"></i>
+                <i className="fas fa-calendar-alt text-[10px]"></i>
                 上週
               </button>
               
@@ -1593,8 +1607,62 @@ const IncomePage: React.FC = () => {
                     : "bg-[#F9F7FB] text-[#6D6D6D] border border-[#E8E4ED] hover:bg-[#F2EDF7]"
                 }`}
               >
-                <i className="fas fa-calendar-alt text-[10px]"></i>
+                <i className="fas fa-calendar text-[10px]"></i>
                 本月
+              </button>
+
+              <button
+                onClick={() => {
+                  // 打開日期選擇器
+                  const input = document.createElement('input');
+                  input.type = 'date';
+                  input.style.display = 'none';
+                  document.body.appendChild(input);
+                  
+                  input.onchange = (e) => {
+                    const selectedDate = new Date((e.target as HTMLInputElement).value);
+                    selectedDate.setHours(0, 0, 0, 0);
+                    setSelectedDate(selectedDate);
+                    setSelectedDateOption("earlier");
+                    document.body.removeChild(input);
+                  };
+                  
+                  input.click();
+                }}
+                className={`px-3 py-1.5 text-xs rounded-md flex items-center gap-1 transition-colors duration-200 ${
+                  selectedDateOption === "earlier"
+                    ? "bg-[#4EA8DE] text-white border border-[#4EA8DE]"
+                    : "bg-[#F9F7FB] text-[#6D6D6D] border border-[#E8E4ED] hover:bg-[#F2EDF7]"
+                }`}
+              >
+                <i className="fas fa-calendar-plus text-[10px]"></i>
+                選擇日期
+              </button>
+
+              <button
+                onClick={() => {
+                  // 打開月份選擇器
+                  const input = document.createElement('input');
+                  input.type = 'month';
+                  input.style.display = 'none';
+                  document.body.appendChild(input);
+                  
+                  input.onchange = (e) => {
+                    setSelectedMonth((e.target as HTMLInputElement).value);
+                    setSelectedDateOption("month_select");
+                    document.body.removeChild(input);
+                  };
+                  
+                  input.click();
+                }}
+                className={`px-3 py-1.5 text-xs rounded-md flex items-center gap-1 transition-colors duration-200 ${
+                  selectedDateOption === "month_select"
+                    ? "bg-[#4EA8DE] text-white border border-[#4EA8DE]"
+                    : "bg-[#F9F7FB] text-[#6D6D6D] border border-[#E8E4ED] hover:bg-[#F2EDF7]"
+                }`}
+              >
+                <i className="fas fa-calendar-alt text-[10px]"></i>
+                選擇月份
               </button>
               
               <button
@@ -1607,7 +1675,7 @@ const IncomePage: React.FC = () => {
                     : "bg-[#F9F7FB] text-[#6D6D6D] border border-[#E8E4ED] hover:bg-[#F2EDF7]"
                 }`}
               >
-                <i className="fas fa-list text-[10px]"></i>
+                <i className="fas fa-infinity text-[10px]"></i>
                 全部
               </button>
             </div>
