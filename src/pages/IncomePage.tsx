@@ -46,6 +46,10 @@ const IncomePage: React.FC = () => {
   const [showIncomeForm, setShowIncomeForm] = useState<boolean>(false);
   const [editingIncome, setEditingIncome] = useState<Income | null>(null);
   
+  // 日期選擇彈窗狀態
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showMonthPicker, setShowMonthPicker] = useState(false);
+  
   // 圖表相關狀態
   const chartRef = useRef<HTMLDivElement>(null);
   const [chartInstance, setChartInstance] = useState<echarts.ECharts | null>(null);
@@ -1136,82 +1140,13 @@ const IncomePage: React.FC = () => {
   };
   
   return (
-    <div className="bg-[#F5F5FA] min-h-screen font-sans">
-      {/* 頂部導航欄 */}
-      <nav className="fixed top-0 left-0 right-0 bg-white bg-opacity-95 backdrop-blur-md shadow-sm z-20">
-        <div className="flex justify-between items-center px-4 py-3 max-w-5xl mx-auto">
-          <div className="flex items-center gap-3">
-            <Link to="/" className="flex items-center">
-              <span className="text-lg font-bold text-[#A487C3]">
-                <i className="fas fa-moon mr-1"></i>記帳狼人殺
-              </span>
-            </Link>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => navigate('/')}
-              className="py-2 px-4 bg-[#A487C3] hover:bg-[#8A5DC8] text-white rounded-lg transition-all duration-300 shadow-sm hover:shadow-md"
-            >
-              返回主頁
-            </button>
-          </div>
-        </div>
-      </nav>
-      
-      {/* 成功提示 */}
-      {showSuccessMessage && (
-        <div className="fixed top-20 left-1/2 transform -translate-x-1/2 z-50 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg">
-          {successMessage}
-        </div>
-      )}
-      
-      {/* 錯誤提示 */}
-      {error && (
-        <div className="fixed top-20 left-1/2 transform -translate-x-1/2 z-50 bg-red-500 text-white px-4 py-2 rounded-lg shadow-lg">
-          {error}
-        </div>
-      )}
-      
-      {/* 收入表单 */}
-      {showIncomeForm && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-          <div className="bg-white rounded-xl shadow-lg w-full max-w-md mx-4 animate-fadeIn">
-            <IncomeForm
-              onSave={async (incomeData) => {
-                const success = editingIncome 
-                  ? await updateIncome(incomeData)
-                  : await addIncome(incomeData);
-                
-                if (success) {
-                  setShowIncomeForm(false);
-                  setEditingIncome(null);
-                }
-              }}
-              onCancel={() => {
-                setShowIncomeForm(false);
-                setEditingIncome(null);
-              }}
-              income={editingIncome ? {
-                id: editingIncome.id,
-                amount: editingIncome.amount,
-                category: editingIncome.category.name,
-                date: format(editingIncome.date, 'yyyy-MM-dd'),
-                notes: editingIncome.notes
-              } : null}
-            />
-          </div>
-        </div>
-      )}
-      
-      <div className="pt-24 px-4 md:px-8 pb-8 max-w-5xl mx-auto">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-[#4EA8DE] mb-1 font-heading">
-            收入管理
-          </h1>
-          <p className="text-[#6E6E6E]">
-            在此頁面管理您的收入來源和記錄
-          </p>
+    <div className="min-h-screen bg-[#F8F8F8] pt-6 pb-16">
+      <div className="max-w-6xl mx-auto px-4">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-bold text-[#4EA8DE] tracking-tight">收入管理</h1>
+          <Link to="/" className="text-gray-600 hover:text-[#4EA8DE] transition-colors">
+            <i className="fas fa-home text-xl"></i>
+          </Link>
         </div>
         
         {/* 收入統計卡片 */}
@@ -1273,7 +1208,7 @@ const IncomePage: React.FC = () => {
           </div>
         </div>
         
-        {/* 快速添加收入按鈕 - 移至卡片下方 */}
+        {/* 按鈕區塊 - 移至統計卡片下方 */}
         <div className="mb-8 relative flex gap-2">
           <button 
             className="px-5 py-3 bg-[#4EA8DE] hover:bg-[#3D97CD] text-white rounded-xl shadow-sm hover:shadow-md flex items-center gap-2 font-medium transition-all duration-300"
@@ -1283,7 +1218,25 @@ const IncomePage: React.FC = () => {
             }}
           >
             <i className="fas fa-plus"></i>
-            <span>新增收入</span>
+            <span>新增收入明細</span>
+          </button>
+          
+          <button 
+            className="px-5 py-3 bg-[#6BBFA0] hover:bg-[#5CAA90] text-white rounded-xl shadow-sm hover:shadow-md flex items-center gap-2 font-medium transition-all duration-300"
+            onClick={() => {
+              const element = document.getElementById('income-details');
+              if (element) {
+                element.scrollIntoView({ behavior: 'smooth' });
+                // 添加一個高亮效果
+                element.classList.add('highlight-section');
+                setTimeout(() => {
+                  element.classList.remove('highlight-section');
+                }, 2000);
+              }
+            }}
+          >
+            <i className="fas fa-list-ul"></i>
+            <span>歷史收入明細</span>
           </button>
         </div>
         
@@ -1498,7 +1451,7 @@ const IncomePage: React.FC = () => {
         </div>
         
         {/* 收入明細區塊 */}
-        <div className="bg-white bg-opacity-95 rounded-xl shadow-md border-l-4 border-[#4EA8DE] p-5 mb-6">
+        <div id="income-details" className="bg-white bg-opacity-95 rounded-xl shadow-md border-l-4 border-[#4EA8DE] p-5 mb-6">
           <div className="flex flex-col mb-4">
             <div className="mb-3">
               <h2 className="text-xl font-bold text-[#4EA8DE]">
@@ -1614,20 +1567,7 @@ const IncomePage: React.FC = () => {
               <button
                 onClick={() => {
                   // 打開日期選擇器
-                  const input = document.createElement('input');
-                  input.type = 'date';
-                  input.style.display = 'none';
-                  document.body.appendChild(input);
-                  
-                  input.onchange = (e) => {
-                    const selectedDate = new Date((e.target as HTMLInputElement).value);
-                    selectedDate.setHours(0, 0, 0, 0);
-                    setSelectedDate(selectedDate);
-                    setSelectedDateOption("earlier");
-                    document.body.removeChild(input);
-                  };
-                  
-                  input.click();
+                  setShowDatePicker(true);
                 }}
                 className={`px-3 py-1.5 text-xs rounded-md flex items-center gap-1 transition-colors duration-200 ${
                   selectedDateOption === "earlier"
@@ -1642,18 +1582,7 @@ const IncomePage: React.FC = () => {
               <button
                 onClick={() => {
                   // 打開月份選擇器
-                  const input = document.createElement('input');
-                  input.type = 'month';
-                  input.style.display = 'none';
-                  document.body.appendChild(input);
-                  
-                  input.onchange = (e) => {
-                    setSelectedMonth((e.target as HTMLInputElement).value);
-                    setSelectedDateOption("month_select");
-                    document.body.removeChild(input);
-                  };
-                  
-                  input.click();
+                  setShowMonthPicker(true);
                 }}
                 className={`px-3 py-1.5 text-xs rounded-md flex items-center gap-1 transition-colors duration-200 ${
                   selectedDateOption === "month_select"
@@ -1688,6 +1617,21 @@ const IncomePage: React.FC = () => {
             </div>
           ) : filteredIncomes.length > 0 ? (
             <>
+              <p className="text-gray-500 self-end">
+                總計:{" "}
+                {new Intl.NumberFormat("zh-TW", {
+                  style: "currency",
+                  currency: "TWD",
+                  minimumFractionDigits: 0,
+                  maximumFractionDigits: 0,
+                }).format(
+                  filteredIncomes.reduce(
+                    (total, income) => total + income.amount,
+                    0,
+                  ),
+                )}
+              </p>
+
               <div className="space-y-4">
                 {filteredIncomes.map((income) => (
                   <div 
@@ -1786,6 +1730,384 @@ const IncomePage: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* 日期選擇對話框 */}
+      {showDatePicker && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50 backdrop-blur-sm animate-fadeIn"
+          onClick={() => setShowDatePicker(false)}
+        >
+          <div 
+            className="bg-white rounded-lg p-4 w-[90%] max-w-sm animate-slideUpIn shadow-xl border border-[#E8E4ED] transform"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4 border-b border-gray-100 pb-2">
+              <h3 className="text-base font-medium text-gray-700 flex items-center">
+                <i className="fas fa-calendar-day mr-2 text-[#4EA8DE]"></i>
+                選擇日期
+              </h3>
+              <button
+                onClick={() => setShowDatePicker(false)}
+                className="w-6 h-6 rounded-full flex items-center justify-center bg-[#F2EDF7] text-[#4EA8DE] hover:bg-[#4EA8DE] hover:text-white transition-all duration-200"
+                aria-label="關閉"
+              >
+                <i className="fas fa-times text-xs"></i>
+              </button>
+            </div>
+            
+            {/* 自定義日期選擇界面 */}
+            <div className="bg-[#F9F7FB] p-3 rounded-md mb-4">
+              <div className="grid grid-cols-3 gap-2">
+                {/* 年份選擇 */}
+                <div>
+                  <label className="block text-xs text-gray-600 mb-1">年</label>
+                  <select 
+                    className="w-full p-2 border border-[#E8E4ED] rounded-md focus:outline-none focus:ring-1 focus:ring-[#4EA8DE] focus:border-[#4EA8DE] bg-white text-sm"
+                    value={selectedDate.getFullYear()}
+                    onChange={(e) => {
+                      const newYear = parseInt(e.target.value);
+                      const newDate = new Date(selectedDate);
+                      newDate.setFullYear(newYear);
+                      setSelectedDate(newDate);
+                    }}
+                  >
+                    {Array.from({ length: 10 }, (_, i) => (
+                      <option key={i} value={new Date().getFullYear() - 5 + i}>
+                        {new Date().getFullYear() - 5 + i}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                
+                {/* 月份選擇 */}
+                <div>
+                  <label className="block text-xs text-gray-600 mb-1">月</label>
+                  <select 
+                    className="w-full p-2 border border-[#E8E4ED] rounded-md focus:outline-none focus:ring-1 focus:ring-[#4EA8DE] focus:border-[#4EA8DE] bg-white text-sm"
+                    value={selectedDate.getMonth() + 1}
+                    onChange={(e) => {
+                      const newMonth = parseInt(e.target.value) - 1;
+                      const newDate = new Date(selectedDate);
+                      newDate.setMonth(newMonth);
+                      
+                      // 處理月份天數問題
+                      const currentDay = selectedDate.getDate();
+                      const lastDayOfMonth = new Date(newDate.getFullYear(), newMonth + 1, 0).getDate();
+                      if (currentDay > lastDayOfMonth) {
+                        newDate.setDate(lastDayOfMonth);
+                      }
+                      
+                      setSelectedDate(newDate);
+                    }}
+                  >
+                    {Array.from({ length: 12 }, (_, i) => (
+                      <option key={i} value={i + 1}>
+                        {i + 1}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                
+                {/* 日期選擇 */}
+                <div>
+                  <label className="block text-xs text-gray-600 mb-1">日</label>
+                  <select 
+                    className="w-full p-2 border border-[#E8E4ED] rounded-md focus:outline-none focus:ring-1 focus:ring-[#4EA8DE] focus:border-[#4EA8DE] bg-white text-sm"
+                    value={selectedDate.getDate()}
+                    onChange={(e) => {
+                      const newDay = parseInt(e.target.value);
+                      const newDate = new Date(selectedDate);
+                      newDate.setDate(newDay);
+                      setSelectedDate(newDate);
+                    }}
+                  >
+                    {Array.from(
+                      { length: new Date(
+                        selectedDate.getFullYear(), 
+                        selectedDate.getMonth() + 1, 
+                        0
+                      ).getDate() }, 
+                      (_, i) => (
+                        <option key={i} value={i + 1}>
+                          {i + 1}
+                        </option>
+                      )
+                    )}
+                  </select>
+                </div>
+              </div>
+              
+              {/* 顯示選擇的日期 */}
+              <div className="mt-3 text-center bg-white p-2 rounded-md shadow-sm border border-[#E8E4ED]">
+                <p className="text-gray-700 font-medium">
+                  {selectedDate.getFullYear()}年{selectedDate.getMonth() + 1}月{selectedDate.getDate()}日
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex space-x-2">
+              <button
+                onClick={() => setShowDatePicker(false)}
+                className="flex-1 py-2 px-4 bg-[#F2EDF7] text-[#4EA8DE] border border-[#E8E4ED] rounded-md hover:bg-[#E8E4ED] transition-colors text-sm flex items-center justify-center gap-1"
+              >
+                <i className="fas fa-times-circle text-xs"></i>
+                取消
+              </button>
+              <button
+                onClick={() => {
+                  setSelectedDateOption("earlier");
+                  setShowDatePicker(false);
+                }}
+                className="flex-1 py-2 px-4 bg-[#4EA8DE] text-white rounded-md hover:bg-[#3D97CD] transition-colors text-sm flex items-center justify-center gap-1 shadow-sm"
+              >
+                <i className="fas fa-check-circle text-xs"></i>
+                確認
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 月份選擇對話框 */}
+      {showMonthPicker && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50 backdrop-blur-sm animate-fadeIn"
+          onClick={() => setShowMonthPicker(false)}
+        >
+          <div 
+            className="bg-white rounded-lg p-4 w-[90%] max-w-sm animate-slideUpIn shadow-xl border border-[#E8E4ED]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4 border-b border-gray-100 pb-2">
+              <h3 className="text-base font-medium text-gray-700 flex items-center">
+                <i className="fas fa-calendar-alt mr-2 text-[#4EA8DE]"></i>
+                選擇月份
+              </h3>
+              <button
+                onClick={() => setShowMonthPicker(false)}
+                className="w-6 h-6 rounded-full flex items-center justify-center bg-[#F2EDF7] text-[#4EA8DE] hover:bg-[#4EA8DE] hover:text-white transition-all duration-200"
+                aria-label="關閉"
+              >
+                <i className="fas fa-times text-xs"></i>
+              </button>
+            </div>
+            
+            {/* 自定義月份選擇界面 */}
+            <div className="bg-[#F9F7FB] p-3 rounded-md mb-4">
+              <div className="grid grid-cols-2 gap-2">
+                {/* 年份選擇 */}
+                <div>
+                  <label className="block text-xs text-gray-600 mb-1">年</label>
+                  <select 
+                    className="w-full p-2 border border-[#E8E4ED] rounded-md focus:outline-none focus:ring-1 focus:ring-[#4EA8DE] focus:border-[#4EA8DE] bg-white text-sm"
+                    value={selectedDate.getFullYear()}
+                    onChange={(e) => {
+                      const newYear = parseInt(e.target.value);
+                      const newDate = new Date(selectedDate);
+                      newDate.setFullYear(newYear);
+                      setSelectedDate(newDate);
+                      
+                      // 更新selectedMonth
+                      const month = newDate.getMonth() + 1;
+                      setSelectedMonth(`${newYear}-${month}`);
+                    }}
+                  >
+                    {Array.from({ length: 10 }, (_, i) => (
+                      <option key={i} value={new Date().getFullYear() - 5 + i}>
+                        {new Date().getFullYear() - 5 + i}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                
+                {/* 月份選擇 */}
+                <div>
+                  <label className="block text-xs text-gray-600 mb-1">月</label>
+                  <select 
+                    className="w-full p-2 border border-[#E8E4ED] rounded-md focus:outline-none focus:ring-1 focus:ring-[#4EA8DE] focus:border-[#4EA8DE] bg-white text-sm"
+                    value={selectedDate.getMonth() + 1}
+                    onChange={(e) => {
+                      const newMonth = parseInt(e.target.value) - 1;
+                      const newDate = new Date(selectedDate);
+                      newDate.setMonth(newMonth);
+                      newDate.setDate(1); // 設為月初
+                      setSelectedDate(newDate);
+                      
+                      // 更新selectedMonth
+                      const year = newDate.getFullYear();
+                      const month = newMonth + 1;
+                      setSelectedMonth(`${year}-${month}`);
+                    }}
+                  >
+                    {Array.from({ length: 12 }, (_, i) => (
+                      <option key={i} value={i + 1}>
+                        {i + 1}月
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              
+              {/* 月份按鈕快速選擇 */}
+              <div className="mt-3 grid grid-cols-4 gap-2">
+                {Array.from({ length: 12 }, (_, i) => (
+                  <button
+                    key={i}
+                    className={`p-2 text-sm rounded-md transition-colors ${
+                      selectedDate.getMonth() === i 
+                        ? "bg-[#4EA8DE] text-white" 
+                        : "bg-white text-gray-700 hover:bg-[#F2EDF7]"
+                    } border border-[#E8E4ED]`}
+                    onClick={() => {
+                      const newDate = new Date(selectedDate);
+                      newDate.setMonth(i);
+                      newDate.setDate(1); // 設為月初
+                      setSelectedDate(newDate);
+                      
+                      // 更新selectedMonth
+                      const year = newDate.getFullYear();
+                      const month = i + 1;
+                      setSelectedMonth(`${year}-${month}`);
+                    }}
+                  >
+                    {i + 1}月
+                  </button>
+                ))}
+              </div>
+              
+              {/* 顯示選擇的月份 */}
+              <div className="mt-3 text-center bg-white p-2 rounded-md shadow-sm border border-[#E8E4ED]">
+                <p className="text-gray-700 font-medium">
+                  {selectedDate.getFullYear()}年{selectedDate.getMonth() + 1}月
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex space-x-2">
+              <button
+                onClick={() => setShowMonthPicker(false)}
+                className="flex-1 py-2 px-4 bg-[#F2EDF7] text-[#4EA8DE] border border-[#E8E4ED] rounded-md hover:bg-[#E8E4ED] transition-colors text-sm flex items-center justify-center gap-1"
+              >
+                <i className="fas fa-times-circle text-xs"></i>
+                取消
+              </button>
+              <button
+                onClick={() => {
+                  setSelectedDateOption("month_select");
+                  setShowMonthPicker(false);
+                }}
+                className="flex-1 py-2 px-4 bg-[#4EA8DE] text-white rounded-md hover:bg-[#3D97CD] transition-colors text-sm flex items-center justify-center gap-1 shadow-sm"
+              >
+                <i className="fas fa-check-circle text-xs"></i>
+                確認
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 添加懸浮按鈕 */}
+      {currentUser && (
+        <div className="fixed bottom-8 right-8 z-[1000] flex flex-col gap-4 items-center">
+          {/* 歷史收入明細按鈕和提示 */}
+          <div className="group relative">
+            <button
+              onClick={() => {
+                const element = document.getElementById('income-details');
+                if (element) {
+                  element.scrollIntoView({ behavior: 'smooth' });
+                  // 添加一個高亮效果
+                  element.classList.add('highlight-section');
+                  setTimeout(() => {
+                    element.classList.remove('highlight-section');
+                  }, 2000);
+                }
+              }}
+              className="w-14 h-14 sm:w-12 sm:h-12 bg-gradient-to-r from-[#6BBFA0] to-[#8FD3B9] rounded-full shadow-xl hover:shadow-2xl flex items-center justify-center text-white transform hover:scale-110 active:scale-95 transition-all duration-300 relative overflow-hidden focus:outline-none focus:ring-4 focus:ring-green-300 focus:ring-opacity-50"
+              aria-label="歷史收入明細"
+            >
+              <i className="fas fa-list-ul text-2xl sm:text-xl relative z-10"></i>
+              {/* 波紋效果元素 */}
+              <div className="absolute inset-0 bg-white opacity-0 hover:opacity-20 transition-opacity duration-300 rounded-full"></div>
+            </button>
+            {/* 歷史明細按鈕的懸停提示 */}
+            <div className="absolute -top-12 right-0 bg-[#333333] text-white text-xs px-3 py-1.5 rounded-md opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-300 whitespace-nowrap shadow-md transform group-hover:-translate-y-1">
+              <div className="flex items-center gap-1">
+                <i className="fas fa-list-ul text-xs"></i>
+                <span>歷史收入明細</span>
+              </div>
+              {/* 小三角形 */}
+              <div className="absolute w-3 h-3 bg-[#333333] transform rotate-45 right-4 bottom-[-6px]"></div>
+            </div>
+          </div>
+          
+          {/* 新增收入按鈕和提示 */}
+          <div className="group relative">
+            <button
+              onClick={() => {
+                setShowIncomeForm(true);
+                setEditingIncome(null);
+              }}
+              className="w-16 h-16 sm:w-14 sm:h-14 bg-gradient-to-r from-[#4EA8DE] to-[#6BB9E7] rounded-full shadow-xl hover:shadow-2xl flex items-center justify-center text-white transform hover:scale-110 active:scale-95 transition-all duration-300 relative overflow-hidden focus:outline-none focus:ring-4 focus:ring-blue-300 focus:ring-opacity-50"
+              aria-label="新增收入"
+            >
+              <i className="fas fa-plus text-2xl sm:text-xl relative z-10"></i>
+              {/* 波紋效果元素 */}
+              <div className="absolute inset-0 bg-white opacity-0 hover:opacity-20 transition-opacity duration-300 rounded-full"></div>
+              {/* 脈衝效果 - 使用兩層不同速度的脈衝 */}
+              <div className="absolute inset-0 rounded-full animate-ping opacity-30 bg-gradient-to-r from-[#4EA8DE] to-[#6BB9E7] duration-1000"></div>
+              <div className="absolute inset-0 rounded-full animate-ping opacity-20 bg-gradient-to-r from-[#4EA8DE] to-[#6BB9E7] duration-1500 delay-500"></div>
+            </button>
+            {/* 新增收入按鈕的懸停提示 */}
+            <div className="absolute -top-12 right-0 bg-[#333333] text-white text-xs px-3 py-1.5 rounded-md opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-300 whitespace-nowrap shadow-md transform group-hover:-translate-y-1">
+              <div className="flex items-center gap-1">
+                <i className="fas fa-plus text-xs"></i>
+                <span>新增收入明細</span>
+              </div>
+              {/* 小三角形 */}
+              <div className="absolute w-3 h-3 bg-[#333333] transform rotate-45 right-4 bottom-[-6px]"></div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 收入表單彈窗 */}
+      {showIncomeForm && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+          <div className="bg-white rounded-xl shadow-lg w-full max-w-md mx-4 animate-fadeIn">
+            <IncomeForm
+              onSave={async (incomeData) => {
+                const success = editingIncome 
+                  ? await updateIncome(incomeData)
+                  : await addIncome(incomeData);
+                
+                if (success) {
+                  setShowIncomeForm(false);
+                  setEditingIncome(null);
+                }
+              }}
+              onCancel={() => {
+                setShowIncomeForm(false);
+                setEditingIncome(null);
+              }}
+              income={editingIncome ? {
+                id: editingIncome.id,
+                amount: editingIncome.amount,
+                category: editingIncome.category.name,
+                date: format(editingIncome.date, 'yyyy-MM-dd'),
+                notes: editingIncome.notes
+              } : null}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* 成功提示訊息 */}
+      {showSuccessMessage && (
+        <div className="fixed top-20 left-1/2 transform -translate-x-1/2 z-50 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg">
+          {successMessage}
+        </div>
+      )}
     </div>
   );
 };

@@ -4,6 +4,21 @@ import { Friend, FriendRequest } from '../contexts/AuthContext';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 
+// 根據用戶ID生成固定的6位好友碼
+const generateFriendCode = (userId: string): string => {
+  // 使用用戶ID的前6個字符作為好友碼的基礎
+  const baseCode = userId.replace(/[^a-zA-Z0-9]/g, '').substring(0, 6);
+  
+  // 如果不足6位，用數字填充
+  let code = baseCode;
+  while (code.length < 6) {
+    code += Math.floor(Math.random() * 10);
+  }
+  
+  // 轉為大寫
+  return code.toUpperCase();
+};
+
 interface FriendManagementProps {
   onClose: () => void;
 }
@@ -37,26 +52,13 @@ const FriendManagement: React.FC<FriendManagementProps> = ({ onClose }) => {
     }
   }, [currentUser]);
   
-  // 根據用戶ID生成固定的6位好友碼
-  const generateFriendCode = (userId: string): string => {
-    // 使用用戶ID的前6個字符作為好友碼的基礎
-    const baseCode = userId.replace(/[^a-zA-Z0-9]/g, '').substring(0, 6);
-    
-    // 如果不足6位，用數字填充
-    let code = baseCode;
-    while (code.length < 6) {
-      code += Math.floor(Math.random() * 10);
-    }
-    
-    // 轉為大寫
-    return code.toUpperCase();
-  };
-
   // 加載好友和請求列表
   useEffect(() => {
-    loadFriends();
-    loadFriendRequests();
-    loadSentFriendRequests();
+    if (currentUser) {
+      loadFriends();
+      loadFriendRequests();
+      loadSentFriendRequests();
+    }
   }, [currentUser]);
 
   // 加載好友列表

@@ -3058,10 +3058,10 @@ useEffect(() => {
   }, [pieChartMode, pieChartMonth]);
 
   return (
-    <div className="bg-[#F5F5FA] min-h-screen font-sans">
+    <div className="min-h-screen w-full bg-[#F5F5FA] font-sans flex flex-col">
       {/* 頂部導航欄 */}
       <nav className={`fixed top-0 left-0 right-0 bg-white bg-opacity-95 backdrop-blur-md shadow-sm z-20 nav-scroll-effect ${navScrolled ? 'scrolled' : ''}`}>
-        <div className="flex justify-between items-center px-4 py-3 max-w-5xl mx-auto">
+        <div className="flex justify-between items-center px-4 py-3 w-full max-w-5xl mx-auto">
           {/* Left-side navigation items with toggle sidebar button */}
           <div className="flex items-center gap-3">
             {currentUser && (
@@ -3152,7 +3152,7 @@ useEffect(() => {
       
       {/* 主要內容區 - 只有登入用戶才能看到 */}
       {currentUser ? (
-        <div className="pt-24 px-4 md:px-8 pb-8 max-w-5xl mx-auto">
+        <div className="flex-1 w-full pt-20 px-4 md:px-8 pb-8 max-w-full md:max-w-5xl mx-auto overflow-x-hidden">
           <div className="mb-6">
             <h1 className="text-2xl font-bold text-[#A487C3] mb-1 font-heading">
               歡迎回來，{userNickname || currentUser.email?.split("@")[0]}
@@ -3272,7 +3272,7 @@ useEffect(() => {
               onClick={() => setShowExpenseForm(true)}
             >
               <i className="fas fa-plus"></i>
-              <span>新增消費明細</span>
+              <span>新增消費</span>
             </button>
             
             <button 
@@ -3290,7 +3290,7 @@ useEffect(() => {
               }}
             >
               <i className="fas fa-list-ul"></i>
-              <span>歷史消費明細</span>
+              <span>歷史消費</span>
             </button>
             
             <button 
@@ -3414,17 +3414,17 @@ useEffect(() => {
               >
             {expenses && expenses.length > 0 ? (
                   <div className="flex flex-col items-center">
-                    <div
-                      ref={chartRef}
-                      style={{
-                        height: "260px", // 原先是 "300px"，減小高度
-                        width: "100%",
-                        display: "flex",
-                        justifyContent: "center",
-                        alignItems: "center",
-                      }}
-                      key={`pie-chart-${selectedCategory ? "selected" : "overview"}-${chartsKey}`}
-                    />
+                  <div
+                    ref={chartRef}
+                    style={{
+                      height: "260px", // 原先是 "300px"，減小高度
+                      width: "100%",
+                      display: "flex",
+                      justifyContent: "center",
+                      alignItems: "center",
+                    }}
+                    key={`pie-chart-${selectedCategory ? "selected" : "overview"}-${chartsKey}`}
+                  />
                     {!selectedCategory && (
                       <p className="text-xs text-gray-500 italic mt-1">
                         <i className="fas fa-info-circle mr-1"></i>
@@ -3460,7 +3460,7 @@ useEffect(() => {
                         </div>
                         <h3 className="font-medium text-gray-800">
                           {selectedCategory} <span className="text-sm text-gray-500">支出明細</span>
-                        </h3>
+                    </h3>
                       </div>
                       <div className="bg-gray-100 text-xs py-1 px-2 rounded-full font-medium text-gray-600">
                         {categoryExpenses.length} 筆記錄
@@ -3494,7 +3494,7 @@ useEffect(() => {
                               <div className="text-right">
                                 <span className="text-xs font-medium bg-white px-2 py-1 rounded-md text-gray-600 inline-block">
                                   {expense.date.toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric' })}
-                                </span>
+                              </span>
                               </div>
                             </div>
                           </div>
@@ -3517,12 +3517,12 @@ useEffect(() => {
                           </div>
                           <div className="text-right">
                             <span className="font-bold text-xl text-[#3AA6B9]">
-                              {formatAmount(
-                                categoryExpenses.reduce(
-                                  (total, exp) => total + exp.amount,
-                                  0,
-                                ),
-                              )}
+                        {formatAmount(
+                          categoryExpenses.reduce(
+                            (total, exp) => total + exp.amount,
+                            0,
+                          ),
+                        )}
                             </span>
                           </div>
                         </div>
@@ -3736,11 +3736,12 @@ useEffect(() => {
                   {filteredTransactions.map((transaction) => (
                     <div
                       key={transaction.id}
-                      className="flex items-center justify-between pb-3 border-b border-gray-100 last:border-0"
+                      className="p-4 border border-gray-100 rounded-lg hover:shadow-md transition-all duration-300 bg-white"
                     >
+                    <div className="flex justify-between items-start">
                     <div className="flex items-center gap-3">
                         <div
-                          className="w-12 h-12 rounded-lg flex items-center justify-center text-white"
+                          className="w-10 h-10 rounded-full flex items-center justify-center text-white"
                           style={{
                             backgroundColor: getCategoryColor(
                               typeof transaction.category === "string"
@@ -3750,38 +3751,34 @@ useEffect(() => {
                           }}
                         >
                           <i
-                            className={`fas ${typeof transaction.category === "string" ? getCategoryIcon(transaction.category) : transaction.category?.icon || "fa-question"} text-xl`}
+                            className={`fas ${typeof transaction.category === "string" ? getCategoryIcon(transaction.category) : transaction.category?.icon || "fa-question"}`}
                           ></i>
                       </div>
                       <div>
-                          <p className="font-medium text-gray-800">
+                          <h3 className="font-medium text-gray-800">
                             {typeof transaction.category === "string"
                               ? transaction.category
                               : transaction.category?.name || "未分類"}
-                            {transaction.notes && (
-                              <span className="ml-2 font-normal text-gray-500 text-sm">
-                                {transaction.notes.length > 30
-                                  ? `${transaction.notes.substring(0, 30)}...`
-                                  : transaction.notes}
-                              </span>
-                            )}
-                          </p>
+                          </h3>
                           <p className="text-sm text-gray-500">
-                            {transaction.date.toLocaleDateString()}
+                            {transaction.date.toLocaleDateString('zh-TW', { year: 'numeric', month: 'long', day: 'numeric' })}
                           </p>
+                          {transaction.notes && <p className="text-sm mt-1">{transaction.notes.length > 30
+                                  ? `${transaction.notes.substring(0, 30)}...`
+                                  : transaction.notes}</p>}
 </div>
 </div>
-                      <div className="flex items-center gap-3">
-                        <p className="font-medium text-gray-700">
-                          NT$ {transaction.amount}
-                        </p>
-                        <div className="flex gap-2">
+                      <div className="flex flex-col items-end">
+                        <span className="text-lg font-bold text-[#E07A8D]">
+                          NT$ {transaction.amount.toLocaleString('zh-TW')}
+                        </span>
+                        <div className="mt-2 flex gap-2">
                         <button 
                           onClick={() => editExpense(transaction)}
-                            className="w-10 h-10 flex items-center justify-center text-gray-600 hover:text-white bg-[#E0D4F0] hover:bg-blue-500 rounded-full transition-all duration-200"
+                          className="text-xs text-blue-600 bg-blue-50 hover:bg-blue-100 p-1 rounded"
                             title="編輯消費明細"
                         >
-                            <i className="fas fa-edit text-lg"></i>
+                          <i className="fas fa-edit"></i>
                         </button>
                         <button 
                           onClick={(e) => {
@@ -3793,11 +3790,12 @@ useEffect(() => {
                               );
                             deleteExpense(transaction.id);
                           }}
-                            className="w-10 h-10 flex items-center justify-center text-gray-600 hover:text-white bg-[#E0D4F0] hover:bg-red-500 rounded-full transition-all duration-200"
+                          className="text-xs text-red-600 bg-red-50 hover:bg-red-100 p-1 rounded"
                             title="刪除消費明細"
                         >
-                            <i className="fas fa-trash text-lg"></i>
+                          <i className="fas fa-trash-alt"></i>
                         </button>
+                      </div>
                       </div>
                     </div>
 </div>
@@ -4173,7 +4171,7 @@ useEffect(() => {
       {/* 好友管理表單 */}
       {showFriendManagement && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-xl max-h-[80vh] overflow-y-auto">
             <FriendManagement onClose={() => setShowFriendManagement(false)} />
           </div>
         </div>
@@ -4759,7 +4757,7 @@ useEffect(() => {
       {/* 好友管理頁面 */}
       {showFriendManagement && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[80vh] overflow-y-auto">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-xl max-h-[80vh] overflow-y-auto">
             <FriendManagement onClose={() => setShowFriendManagement(false)} />
           </div>
         </div>
