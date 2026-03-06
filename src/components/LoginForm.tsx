@@ -328,7 +328,6 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess, initialMode = 'login' 
                     </>
                   )}
                 </span>
-                <span className="absolute inset-0 rounded-full bg-gradient-to-r from-[#FFF9F0] via-white to-[#FFF9F0] opacity-70 z-0"></span>
               </button>
             </div>
           </div>

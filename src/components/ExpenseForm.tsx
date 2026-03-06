@@ -8,6 +8,8 @@ interface ExpenseFormProps {
     date: string;
     notes: string;
     attachments?: File[];
+    isRecurring?: boolean;
+    recurringPeriod?: 'weekly' | 'monthly' | 'yearly';
   }) => void;
   onCancel: () => void;
   expense?: {
@@ -17,6 +19,7 @@ interface ExpenseFormProps {
     date: string;
     notes: string;
     attachments?: string[];
+    recurringPeriod?: string;
   } | null;
 }
 
@@ -50,6 +53,8 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
   const [notes, setNotes] = useState<string>("");
   const [error, setError] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [isRecurring, setIsRecurring] = useState<boolean>(false);
+  const [recurringPeriod, setRecurringPeriod] = useState<'weekly' | 'monthly' | 'yearly'>('monthly');
 
   // 貨幣轉換相關狀態
   const [selectedCurrency, setSelectedCurrency] = useState<CurrencyType>("TWD");
@@ -120,6 +125,14 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
       setSelectedCurrency("TWD");
       setConvertedAmount(null);
       setExchangeRate(null);
+      // 初始化定期設定
+      if (expense.recurringPeriod) {
+        setIsRecurring(true);
+        setRecurringPeriod(expense.recurringPeriod as 'weekly' | 'monthly' | 'yearly');
+      } else {
+        setIsRecurring(false);
+        setRecurringPeriod('monthly');
+      }
     } else {
       // 如果不是編輯模式，重置表單值
       setAmount("");
@@ -285,6 +298,8 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
         category,
         date,
         notes: finalNotes,
+        isRecurring,
+        recurringPeriod: isRecurring ? recurringPeriod : undefined,
       });
 
       console.log("提交結果:", result);
@@ -298,6 +313,8 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
         setSelectedCurrency("TWD");
         setConvertedAmount(null);
         setExchangeRate(null);
+        setIsRecurring(false);
+        setRecurringPeriod('monthly');
       }
 
       // 重置提交狀態
@@ -529,6 +546,54 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
               </button>
             ))}
           </div>
+        </div>
+
+        {/* 定期重複 */}
+        <div className="border border-gray-200 rounded-lg p-3 bg-gray-50">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <i className="fas fa-redo text-[#A487C3] text-sm"></i>
+                <span className="text-sm font-semibold text-gray-800">定期重複</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsRecurring(prev => !prev)}
+                className="relative w-12 h-6 rounded-full transition-all duration-300 focus:outline-none border-2"
+                style={{
+                  backgroundColor: isRecurring ? '#A487C3' : '#ffffff',
+                  borderColor: isRecurring ? '#A487C3' : '#d1d5db',
+                  WebkitTapHighlightColor: 'transparent',
+                }}
+              >
+                <span
+                  className="absolute top-0.5 h-4 w-4 rounded-full shadow-md transition-all duration-300"
+                  style={{
+                    left: isRecurring ? '1.5rem' : '0.125rem',
+                    backgroundColor: isRecurring ? '#ffffff' : '#9ca3af',
+                  }}
+                />
+              </button>
+            </div>
+            {isRecurring && (
+              <div className="mt-3">
+                <div className="grid grid-cols-3 gap-2">
+                  {([
+                    { value: 'weekly', label: '每週' },
+                    { value: 'monthly', label: '每月' },
+                    { value: 'yearly', label: '每年' },
+                  ] as const).map(({ value, label }) => (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => setRecurringPeriod(value)}
+                      className={`py-1.5 rounded-lg text-xs font-medium transition-all border ${recurringPeriod === value ? 'bg-[#A487C3] text-white border-[#A487C3]' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
         </div>
 
         {/* 日期選擇 */}
