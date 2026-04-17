@@ -1236,9 +1236,6 @@ const chartRef = useRef<HTMLDivElement>(null);
 
 
       try {
-        // 先清空當前狀態，避免顯示舊數據
-        setExpenses([]);
-
         // 直接從Firebase獲取最新數據
         const userId = currentUser.uid;
 
@@ -1316,31 +1313,13 @@ const chartRef = useRef<HTMLDivElement>(null);
 
               } catch (_error) { /* noop */ }
             }, 800);
-
-            // 顯示成功信息
-            setSuccessMessage("數據已同步");
-            setShowSuccessMessage(true);
-            if (successMessageTimer.current) {
-              window.clearTimeout(successMessageTimer.current);
-            }
-            successMessageTimer.current = window.setTimeout(
-              () => setShowSuccessMessage(false),
-              1500,
-            );
-          } else {
-            setExpenses([]);
           }
-        } else {
-          setExpenses([]);
-      }
+        }
     } catch (_error) {
         // 不再顯示錯誤提示，只在控制台輸出錯誤信息
         // setError("無法恢復數據，請嘗試手動刷新頁面");
         // setTimeout(() => setError(null), 3000);
-        
-        // 將空數組設置為默認值，避免UI顯示舊數據
-        setExpenses([]);
-        
+
         // 靜默處理錯誤，不顯示給用戶
       } finally { /* noop */ }
     };
@@ -1363,7 +1342,7 @@ const chartRef = useRef<HTMLDivElement>(null);
         handleForceDataRecovery,
       );
     };
-  }, [currentUser, initDailyChart, initPieChart]);
+  }, [currentUser]);
 
   // 啟動時自動補產定期支出帳目
   useEffect(() => {
