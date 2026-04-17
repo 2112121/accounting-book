@@ -1850,12 +1850,12 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
                           isReceivable ? 'border-l-4 border-green-500' : 'border-l-4 border-red-500'
                         } transform transition-all duration-300 hover:shadow-md animate-[fadeInUp_${0.3 + index * 0.1}s_ease-out]`}
                       >
-                        <div className="flex items-center">
-                          <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden mr-3 shadow-sm">
+                        <div className="flex items-center min-w-0">
+                          <div className="w-10 h-10 shrink-0 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden mr-3 shadow-sm">
                             {targetUser.photoURL ? (
-                              <img 
-                                src={targetUser.photoURL} 
-                                alt={targetUser.nickname} 
+                              <img
+                                src={targetUser.photoURL}
+                                alt={targetUser.nickname}
                                 className="w-full h-full object-cover"
                               />
                             ) : (
@@ -1864,30 +1864,30 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
                               </span>
                             )}
                           </div>
-                          <div>
-                            <div className="font-medium text-gray-800">{targetUser.nickname}</div>
-                            <div className="text-xs text-gray-500 mt-1">
-                              已支付總額: {targetUser.paid.toFixed(0)} 元
+                          <div className="min-w-0">
+                            <div className="font-medium text-gray-800 truncate">{targetUser.nickname}</div>
+                            <div className="text-xs text-gray-500 mt-1 whitespace-nowrap">
+                              已付: {targetUser.paid.toFixed(0)} 元
                             </div>
                           </div>
                         </div>
-                        <div className="text-right">
+                        <div className="text-right shrink-0 ml-2">
                           {isReceivable ? (
                             <>
-                              <div className="text-green-600 font-bold text-base">
+                              <div className="text-green-600 font-bold text-sm whitespace-nowrap">
                                 應收 {displayAmount} 元
                               </div>
-                              <div className="text-xs text-gray-500 mt-1">
-                                {targetUser.nickname} 欠您 {displayAmount} 元
+                              <div className="text-xs text-gray-500 mt-1 whitespace-nowrap">
+                                欠您 {displayAmount} 元
                               </div>
                             </>
                           ) : (
                             <>
-                              <div className="text-red-600 font-bold text-base">
+                              <div className="text-red-600 font-bold text-sm whitespace-nowrap">
                                 應付 {displayAmount} 元
                               </div>
-                              <div className="text-xs text-gray-500 mt-1">
-                                您欠 {targetUser.nickname} {displayAmount} 元
+                              <div className="text-xs text-gray-500 mt-1 whitespace-nowrap">
+                                欠 {targetUser.nickname} {displayAmount} 元
                               </div>
                             </>
                           )}
@@ -1929,12 +1929,12 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
                       className={`flex items-center justify-between bg-white p-3 rounded-xl shadow-sm border ${amount < 0 ? 'border-green-100' : 'border-red-100'} 
                       animate-[fadeInRight_${0.3 + index * 0.15}s_ease-out] transform transition-all duration-300 hover:shadow-md hover:translate-x-1`}
                     >
-                      <div className="flex items-center">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center overflow-hidden mr-2 border ${amount < 0 ? 'border-green-200' : 'border-red-200'}`}>
+                      <div className="flex items-center min-w-0">
+                        <div className={`w-8 h-8 shrink-0 rounded-full flex items-center justify-center overflow-hidden mr-2 border ${amount < 0 ? 'border-green-200' : 'border-red-200'}`}>
                           {targetMember.photoURL ? (
-                            <img 
-                              src={targetMember.photoURL} 
-                              alt={targetMember.nickname} 
+                            <img
+                              src={targetMember.photoURL}
+                              alt={targetMember.nickname}
                               className="w-full h-full object-cover"
                             />
                           ) : (
@@ -1943,15 +1943,13 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
                             </span>
                           )}
                         </div>
-                        <div>
-                          <div className="font-medium text-sm flex items-center">
-                            {targetMember.nickname}
-                            {amount < 0 ? (
-                              <span className="ml-2 text-xs text-green-600 px-1.5 py-0.5 bg-green-50 rounded-full border border-green-100">應收 {Math.abs(amount).toFixed(0)}元</span>
-                            ) : (
-                              <span className="ml-2 text-xs text-red-600 px-1.5 py-0.5 bg-red-50 rounded-full border border-red-100">應付 {Math.abs(amount).toFixed(0)}元</span>
-                            )}
-                          </div>
+                        <div className="min-w-0">
+                          <div className="font-medium text-sm truncate">{targetMember.nickname}</div>
+                          {amount < 0 ? (
+                            <span className="text-xs text-green-600 px-1.5 py-0.5 bg-green-50 rounded-full border border-green-100 whitespace-nowrap">應收 {Math.abs(amount).toFixed(0)}元</span>
+                          ) : (
+                            <span className="text-xs text-red-600 px-1.5 py-0.5 bg-red-50 rounded-full border border-red-100 whitespace-nowrap">應付 {Math.abs(amount).toFixed(0)}元</span>
+                          )}
                         </div>
                       </div>
                       
@@ -1983,7 +1981,7 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
                               }
                               window.location.href = `/?action=add-lend&amount=${Math.abs(amount).toFixed(0)}&person=${encodeURIComponent(targetMember.nickname)}&description=${encodeURIComponent(`分帳：${selectedTransaction?.title || '群組支出'}`)}${dateParam}`;
                             }}
-                            className="px-3 py-1.5 bg-gradient-to-r from-green-500 to-green-600 text-white text-xs rounded-lg hover:from-green-600 hover:to-green-700 transition-colors flex items-center font-medium shadow-sm hover:shadow"
+                            className="px-3 py-1.5 bg-gradient-to-r from-green-500 to-green-600 text-white text-xs rounded-lg hover:from-green-600 hover:to-green-700 transition-colors flex items-center font-medium shadow-sm hover:shadow whitespace-nowrap shrink-0"
                           >
                             <i className="fas fa-file-invoice-dollar mr-1.5"></i>
                             新增借出記錄
@@ -2015,7 +2013,7 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
                               }
                               window.location.href = `/?action=add-borrow&amount=${Math.abs(amount).toFixed(0)}&person=${encodeURIComponent(targetMember.nickname)}&description=${encodeURIComponent(`分帳：${selectedTransaction?.title || '群組支出'}`)}${dateParam}`;
                             }}
-                            className="px-3 py-1.5 bg-gradient-to-r from-red-500 to-red-600 text-white text-xs rounded-lg hover:from-red-600 hover:to-red-700 transition-colors flex items-center font-medium shadow-sm hover:shadow"
+                            className="px-3 py-1.5 bg-gradient-to-r from-red-500 to-red-600 text-white text-xs rounded-lg hover:from-red-600 hover:to-red-700 transition-colors flex items-center font-medium shadow-sm hover:shadow whitespace-nowrap shrink-0"
                           >
                             <i className="fas fa-file-invoice-dollar mr-1.5"></i>
                             新增借入記錄
