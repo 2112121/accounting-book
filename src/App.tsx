@@ -3189,10 +3189,9 @@ const chartRef = useRef<HTMLDivElement>(null);
           
           {/* 支出分析卡片 */}
           <div className="relative bg-white bg-opacity-95 backdrop-blur-sm rounded-xl shadow-md border-l-4 border-[#3AA6B9] p-5 mb-6 hover:shadow-lg transition-all duration-300">
-            <div className="flex justify-between items-center mb-4">
-              <div className="flex items-center flex-wrap">
-                <h2 className="text-lg font-bold text-[#3AA6B9]">支出分析</h2>
-                <div className="ml-4 flex items-center space-x-2">
+            <div className="flex items-center flex-wrap gap-2 mb-4">
+              <h2 className="text-lg font-bold text-[#3AA6B9]">支出分析</h2>
+              <div className="flex items-center space-x-2">
                   <button 
                     className={`text-xs px-2 py-1 rounded-md transition-colors ${pieChartMode === 'current' ? 'bg-[#3AA6B9] text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
                     onClick={() => setPieChartMode('current')}
@@ -3245,20 +3244,19 @@ const chartRef = useRef<HTMLDivElement>(null);
                       }}
                     />
                   </div>
-                  <button 
+                  <button
                     className={`text-xs px-2 py-1 rounded-md transition-colors ${pieChartMode === 'all' ? 'bg-[#3AA6B9] text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
                     onClick={() => setPieChartMode('all')}
                   >
                     全部
                   </button>
                 </div>
-              </div>
               {selectedCategory && (
                 <button
                   onClick={resetCategorySelection}
-                  className="text-sm text-white bg-[#3AA6B9] hover:bg-[#4ABBC9] px-4 py-1.5 rounded-lg flex items-center transition-all duration-300 shadow-sm hover:shadow-md"
+                  className="text-xs text-white bg-[#3AA6B9] hover:bg-[#4ABBC9] px-2 py-1 rounded-md flex items-center transition-all duration-300"
                 >
-                  <i className="fas fa-arrow-left mr-1.5"></i> 返回總覽
+                  <i className="fas fa-arrow-left mr-1"></i> 返回總覽
                 </button>
               )}
             </div>
@@ -4724,9 +4722,9 @@ const chartRef = useRef<HTMLDivElement>(null);
         !showDatePicker && 
         !showMonthPicker && 
         !showNotifications && (
-        <>
-          {/* 歷史消費明細按鈕 - 左下角 */}
-          <div className="fixed bottom-5 left-4 z-[1000] group sm:bottom-8 sm:left-8">
+        <div className="fixed bottom-5 right-4 z-[1000] flex flex-col gap-2 items-center sm:bottom-8 sm:right-8 sm:gap-3">
+          {/* 歷史消費明細按鈕 */}
+          <div className="group relative">
             <button
               onClick={() => {
                 const element = document.getElementById('expense-details');
@@ -4736,42 +4734,30 @@ const chartRef = useRef<HTMLDivElement>(null);
                   setTimeout(() => { element.classList.remove('highlight-section'); }, 2000);
                 }
               }}
-              className="h-12 w-12 rounded-full bg-gradient-to-r from-[#6BBFA0] to-[#8FD3B9] shadow-xl hover:shadow-2xl flex items-center justify-center text-white transform hover:scale-110 active:scale-95 transition-all duration-300 relative overflow-hidden focus:outline-none focus:ring-4 focus:ring-green-300 focus:ring-opacity-50 sm:h-14 sm:w-14"
+              className="h-9 w-9 sm:h-12 sm:w-12 rounded-full bg-gradient-to-r from-[#6BBFA0] to-[#8FD3B9] shadow-lg flex items-center justify-center text-white opacity-60 hover:opacity-100 active:scale-95 transition-all duration-300 focus:outline-none"
               aria-label="歷史消費明細"
             >
-              <i className="fas fa-list-ul relative z-10 text-xl sm:text-2xl"></i>
-              <div className="absolute inset-0 bg-white opacity-0 hover:opacity-20 transition-opacity duration-300 rounded-full"></div>
+              <i className="fas fa-list-ul text-sm sm:text-lg"></i>
             </button>
-            <div className="absolute -top-12 left-0 bg-[#333333] text-white text-xs px-3 py-1.5 rounded-md opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-300 whitespace-nowrap shadow-md transform group-hover:-translate-y-1">
-              <div className="flex items-center gap-1">
-                <i className="fas fa-list-ul text-xs"></i>
-                <span>歷史消費明細</span>
-              </div>
-              <div className="absolute w-3 h-3 bg-[#333333] transform rotate-45 left-4 bottom-[-6px]"></div>
+            <div className="absolute -top-10 right-0 bg-[#333333] text-white text-xs px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap shadow-md">
+              歷史消費明細
             </div>
           </div>
 
-          {/* 新增支出按鈕 - 右下角 */}
-          <div className="fixed bottom-5 right-4 z-[1000] group sm:bottom-8 sm:right-8">
+          {/* 新增支出按鈕 */}
+          <div className="group relative">
             <button
               onClick={() => setShowExpenseForm(true)}
-              className="h-14 w-14 rounded-full bg-gradient-to-r from-[#E07A8D] to-[#F09CA7] shadow-xl hover:shadow-2xl flex items-center justify-center text-white transform hover:scale-110 active:scale-95 transition-all duration-300 relative overflow-hidden focus:outline-none focus:ring-4 focus:ring-pink-300 focus:ring-opacity-50 sm:h-16 sm:w-16"
+              className="h-12 w-12 sm:h-14 sm:w-14 rounded-full bg-gradient-to-r from-[#E07A8D] to-[#F09CA7] shadow-xl flex items-center justify-center text-white opacity-75 hover:opacity-100 active:scale-95 transition-all duration-300 focus:outline-none"
               aria-label="新增支出"
             >
-              <i className="fas fa-plus relative z-10 text-2xl"></i>
-              <div className="absolute inset-0 bg-white opacity-0 hover:opacity-20 transition-opacity duration-300 rounded-full"></div>
-              <div className="absolute inset-0 rounded-full animate-ping opacity-30 bg-gradient-to-r from-[#E07A8D] to-[#F09CA7] duration-1000"></div>
-              <div className="absolute inset-0 rounded-full animate-ping opacity-20 bg-gradient-to-r from-[#E07A8D] to-[#F09CA7] duration-1500 delay-500"></div>
+              <i className="fas fa-plus text-xl sm:text-2xl"></i>
             </button>
-            <div className="absolute -top-12 right-0 bg-[#333333] text-white text-xs px-3 py-1.5 rounded-md opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-300 whitespace-nowrap shadow-md transform group-hover:-translate-y-1">
-              <div className="flex items-center gap-1">
-                <i className="fas fa-receipt text-xs"></i>
-                <span>新增支出</span>
-              </div>
-              <div className="absolute w-3 h-3 bg-[#333333] transform rotate-45 right-4 bottom-[-6px]"></div>
+            <div className="absolute -top-10 right-0 bg-[#333333] text-white text-xs px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap shadow-md">
+              新增支出
             </div>
           </div>
-        </>
+        </div>
       )}
 
       {/* 分帳群組邀請列表 */}
