@@ -680,7 +680,7 @@ const chartRef = useRef<HTMLDivElement>(null);
             radius: ["28%", "55%"],
             center: ["50%", "42%"],
             avoidLabelOverlap: true,
-            minShowLabelAngle: 4,
+            minShowLabelAngle: 1,
             selectedMode: false,
             emphasis: {
               itemStyle: {
@@ -693,15 +693,21 @@ const chartRef = useRef<HTMLDivElement>(null);
             },
             label: {
               show: true,
-              formatter: "{b}\n{d}%",
-              fontSize: 10,
-              lineHeight: 14,
+              formatter: (params: any) => {
+                if (params.percent < 3) return "";
+                return `{b|${params.name}}\n{d|${params.percent.toFixed(1)}%}`;
+              },
+              rich: {
+                b: { fontSize: 10, lineHeight: 14 },
+                d: { fontSize: 10, color: "#666" },
+              },
             },
             labelLayout: {
               moveOverlap: "shiftY",
             },
             labelLine: {
               show: true,
+              showAbove: false,
               smooth: false,
               length: 8,
               length2: 6,
