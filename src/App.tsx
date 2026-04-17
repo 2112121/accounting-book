@@ -1,4 +1,4 @@
-// The exported code uses Tailwind CSS. Install Tailwind CSS in your dev environment to ensure all styles work.
+﻿// The exported code uses Tailwind CSS. Install Tailwind CSS in your dev environment to ensure all styles work.
 import React, { useState, useEffect, useRef } from "react";
 import * as echarts from "echarts";
 import ExpenseForm from "./components/ExpenseForm";
@@ -228,8 +228,7 @@ const chartRef = useRef<HTMLDivElement>(null);
       if (chartInstance) {
         try {
           chartInstance.dispose();
-        } catch (e) {
-        }
+        } catch (_e) { /* noop */ }
       }
 
       // 創建一個基本的空圖表，但不帶"暫無數據"提示
@@ -293,8 +292,7 @@ const chartRef = useRef<HTMLDivElement>(null);
 
       chart.setOption(option);
       setChartInstance(chart);
-    } catch (e) {
-    }
+    } catch (_e) { /* noop */ }
   };
 
   // 簡化圓餅圖初始化流程，確保圖表能夠顯示
@@ -343,22 +341,9 @@ const chartRef = useRef<HTMLDivElement>(null);
           if (matchesCurrentMonth) {
             dataToUse.push(expense);
           }
-        } catch (err) {
-        }
+        } catch (_err) { /* noop */ }
       });
-      
-      
-      // 再次確認過濾後的每筆記錄
-      dataToUse.forEach((exp, idx) => {
-        const expDate = exp.date instanceof Date ? exp.date : new Date(exp.date);
-          id: exp.id,
-          日期: expDate.toISOString().split('T')[0],
-          年月: `${expDate.getFullYear()}/${expDate.getMonth()+1}`,
-          類別: typeof exp.category === 'string' ? exp.category : exp.category?.name,
-          金額: exp.amount
-        });
-      });
-    } 
+    }
     else if (pieChartMode === 'selected') {
       // 使用用戶選擇的月份
       const [year, month] = pieChartMonth.split('-').map(Number);
@@ -393,8 +378,7 @@ const chartRef = useRef<HTMLDivElement>(null);
           if (matchesSelectedMonth) {
             dataToUse.push(expense);
           }
-        } catch (err) {
-        }
+        } catch (_err) { /* noop */ }
       });
       
     } 
@@ -413,8 +397,7 @@ const chartRef = useRef<HTMLDivElement>(null);
     if (chartInstance) {
       try {
         chartInstance.dispose();
-      } catch (e) {
-      }
+      } catch (_e) { /* noop */ }
     }
 
     // 創建新實例
@@ -423,7 +406,6 @@ const chartRef = useRef<HTMLDivElement>(null);
 
       // 計算分類支出
       const categorySum: Record<string, number> = {};
-      let totalAmount = 0;
 
       dataToUse.forEach((expense) => {
         // 處理 category 可能是字符串或對象的情況
@@ -434,9 +416,6 @@ const chartRef = useRef<HTMLDivElement>(null);
 
         // 確保金額是有效數字
         const amount = typeof expense.amount === "number" ? expense.amount : 0;
-
-        // 改為接受任何數值，不再檢查是否>0，只要是數值就累加
-        totalAmount += amount;
 
         if (categorySum[categoryName]) {
           categorySum[categoryName] += amount;
@@ -597,7 +576,7 @@ const chartRef = useRef<HTMLDivElement>(null);
 
       // 設置實例後再保存
       setChartInstance(chart);
-    } catch (e) {
+    } catch (_e) {
       // 出錯時顯示空圖表
       createEmptyPieChart();
     }
@@ -629,7 +608,7 @@ const chartRef = useRef<HTMLDivElement>(null);
       setTimeout(() => {
           chartInstance.resize();
         }, 10);
-      } catch (err) {
+      } catch (_err) {
         // 只有在出錯時才強制重新渲染
         setChartsKey((prev) => prev + 1);
       }
@@ -649,8 +628,7 @@ const chartRef = useRef<HTMLDivElement>(null);
     if (dailyChartInstance) {
       try {
         dailyChartInstance.dispose();
-      } catch (e) {
-      }
+      } catch (_e) { /* noop */ }
     }
 
     // 創建新實例
@@ -706,8 +684,7 @@ const chartRef = useRef<HTMLDivElement>(null);
 
       // 設置實例後再保存
       setDailyChartInstance(chart);
-    } catch (e) {
-    }
+    } catch (_e) { /* noop */ }
   };
 
   // 每日趨勢圖初始化函數
@@ -727,8 +704,7 @@ const chartRef = useRef<HTMLDivElement>(null);
     if (dailyChartInstance) {
       try {
         dailyChartInstance.dispose();
-      } catch (e) {
-      }
+      } catch (_e) { /* noop */ }
     }
 
     // 創建新實例
@@ -776,8 +752,7 @@ const chartRef = useRef<HTMLDivElement>(null);
             dailySum[expenseKey] += expense.amount;
             hasData = true;
           }
-        } catch (err) {
-        }
+        } catch (_err) { /* noop */ }
       });
 
       // 輸出日期和支出記錄，用於調試
@@ -849,7 +824,7 @@ const chartRef = useRef<HTMLDivElement>(null);
 
       // 設置實例後再保存
       setDailyChartInstance(chart);
-    } catch (e) {
+    } catch (_e) {
       // 出錯時顯示空圖表
       createEmptyDailyChart();
     }
@@ -954,7 +929,7 @@ const chartRef = useRef<HTMLDivElement>(null);
                   userId: data.userId,
                 });
                 
-              } catch (e) {
+              } catch (_e) {
                 // 如果日期處理出錯，仍然添加記錄但使用當前日期
                 fetchedExpenses.push({
                   id: doc.id,
@@ -965,17 +940,9 @@ const chartRef = useRef<HTMLDivElement>(null);
                   userId: data.userId,
                 });
               }
-            } catch (e) {
-            }
+            } catch (_err) { /* noop */ }
           }
         });
-
-          `成功從Firebase獲取了 ${fetchedExpenses.length} 筆消費明細`,
-        );
-        if (fetchedExpenses.length === 0) {
-            "提示: 沒有找到消費明細，請確認是否已添加消費明細或索引是否已創建",
-          );
-        }
 
         // 更新UI狀態
         setExpenses(fetchedExpenses);
@@ -1000,11 +967,9 @@ const chartRef = useRef<HTMLDivElement>(null);
 
                 // 觸發圖表重新渲染事件
                 window.dispatchEvent(new Event("expenses-changed"));
-              } catch (error) {
-              }
+              } catch (_error) { /* noop */ }
             }, 300);
-          } catch (error) {
-          }
+          } catch (_error) { /* noop */ }
         }, 800); // 增加主延遲時間
 
         // 關閉加載提示
@@ -1013,7 +978,7 @@ const chartRef = useRef<HTMLDivElement>(null);
         }
         setShowSuccessMessage(false);
 
-      } catch (error) {
+      } catch (_error) {
         // 顯示更詳細的錯誤信息
         if (error instanceof Error) {
           setError(`讀取消費明細失敗: ${error.message}`);
@@ -1164,15 +1129,11 @@ const chartRef = useRef<HTMLDivElement>(null);
                   userId: data.userId,
                   recurringPeriod: data.recurringPeriod || undefined,
                 });
-              } catch (e) {
-              }
+              } catch (_e) { /* noop */ }
             }
           });
 
           if (fetchedExpenses.length > 0) {
-              `成功從Firebase獲取 ${fetchedExpenses.length} 筆消費明細`,
-            );
-
             // 更新React狀態
             setExpenses(fetchedExpenses);
 
@@ -1194,8 +1155,7 @@ const chartRef = useRef<HTMLDivElement>(null);
                   initDailyChart();
                 }
 
-              } catch (error) {
-              }
+              } catch (_error) { /* noop */ }
             }, 800);
 
             // 顯示成功信息
@@ -1214,7 +1174,7 @@ const chartRef = useRef<HTMLDivElement>(null);
         } else {
           setExpenses([]);
       }
-    } catch (error) {
+    } catch (_error) {
         // 不再顯示錯誤提示，只在控制台輸出錯誤信息
         // setError("無法恢復數據，請嘗試手動刷新頁面");
         // setTimeout(() => setError(null), 3000);
@@ -1223,8 +1183,7 @@ const chartRef = useRef<HTMLDivElement>(null);
         setExpenses([]);
         
         // 靜默處理錯誤，不顯示給用戶
-      } finally {
-      }
+      } finally { /* noop */ }
     };
 
     // 如果用戶已登入，執行數據恢復
@@ -1302,8 +1261,7 @@ const chartRef = useRef<HTMLDivElement>(null);
             });
           }
         }
-      } catch (err) {
-      }
+      } catch (_err) { /* noop */ }
     };
 
     processRecurringExpenses();
@@ -1397,7 +1355,7 @@ const chartRef = useRef<HTMLDivElement>(null);
         
         try {
           // 嘗試使用事務確保一致性
-          const { docId, splitDocId } = await addExpenseWithTransaction(expenseData, expense.isShared, expense.sharedWith);
+          const { docId } = await addExpenseWithTransaction(expenseData, expense.isShared, expense.sharedWith);
   
           // 更新真實ID
           setExpenses((prevExpenses) =>
@@ -1405,18 +1363,9 @@ const chartRef = useRef<HTMLDivElement>(null);
               exp.id === tempId ? { ...exp, id: docId } : exp,
             ),
           );
-        } catch (txError) {
-          // 事務失敗時，嘗試直接添加支出記錄（不含排行榜更新）
-          
-          // 記錄具體錯誤信息到日誌
-          if (txError instanceof Error) {
-              名稱: txError.name,
-              訊息: txError.message,
-              堆疊: txError.stack
-            });
-          }
-          
-          // 後備方案：直接添加支出記錄
+        } catch (_txError) { /* noop */ }
+
+        // 後備方案：直接添加支出記錄
           const docRef = await addDoc(collection(db, "expenses"), expenseData);
           
           // 更新真實ID
@@ -1455,8 +1404,7 @@ const chartRef = useRef<HTMLDivElement>(null);
                         paid: person.paid || false
                       };
                     }
-                  } catch (e) {
-                  }
+                  } catch (_e) { /* noop */ }
                 }
                 
                 return {
@@ -1495,8 +1443,7 @@ const chartRef = useRef<HTMLDivElement>(null);
                 isSplit: true,
                 splitTransactionId: splitRef.id
               });
-            } catch (splitError) {
-            }
+            } catch (_splitError) { /* noop */ }
           }
           
           // 顯示警告信息
@@ -1505,21 +1452,10 @@ const chartRef = useRef<HTMLDivElement>(null);
           if (successMessageTimer.current) {
             window.clearTimeout(successMessageTimer.current);
           }
-          successMessageTimer.current = window.setTimeout(
-            () => setShowSuccessMessage(false),
-            3000,
-          );
-        }
-      } catch (error) {
-        
-        // 記錄具體錯誤類型和訊息
-        if (error instanceof Error) {
-            名稱: error.name,
-            訊息: error.message,
-            堆疊: error.stack
-          });
-        }
-        
+          successMessageTimer.current = window.setTimeout(() => {
+            setShowSuccessMessage(false);
+          }, 3000);
+      } catch (_error) {
         // 更新錯誤提示
         setError("數據保存失敗，請稍後重試。支出記錄仍顯示在界面上。");
         setTimeout(() => setError(null), 5000);
@@ -1539,12 +1475,11 @@ const chartRef = useRef<HTMLDivElement>(null);
             isActive: true,
             createdAt: Timestamp.now(),
           });
-        } catch (recErr) {
-        }
+        } catch (_recErr) { /* noop */ }
       }
 
       return true;
-    } catch (error) {
+    } catch (_error) {
       setError("添加支出失敗，請稍後再試");
       setTimeout(() => setError(null), 3000);
       return false;
@@ -1613,8 +1548,7 @@ const chartRef = useRef<HTMLDivElement>(null);
                       paid: person.paid || false
                     };
                   }
-                } catch (e) {
-                }
+                } catch (_e) { /* noop */ }
               }
               
               // 如果無法獲取或發生錯誤，則使用傳入的資料
@@ -1658,18 +1592,13 @@ const chartRef = useRef<HTMLDivElement>(null);
             
             splitDocId = splitRef.id;
           }
-          
-          // 步驟 3: 獲取用戶參與的進行中排行榜
+
           const userDoc = await transaction.get(doc(db, "users", currentUser.uid));
           if (!userDoc.exists()) {
             throw new Error("用戶數據不存在");
           }
           
           const userData = userDoc.data();
-            暱稱: userData.nickname || '未知', 
-            排行榜數量: (userData.leaderboards || []).length 
-          });
-          
           const userLeaderboardIds = userData.leaderboards || [];
           
           // 如果用戶沒有參與排行榜，就不需要更新
@@ -1693,10 +1622,7 @@ const chartRef = useRef<HTMLDivElement>(null);
             ? expenseData.date.toDate() 
             : new Date(expenseData.date);
           const expenseAmount = expenseData.amount;
-          
-          
-          let updatedLeaderboardCount = 0;
-          
+
           for (let i = 0; i < leaderboardDocs.length; i++) {
             const leaderboardDoc = leaderboardDocs[i];
             if (!leaderboardDoc.exists()) {
@@ -1704,11 +1630,7 @@ const chartRef = useRef<HTMLDivElement>(null);
             }
             
             const leaderboardData = leaderboardDoc.data();
-              ID: leaderboardDoc.id, 
-              名稱: leaderboardData.name,
-              成員數: (leaderboardData.members || []).length
-            });
-            
+
             // 解析日期
             const startDate = leaderboardData.startDate instanceof Timestamp 
               ? leaderboardData.startDate.toDate() 
@@ -1764,31 +1686,17 @@ const chartRef = useRef<HTMLDivElement>(null);
                 });
                 
                 updatedLeaderboardCount++;
-              } else {
-              }
+              } // else: no matching member
             }
           }
-          
-          
-          return { 
-            docId: expenseRef.id, 
-            splitDocId 
-          };
-        } catch (error) {
-          if (error instanceof Error) {
-          }
+
+          return { docId: expenseRef.id, splitDocId };
+        } catch (_error) {
           throw error; // 重新拋出以便外部捕獲
         }
       });
-      
       return result;
-    } catch (error) {
-      if (error instanceof Error) {
-          名稱: error.name,
-          訊息: error.message,
-          堆疊: error.stack
-        });
-      }
+    } catch (_error) {
       throw error; // 重新拋出以便外部捕獲和處理
     }
   };
@@ -1969,7 +1877,7 @@ const chartRef = useRef<HTMLDivElement>(null);
       setEditingExpense(null);
       
       return true;
-    } catch (error) {
+    } catch (_error) {
       alert("更新支出記錄時出現錯誤，請稍後再試");
       return false;
     }
@@ -2002,7 +1910,7 @@ const chartRef = useRef<HTMLDivElement>(null);
       // 後臺執行Firebase記錄刪除
       try {
         await deleteDoc(doc(db, "expenses", id));
-      } catch (error) {
+      } catch (_error) {
         // 即便Firebase刪除失敗，UI已經更新，用戶體驗不受影響
         // 下次刷新時會從Firebase獲取正確數據
       }
@@ -2012,7 +1920,7 @@ const chartRef = useRef<HTMLDivElement>(null);
         () => window.dispatchEvent(new Event("expenses-changed")),
         100,
       );
-    } catch (error) {
+    } catch (_error) {
       setError("刪除失敗，請稍後再試");
       setTimeout(() => setError(null), 3000);
     }
@@ -2176,12 +2084,7 @@ useEffect(() => {
       
       const lastDayOfWeek = new Date(firstDayOfWeek);
       lastDayOfWeek.setDate(firstDayOfWeek.getDate() + 6);
-      lastDayOfWeek.setHours(23, 59, 59, 999);
-      
-        開始: firstDayOfWeek.toISOString(),
-        結束: lastDayOfWeek.toISOString()
-      });
-      
+
       return expenses.filter(expense => {
         const expenseDate = new Date(expense.date);
         return expenseDate >= firstDayOfWeek && expenseDate <= lastDayOfWeek;
@@ -2195,15 +2098,8 @@ useEffect(() => {
       const firstDayOfLastWeek = new Date(today);
       firstDayOfLastWeek.setDate(today.getDate() - (currentDay - 1) - 7);
       firstDayOfLastWeek.setHours(0, 0, 0, 0);
-      
-      const lastDayOfLastWeek = new Date(firstDayOfLastWeek);
-      lastDayOfLastWeek.setDate(firstDayOfLastWeek.getDate() + 6);
       lastDayOfLastWeek.setHours(23, 59, 59, 999);
-      
-        開始: firstDayOfLastWeek.toISOString(),
-        結束: lastDayOfLastWeek.toISOString()
-      });
-      
+
       return expenses.filter(expense => {
         const expenseDate = new Date(expense.date);
         return expenseDate >= firstDayOfLastWeek && expenseDate <= lastDayOfLastWeek;
@@ -2227,15 +2123,9 @@ useEffect(() => {
       filterDate = selectedDate;
     }
 
-    // 提取年月日用於精確比較
     const filterYear = filterDate.getFullYear();
     const filterMonth = filterDate.getMonth();
     const filterDay = filterDate.getDate();
-
-      年: filterYear,
-      月: filterMonth + 1,
-      日: filterDay,
-    });
 
     // 使用年月日精確比較篩選
     const filtered = expenses.filter((expense) => {
@@ -2245,24 +2135,9 @@ useEffect(() => {
         const expenseMonth = expense.date.getMonth();
         const expenseDay = expense.date.getDate();
 
-        // 日期必須精確匹配年月日
-        const matches =
-          expenseYear === filterYear &&
-          expenseMonth === filterMonth &&
-          expenseDay === filterDay;
-
-        if (matches) {
-            id: expense.id,
-            日期: expense.date.toISOString(),
-            年: expenseYear,
-            月: expenseMonth + 1,
-            日: expenseDay,
-            金額: expense.amount,
-          });
-        }
-
+        const matches = expenseYear === filterYear && expenseMonth === filterMonth && expenseDay === filterDay;
         return matches;
-      } catch (err) {
+      } catch (_err) {
         return false;
       }
     });
@@ -2384,8 +2259,7 @@ useEffect(() => {
           // 保存請求和邀請數據以便顯示
           setFriendRequestCount(friendRequests.length);
           setLeaderboardInviteCount(leaderboardInvites.length);
-        } catch (error) {
-        }
+        } catch (_error) { /* noop */ }
       };
 
       fetchNotifications();
@@ -2504,7 +2378,7 @@ useEffect(() => {
           const expYear = expDate.getFullYear();
           
           return (expYear === currentYear && expMonth === currentMonth);
-        } catch (err) {
+        } catch (_err) {
           return false;
         }
       });
@@ -2532,7 +2406,7 @@ useEffect(() => {
           const expYear = expDate.getFullYear();
           
           return (expYear === year && expMonth === targetMonth);
-        } catch (err) {
+        } catch (_err) {
           return false;
         }
       });
@@ -2587,15 +2461,12 @@ useEffect(() => {
         try {
           if (chartRef.current) {
             initPieChart();
-      } else {
           }
 
           if (dailyChartRef.current) {
             initDailyChart();
-          } else {
           }
-        } catch (error) {
-        }
+        } catch (_error) { /* noop */ }
       }, 300);
     } else {
       setTimeout(() => {
@@ -2756,8 +2627,7 @@ useEffect(() => {
             
             // 更新總通知計數
             setNotificationCount(prev => prev + 1);
-          } catch (error) {
-          }
+          } catch (_error) { /* noop */ }
         };
         
         fetchGroupInvites();
@@ -2850,7 +2720,7 @@ useEffect(() => {
       initPieChart();
       
       // 重新計算類別支出明細，確保與圓餅圖顯示的數據一致
-      const updatedCategoryExpenses = getCategoryExpenses();
+      getCategoryExpenses();
     }
   }, [pieChartMode, pieChartMonth]);
 
@@ -3166,7 +3036,7 @@ useEffect(() => {
                               inputEl.focus();
                               inputEl.click();
                             }
-                          } catch (err) {
+                          } catch (_err) {
                             // 备用方法
                             inputEl.focus();
                             inputEl.click();
@@ -3586,17 +3456,12 @@ useEffect(() => {
                         >
                           <i className="fas fa-edit"></i>
                         </button>
-                        <button 
-                          onClick={(e) => {
-                            e.preventDefault(); // 阻止默認行為
-                            e.stopPropagation(); // 阻止事件冒泡
-                                "垃圾桶按鈕點擊，ID:",
-                                transaction.id,
-                              );
+                        <button
+                          onClick={() => {
                             deleteExpense(transaction.id);
                           }}
                           className="text-xs text-red-600 bg-red-50 hover:bg-red-100 p-1 rounded"
-                            title="刪除消費明細"
+                          title="刪除消費明細"
                         >
                           <i className="fas fa-trash-alt"></i>
                         </button>
@@ -3679,40 +3544,44 @@ useEffect(() => {
             <div className="p-4 border-b border-gray-100">
               <div className="flex flex-col">
                 <h3 className="font-bold text-[#2E2E2E] mb-3">選單</h3>
-                <div className="flex items-center gap-3">
-                  <div 
-                    className="w-12 h-12 rounded-full overflow-hidden flex items-center justify-center flex-shrink-0 shadow-md"
-                    style={{ 
-                      background: userProfileColor || (!currentUser.photoURL ? '#A487C3' : undefined)
-                    }}
-                  >
-                    {!userProfileColor && currentUser.photoURL ? (
-                      <img
-                        src={currentUser.photoURL}
-                        alt="用戶頭像"
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <span className="text-white font-medium text-xl">
-                        {userNickname
-                          ? userNickname.charAt(0).toUpperCase()
-                          : currentUser.email
-                            ? currentUser.email.charAt(0).toUpperCase()
-                            : "?"}
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-[#2E2E2E] truncate">
-                      {userNickname ||
-                        currentUser.email?.split("@")[0] ||
-                        "用戶"}
-                    </p>
-                    <p className="text-xs text-[#6E6E6E] truncate">
-                      {currentUser.email}
-                    </p>
+                <p className="mb-3">
+                  {selectedDateOption === "today"
+                    ? "????????"
+                    : selectedDateOption === "yesterday"
+                      ? "????????"
+                      : selectedDateOption === "month"
+                        ? "????????"
+                        : selectedDateOption === "month_select"
+                          ? `${selectedMonth.split('-')[0]}?${String(selectedMonth.split('-')[1]).padStart(2, "0")}???????`
+                          : selectedDateOption === "this_week"
+                            ? "????????"
+                            : selectedDateOption === "last_week"
+                              ? "????????"
+                              : selectedDateOption === "all"
+                                ? "????????"
+                                : `${format(selectedDate, "yyyy?M?d?")} ??????`}
+                </p>
+                {currentUser && (
+                  <div className="flex items-center gap-3">
+                    <span className="w-8 h-8 rounded-full bg-[#C6B2DD] flex items-center justify-center text-white font-bold text-sm">
+                      {userNickname
+                        ? userNickname.charAt(0).toUpperCase()
+                        : currentUser.email
+                          ? currentUser.email.charAt(0).toUpperCase()
+                          : "?"}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-[#2E2E2E] truncate">
+                        {userNickname ||
+                          currentUser.email?.split("@")[0] ||
+                          "用戶"}
+                      </p>
+                      <p className="text-xs text-[#6E6E6E] truncate">
+                        {currentUser.email}
+                      </p>
                     </div>
-                </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -3924,7 +3793,7 @@ useEffect(() => {
                     }
                     
                     return success;
-                  } catch (error) {
+                  } catch (_error) {
                     return false;
                   }
                 }} 
@@ -4339,8 +4208,7 @@ useEffect(() => {
                                 notification.id,
                               );
                               await updateDoc(notificationRef, { read: true });
-                            } catch (error) {
-                            }
+                            } catch (_error) { /* noop */ }
                           },
                         );
 
@@ -4422,8 +4290,7 @@ useEffect(() => {
                                   setLoanDueNotifications(prev => 
                                     prev.filter(item => item.id !== notification.id)
                                   );
-                                } catch (error) {
-                                }
+                                } catch (_error) { /* noop */ }
                               }}
                               className="text-xs bg-white hover:bg-gray-200 text-gray-500 border border-amber-200 py-1 px-2 rounded-full transition-colors"
                             >
@@ -4490,8 +4357,7 @@ useEffect(() => {
                                   setLoanOverdueNotifications(prev => 
                                     prev.filter(item => item.id !== notification.id)
                                   );
-                                } catch (error) {
-                                }
+                                } catch (_error) { /* noop */ }
                               }}
                               className="text-xs bg-white hover:bg-gray-200 text-gray-500 border border-red-200 py-1 px-2 rounded-full transition-colors"
                             >

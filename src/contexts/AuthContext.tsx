@@ -159,8 +159,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   // 註冊新用戶
   async function register(email: string, password: string, nickname: string): Promise<User | void> {
-    try {
-      // 先檢查郵箱是否已經被使用
+    // 先檢查郵箱是否已經被使用
       const methods = await fetchSignInMethodsForEmail(auth, email);
       
       if (methods && methods.length > 0) {
@@ -197,17 +196,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
       }
       
       return userCredential.user;
-    } catch (error: any) {
-      
-      // 處理具體的錯誤類型
-      if (error.code === 'auth/email-already-in-use') {
-      } else if (error.code === 'auth/weak-password') {
-      } else if (error.code === 'auth/invalid-email') {
-      }
-      
-      // 重新拋出錯誤給調用者處理
-      throw error;
-    }
   }
 
   // 登入用戶
@@ -215,7 +203,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       return userCredential.user;
-    } catch (error) {
+    } catch (_error) {
       // 重新拋出錯誤給調用者處理
       throw error;
     }
@@ -225,7 +213,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   async function logout(): Promise<void> {
     try {
       await signOut(auth);
-    } catch (error) {
+    } catch (_error) {
       throw error;
     }
   }
@@ -389,16 +377,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
             await updateDoc(leaderboardRef, {
               members: updatedMembers
             });
-          } else {
           }
-        } catch (error) {
-        }
+        } catch (_error) { /* noop */ }
       });
       
       // 等待所有更新完成
       await Promise.all(updatePromises);
       
-    } catch (error) {
+    } catch (_error) {
       throw error;
     }
   }
@@ -438,7 +424,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       
       return downloadURL;
       */
-    } catch (error) {
+    } catch (_error) {
       throw new Error(`更新頭像失敗: ${error instanceof Error ? error.message : '未知錯誤'}`);
     }
   }
@@ -459,11 +445,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // 獲取排行榜列表
   async function getLeaderboards(): Promise<Leaderboard[]> {
     if (!currentUser) throw new Error("用戶未登入");
-    
-    const startTime = performance.now();
-    
-    try {
-      // 從用戶文檔獲取排行榜ID
+
+    // 從用戶文檔獲取排行榜ID
       const userRef = doc(db, "users", currentUser.uid);
       const userDoc = await getDoc(userRef);
       
@@ -527,12 +510,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       // 過濾掉null值（即不存在的排行榜）
       const validLeaderboards = leaderboards.filter(lb => lb !== null) as Leaderboard[];
       
-      const endTime = performance.now();
-      
       return validLeaderboards;
-    } catch (error) {
-      throw error;
-    }
   }
   
   // 更新排行榜成員在指定時間範圍內的消費總額
@@ -576,9 +554,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       // 对于已结束的排行榜，或当前日期就是结束日期的情况，都使用actualEndDate
       const endTimestamp = Timestamp.fromDate(actualEndDate);
       
-      if (isOngoing && now < endDateOnly) {
-      } else {
-      }
+      // date range determined above
       
       // 初始化用戶支出統計
       const userExpenses: {[userId: string]: {
@@ -661,13 +637,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
                   date: expenseData.date,
                   category: expenseData.category
                 });
-                
-              } else {
-              }
-            } else {
-            }
-          } else {
-          }
+              } // if shouldInclude
+            } // if !isNaN
+          } // if userExpenses[userId]
         });
       }
       
@@ -690,8 +662,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
               nickname = userData.nickname;
             }
           }
-        } catch (error) {
-        }
+        } catch (_error) { /* noop */ }
         
         
         return {
@@ -718,10 +689,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         await updateDoc(leaderboardRef, {
           members: membersToUpdate
         });
-      } catch (error) {
-      }
-    } catch (error) {
-    }
+      } catch (_error) { /* noop */ }
+    } catch (_error) { /* noop */ }
   }
 
   // 創建排行榜
@@ -974,8 +943,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
         const allUsersQuery = query(usersRef, limit(100));
         const allUsers = await getDocs(allUsersQuery);
         
-        let matchCount = 0;
-        
         allUsers.forEach((doc) => {
           if (doc.id !== currentUser.uid) {
             const userData = doc.data();
@@ -986,7 +953,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
             
             // 檢查是否匹配 (精確匹配或部分匹配)
             if (normalizedUserCode === upperQuery) {
-              matchCount++;
               results.push({
                 id: doc.id,
                 nickname: userData.nickname || "未命名用戶",
@@ -1025,7 +991,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       }
       
       return results;
-    } catch (error) {
+    } catch (_error) {
       throw error;
     }
   }
@@ -1319,10 +1285,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         await updateDoc(userRef, {
           friendCode: friendCode
         });
-        
-      } else {
       }
-      
+
       // 檢查其他可能缺失的必要字段
       const missingFields: Record<string, any> = {};
       
@@ -1337,8 +1301,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       if (Object.keys(missingFields).length > 0) {
         await updateDoc(userRef, missingFields);
       }
-    } catch (err) {
-    }
+    } catch (_err) { /* noop */ }
   }
 
   // 刪除排行榜
@@ -1428,7 +1391,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       });
       
       return invites;
-    } catch (error) {
+    } catch (_error) {
       throw error;
     }
   }
@@ -1492,7 +1455,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         status: "accepted"
       });
       
-    } catch (error) {
+    } catch (_error) {
       throw error;
     }
   }
@@ -1522,7 +1485,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         status: "rejected"
       });
       
-    } catch (error) {
+    } catch (_error) {
       throw error;
     }
   }
@@ -1573,7 +1536,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       // 更新排行榜數據
       await updateLeaderboardMemberExpenses(leaderboard);
       
-    } catch (error) {
+    } catch (_error) {
       throw error;
     }
   }
@@ -1607,7 +1570,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       // 更新本地狀態
       setUserProfileColor(colorCode);
       
-    } catch (error) {
+    } catch (_error) {
       throw error;
     }
   }
@@ -1655,8 +1618,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           
           // 確保用戶有好友碼
           await ensureUserHasFriendCode();
-        } catch (error) {
-        }
+        } catch (_error) { /* noop */ }
       } else {
         setUserNickname(null);
         setUserProfileColor(null); // 新增：清除用戶頭像顏色

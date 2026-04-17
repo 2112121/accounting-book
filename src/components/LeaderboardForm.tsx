@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+﻿import React, { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import {
   collection,
@@ -133,7 +133,7 @@ const LeaderboardForm: React.FC<LeaderboardFormProps> = ({ onClose }) => {
       setLoading(true);
       const leaderboardsData = await getLeaderboards();
       setLeaderboards(leaderboardsData);
-    } catch (error) {
+    } catch (_error) {
       setError("加載排行榜失敗");
     } finally {
       setLoading(false);
@@ -169,10 +169,8 @@ const LeaderboardForm: React.FC<LeaderboardFormProps> = ({ onClose }) => {
         (friend) => friend.id && friend.id.trim() !== "",
       );
 
-        `好友列表處理完成: 原始數據=${friendsData.length}, 格式化後=${formattedFriends.length}, 去重後=${validFriends.length}`,
-      );
       setFriends(validFriends);
-    } catch (error) {
+    } catch (_error) {
       setError("無法加載好友列表，請稍後再試");
     } finally {
       setLoading(false);
@@ -184,8 +182,7 @@ const LeaderboardForm: React.FC<LeaderboardFormProps> = ({ onClose }) => {
     try {
       const invites = await getLeaderboardInvites();
       setInviteCount(invites.length);
-    } catch (error) {
-    }
+    } catch (_error) { /* noop */ }
   };
 
   // 更新隱私設定函數
@@ -193,56 +190,48 @@ const LeaderboardForm: React.FC<LeaderboardFormProps> = ({ onClose }) => {
     leaderboardId: string,
     allowViewDetail: boolean,
   ) => {
-    try {
-      if (!currentUser) throw new Error("用戶未登錄");
+    if (!currentUser) throw new Error("用戶未登錄");
 
-      // 獲取排行榜文檔引用
-      const leaderboardRef = doc(db, "leaderboards", leaderboardId);
+    // 獲取排行榜文檔引用
+    const leaderboardRef = doc(db, "leaderboards", leaderboardId);
 
-      // 獲取當前排行榜數據
-      const leaderboardDoc = await getDoc(leaderboardRef);
-      if (!leaderboardDoc.exists()) throw new Error("排行榜不存在");
+    // 獲取當前排行榜數據
+    const leaderboardDoc = await getDoc(leaderboardRef);
+    if (!leaderboardDoc.exists()) throw new Error("排行榜不存在");
 
-      const leaderboardData = leaderboardDoc.data();
+    const leaderboardData = leaderboardDoc.data();
 
-      // 更新成員的隱私設置
-      const updatedMembers = leaderboardData.members.map((member: any) => {
-        if (member.userId === currentUser.uid) {
-          return { ...member, allowViewDetail };
-        }
-        return member;
-      });
+    // 更新成員的隱私設置
+    const updatedMembers = leaderboardData.members.map((member: any) => {
+      if (member.userId === currentUser.uid) {
+        return { ...member, allowViewDetail };
+      }
+      return member;
+    });
 
-      // 更新Firebase文檔
-      await updateDoc(leaderboardRef, { members: updatedMembers });
+    // 更新Firebase文檔
+    await updateDoc(leaderboardRef, { members: updatedMembers });
 
-      setSuccess("隱私設定已更新");
-      setTimeout(() => setSuccess(""), 3000);
-    } catch (error: any) {
-      throw error;
-    }
+    setSuccess("隱私設定已更新");
+    setTimeout(() => setSuccess(""), 3000);
   };
 
   // 刪除排行榜函數
   const deleteLeaderboard = async (leaderboardId: string) => {
-    try {
-      if (!currentUser) throw new Error("用戶未登錄");
+    if (!currentUser) throw new Error("用戶未登錄");
 
-      // 獲取排行榜文檔引用
-      const leaderboardRef = doc(db, "leaderboards", leaderboardId);
+    // 獲取排行榜文檔引用
+    const leaderboardRef = doc(db, "leaderboards", leaderboardId);
 
-      // 刪除Firebase文檔
-      await deleteDoc(leaderboardRef);
+    // 刪除Firebase文檔
+    await deleteDoc(leaderboardRef);
 
-      // 從本地狀態移除
-      setLeaderboards((prev) =>
-        prev.filter((board) => board.id !== leaderboardId),
-      );
+    // 從本地狀態移除
+    setLeaderboards((prev) =>
+      prev.filter((board) => board.id !== leaderboardId),
+    );
 
-      return true;
-    } catch (error: any) {
-      throw error;
-    }
+    return true;
   };
 
   // 編輯排行榜名稱
@@ -338,11 +327,9 @@ const LeaderboardForm: React.FC<LeaderboardFormProps> = ({ onClose }) => {
       const formattedDate = `${dateObj.getFullYear()}/${String(dateObj.getMonth() + 1).padStart(2, "0")}/${String(dateObj.getDate()).padStart(2, "0")}`;
 
       // 輸出用於調試
-        `格式化日期: 輸入=${JSON.stringify(dateValue)}, 輸出=${formattedDate}`,
-      );
 
       return formattedDate;
-    } catch (error) {
+    } catch (_error) {
       return "日期錯誤";
     }
   };
@@ -364,9 +351,6 @@ const LeaderboardForm: React.FC<LeaderboardFormProps> = ({ onClose }) => {
     let startDate = new Date();
     let endDate = new Date();
 
-      `時間範圍變更: ${rangeValue}, 當前日期: ${today.toLocaleDateString()}`,
-    );
-
     switch (rangeValue) {
       case "week":
         // 將開始日期設置為今天
@@ -378,9 +362,6 @@ const LeaderboardForm: React.FC<LeaderboardFormProps> = ({ onClose }) => {
         endDate.setHours(0, 0, 0, 0);
         endDate.setDate(endDate.getDate() + 6);
         endDate.setHours(23, 59, 59, 999);
-
-          `週範圍: 開始=${startDate.toLocaleDateString()}, 結束=${endDate.toLocaleDateString()}`,
-        );
         break;
 
       case "month":
@@ -393,9 +374,6 @@ const LeaderboardForm: React.FC<LeaderboardFormProps> = ({ onClose }) => {
         endDate.setMonth(endDate.getMonth() + 1);
         endDate.setDate(0); // 本月最後一天
         endDate.setHours(23, 59, 59, 999);
-
-          `月範圍: 開始=${startDate.toLocaleDateString()}, 結束=${endDate.toLocaleDateString()}`,
-        );
         break;
 
       case "year":
@@ -406,9 +384,6 @@ const LeaderboardForm: React.FC<LeaderboardFormProps> = ({ onClose }) => {
         endDate = new Date(startDate);
         endDate.setFullYear(endDate.getFullYear() + 1);
         endDate.setHours(23, 59, 59, 999);
-
-          `年範圍: 開始=${startDate.toLocaleDateString()}, 結束=${endDate.toLocaleDateString()}`,
-        );
         break;
 
       case "custom":
@@ -424,8 +399,6 @@ const LeaderboardForm: React.FC<LeaderboardFormProps> = ({ onClose }) => {
     setCustomStartDate(startDate);
     setCustomEndDate(endDate);
 
-      `更新後的日期範圍: 從 ${startDate.toLocaleDateString()} 到 ${endDate.toLocaleDateString()}`,
-    );
   };
 
   // 處理創建排行榜
@@ -450,9 +423,6 @@ const LeaderboardForm: React.FC<LeaderboardFormProps> = ({ onClose }) => {
       let start: Date = new Date();
       let end: Date = new Date();
 
-        `創建排行榜：類型=${statisticalPeriod}, 名稱=${newLeaderboardName}`,
-      );
-
       switch (statisticalPeriod) {
         case "this_week":
           timeRange = "week";
@@ -465,8 +435,6 @@ const LeaderboardForm: React.FC<LeaderboardFormProps> = ({ onClose }) => {
           end.setDate(end.getDate() + 6); // 當前日+6天=一週
           end.setHours(23, 59, 59, 999);
 
-            `週範圍：開始=${start.toLocaleDateString()}, 結束=${end.toLocaleDateString()}`,
-          );
           break;
 
         case "this_month":
@@ -487,8 +455,6 @@ const LeaderboardForm: React.FC<LeaderboardFormProps> = ({ onClose }) => {
           ) {
             start = customStartDate;
             end = customEndDate;
-              `自定義範圍：開始=${start.toLocaleDateString()}, 結束=${end.toLocaleDateString()}`,
-            );
           } else {
             setError("請選擇有效的自定義日期範圍");
             setLoading(false);
@@ -506,9 +472,6 @@ const LeaderboardForm: React.FC<LeaderboardFormProps> = ({ onClose }) => {
       const selectedFriendIds = friends
         .filter((friend) => friend.isSelected)
         .map((friend) => friend.id);
-
-        `最終排行榜設置：名稱=${newLeaderboardName}, 時間範圍=${timeRange}, 開始=${start.toLocaleDateString()}, 結束=${end.toLocaleDateString()}, 好友數=${selectedFriendIds.length}`,
-      );
 
       await createLeaderboard(
         newLeaderboardName,
@@ -578,9 +541,6 @@ const LeaderboardForm: React.FC<LeaderboardFormProps> = ({ onClose }) => {
       );
     });
 
-      `可顯示的好友：總數=${friends.length}, 過濾後=${filteredFriends.length}`,
-    );
-
     if (filteredFriends.length === 0) {
       return (
         <p className="text-gray-600 text-center py-4">
@@ -641,8 +601,6 @@ const LeaderboardForm: React.FC<LeaderboardFormProps> = ({ onClose }) => {
       prev.map((friend) => {
         if (friend.id === friendId) {
           const newState = !friend.isSelected;
-            `好友 ${friend.nickname} (${friendId}) 選擇狀態變更為: ${newState}`,
-          );
           return { ...friend, isSelected: newState };
         }
         return friend;
@@ -727,12 +685,6 @@ const LeaderboardForm: React.FC<LeaderboardFormProps> = ({ onClose }) => {
         // 如果有選中的排行榜，直接使用它
         targetLeaderboardId = selectedLeaderboard.id;
         targetLeaderboardName = selectedLeaderboard.name;
-          "使用現有排行榜:",
-          targetLeaderboardId,
-          targetLeaderboardName,
-        );
-      } else if (newLeaderboardName.trim() && statisticalPeriod) {
-        // 沒有選中排行榜，需要創建新排行榜
 
         // 設置時間範圍
         let timeRangeOption: "week" | "month" | "year" | "custom" = "month";
@@ -770,10 +722,6 @@ const LeaderboardForm: React.FC<LeaderboardFormProps> = ({ onClose }) => {
           );
           targetLeaderboardId = newLeaderboardId;
           targetLeaderboardName = newLeaderboardName;
-            "新排行榜已創建:",
-            targetLeaderboardId,
-            targetLeaderboardName,
-          );
 
           // 重新加載排行榜列表
           await loadLeaderboards();
@@ -791,7 +739,7 @@ const LeaderboardForm: React.FC<LeaderboardFormProps> = ({ onClose }) => {
           setStatisticalPeriod(null);
           setCustomStartDate(new Date());
           setCustomEndDate(new Date());
-        } catch (error) {
+        } catch (_error) {
           setError(
             `創建排行榜失敗: ${error instanceof Error ? error.message : "未知錯誤"}`,
           );
@@ -832,11 +780,6 @@ const LeaderboardForm: React.FC<LeaderboardFormProps> = ({ onClose }) => {
 
       const userData = userDoc.data();
 
-        "開始發送邀請給好友，排行榜:",
-        targetLeaderboardId,
-        targetLeaderboardName,
-      );
-
       // 為每個選定的好友發送邀請
       const invitePromises = selectedFriends
         .filter((friend) => friend.id && friend.id.trim() !== "") // 再次確保只處理有效的ID
@@ -865,7 +808,7 @@ const LeaderboardForm: React.FC<LeaderboardFormProps> = ({ onClose }) => {
           try {
             await setDoc(doc(invitesRef), inviteData);
             return friend.nickname; // 返回成功邀請的好友暱稱
-          } catch (error) {
+          } catch (_error) {
             throw new Error(
               `發送邀請給 ${friend.nickname} 失敗: ${error instanceof Error ? error.message : "未知錯誤"}`,
             );
@@ -883,7 +826,7 @@ const LeaderboardForm: React.FC<LeaderboardFormProps> = ({ onClose }) => {
       setFriends((prev) =>
         prev.map((friend) => ({ ...friend, isSelected: false })),
       );
-    } catch (error) {
+    } catch (_error) {
       setError(
         `發送邀請失敗: ${error instanceof Error ? error.message : "未知錯誤"}`,
       );

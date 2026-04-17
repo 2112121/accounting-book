@@ -48,7 +48,7 @@ const LeaderboardInviteList: React.FC<LeaderboardInviteListProps> = ({ onClose }
       // 更新邀請列表
       setInvites(prev => prev.filter(invite => invite.id !== inviteId));
       setSuccessMessage(`已成功接受加入"${leaderboardName}"排行榜`);
-    } catch (err) {
+    } catch (_err) {
       setError('接受邀請時出錯，請稍後再試');
     } finally {
       // 移除處理中標記
@@ -75,7 +75,7 @@ const LeaderboardInviteList: React.FC<LeaderboardInviteListProps> = ({ onClose }
       // 更新邀請列表
       setInvites(prev => prev.filter(invite => invite.id !== inviteId));
       setSuccessMessage(`已拒絕加入"${leaderboardName}"排行榜`);
-    } catch (err) {
+    } catch (_err) {
       setError('拒絕邀請時出錯，請稍後再試');
     } finally {
       // 移除處理中標記
@@ -140,7 +140,7 @@ const LeaderboardInviteList: React.FC<LeaderboardInviteListProps> = ({ onClose }
       setTimeout(() => {
         onClose();
       }, 100);
-    } catch (error) {
+    } catch (_error) {
       onClose();
     }
   };

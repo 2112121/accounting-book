@@ -112,8 +112,7 @@ const IncomePage: React.FC = () => {
       if (chartInstance) {
         try {
           chartInstance.dispose();
-        } catch (e) {
-        }
+        } catch (_e) { /* noop */ }
       }
 
       // 創建一個基本的空圖表，但不帶"暫無數據"提示
@@ -167,8 +166,7 @@ const IncomePage: React.FC = () => {
       });
       
       setChartInstance(chart);
-    } catch (e) {
-    }
+    } catch (_e) { /* noop */ }
   };
 
   // 初始化收入分析圓餅圖
@@ -211,8 +209,7 @@ const IncomePage: React.FC = () => {
     if (chartInstance) {
       try {
         chartInstance.dispose();
-      } catch (e) {
-      }
+      } catch (_e) { /* noop */ }
     }
 
     // 創建新實例
@@ -221,7 +218,6 @@ const IncomePage: React.FC = () => {
 
       // 計算分類收入
       const categorySum: Record<string, number> = {};
-      let totalAmount = 0;
 
       dataToUse.forEach((income) => {
         // 處理 category 可能是字符串或對象的情況
@@ -234,7 +230,6 @@ const IncomePage: React.FC = () => {
         const amount = typeof income.amount === "number" ? income.amount : 0;
 
         // 改為接受任何數值，不再檢查是否>0，只要是數值就累加
-        totalAmount += amount;
 
         if (categorySum[categoryName]) {
           categorySum[categoryName] += amount;
@@ -380,7 +375,7 @@ const IncomePage: React.FC = () => {
 
       // 設置實例後保存
       setChartInstance(chart);
-    } catch (e) {
+    } catch (_e) {
       createEmptyPieChart();
     }
   };
@@ -395,8 +390,7 @@ const IncomePage: React.FC = () => {
     if (dailyChartInstance) {
       try {
         dailyChartInstance.dispose();
-      } catch (e) {
-      }
+      } catch (_e) { /* noop */ }
     }
 
     // 創建新實例
@@ -452,8 +446,7 @@ const IncomePage: React.FC = () => {
 
       // 設置實例後再保存
       setDailyChartInstance(chart);
-    } catch (e) {
-    }
+    } catch (_e) { /* noop */ }
   };
 
   // 每日趨勢圖初始化函數
@@ -473,8 +466,7 @@ const IncomePage: React.FC = () => {
     if (dailyChartInstance) {
       try {
         dailyChartInstance.dispose();
-      } catch (e) {
-      }
+      } catch (_e) { /* noop */ }
     }
 
     // 創建新實例
@@ -522,8 +514,7 @@ const IncomePage: React.FC = () => {
             dailySum[incomeKey] += income.amount;
             hasData = true;
           }
-        } catch (err) {
-        }
+        } catch (_err) { /* noop */ }
       });
 
       // 輸出日期和收入記錄，用於調試
@@ -595,7 +586,7 @@ const IncomePage: React.FC = () => {
 
       // 設置實例後再保存
       setDailyChartInstance(chart);
-    } catch (e) {
+    } catch (_e) {
       // 出錯時顯示空圖表
       createEmptyDailyChart();
     }
@@ -659,8 +650,7 @@ const IncomePage: React.FC = () => {
                 notes: data.notes || "",
                 userId: data.userId,
               });
-            } catch (e) {
-            }
+            } catch (_e) { /* noop */ }
           }
         });
         
@@ -675,7 +665,7 @@ const IncomePage: React.FC = () => {
         });
         
         setIncomes(fetchedIncomes);
-      } catch (err) {
+      } catch (_err) {
         setError("獲取收入記錄失敗，請稍後再試");
       } finally {
         setLoading(false);
@@ -758,7 +748,7 @@ const IncomePage: React.FC = () => {
       );
       
       return true;
-    } catch (error) {
+    } catch (_error) {
       setError("添加收入記錄失敗，請稍後再試");
       setTimeout(() => setError(null), 3000);
       return false;
@@ -902,11 +892,6 @@ const IncomePage: React.FC = () => {
     const filterMonth = filterDate.getMonth();
     const filterDay = filterDate.getDate();
 
-      年: filterYear,
-      月: filterMonth + 1,
-      日: filterDay,
-    });
-
     // 使用年月日精確比較篩選
     const filtered = incomes.filter((income) => {
       try {
@@ -921,18 +906,8 @@ const IncomePage: React.FC = () => {
           incomeMonth === filterMonth &&
           incomeDay === filterDay;
 
-        if (matches) {
-            id: income.id,
-            日期: income.date.toISOString(),
-            年: incomeYear,
-            月: incomeMonth + 1,
-            日: incomeDay,
-            金額: income.amount,
-          });
-        }
-
         return matches;
-      } catch (err) {
+      } catch (_err) {
         return false;
       }
     });
@@ -1038,7 +1013,7 @@ const IncomePage: React.FC = () => {
       setTimeout(() => setShowSuccessMessage(false), 1500);
       
       return true;
-    } catch (error) {
+    } catch (_error) {
       setError("更新收入记录失败，请稍后再试");
       setTimeout(() => setError(null), 3000);
       return false;
@@ -1064,7 +1039,7 @@ const IncomePage: React.FC = () => {
       setSuccessMessage("收入记录已删除！");
       setShowSuccessMessage(true);
       setTimeout(() => setShowSuccessMessage(false), 1500);
-    } catch (error) {
+    } catch (_error) {
       setError("删除收入记录失败，请稍后再试");
       setTimeout(() => setError(null), 3000);
     }

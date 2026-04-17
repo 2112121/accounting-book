@@ -113,8 +113,7 @@ const LeaderboardViewer: React.FC<LeaderboardViewerProps> = ({ onClose }) => {
       try {
         const invites = await getLeaderboardInvites();
         setInviteCount(invites.length);
-      } catch (error) {
-      }
+      } catch (_error) { /* noop */ }
     };
 
     loadInvites();
@@ -226,7 +225,7 @@ const LeaderboardViewer: React.FC<LeaderboardViewerProps> = ({ onClose }) => {
         // 無緩存或緩存過期，從數據庫加載
         await fetchLeaderboardsData(true);
         
-      } catch (error) {
+      } catch (_error) {
         setError("加載排行榜時出錯，請稍後再試");
         setLoading(false);
       }
@@ -294,13 +293,12 @@ const LeaderboardViewer: React.FC<LeaderboardViewerProps> = ({ onClose }) => {
           const serializedData = JSON.stringify(allLeaderboards);
           sessionStorage.setItem(`leaderboards_${currentUser.uid}`, serializedData);
           sessionStorage.setItem(`leaderboards_${currentUser.uid}_timestamp`, Date.now().toString());
-        } catch (e) {
-        }
+        } catch (_e) { /* noop */ }
         
         if (updateLoadingState) {
           setLoading(false);
         }
-      } catch (error) {
+      } catch (_error) {
         if (updateLoadingState) {
           setError("加載排行榜時出錯，請稍後再試");
           setLoading(false);
@@ -354,13 +352,12 @@ const LeaderboardViewer: React.FC<LeaderboardViewerProps> = ({ onClose }) => {
           setTimeout(async () => {
             try {
               await updateLeaderboardMemberExpenses(leaderboard);
-            } catch (error) {
-            }
+            } catch (_error) { /* noop */ }
           }, syncDelay);
         }
         
         return leaderboard;
-      } catch (error) {
+      } catch (_error) {
         return null;
       }
     };
@@ -399,8 +396,7 @@ const LeaderboardViewer: React.FC<LeaderboardViewerProps> = ({ onClose }) => {
             try {
               setLoading(true);
               await updateLeaderboardMemberExpenses(selectedLeaderboard);
-            } catch (error) {
-            } finally {
+            } catch (_error) { /* noop */ } finally {
               setLoading(false);
             }
           })();
@@ -466,8 +462,7 @@ const LeaderboardViewer: React.FC<LeaderboardViewerProps> = ({ onClose }) => {
               (a, b) => b.date.getTime() - a.date.getTime()
             );
           }
-        } catch (err) {
-        }
+        } catch (_err) { /* noop */ }
       } 
       
       // 策略2: 使用摘要数据
@@ -534,7 +529,7 @@ const LeaderboardViewer: React.FC<LeaderboardViewerProps> = ({ onClose }) => {
       });
       
       return expenses.sort((a, b) => b.date.getTime() - a.date.getTime());
-    } catch (error) {
+    } catch (_error) {
       return [];
     }
   };
@@ -597,7 +592,7 @@ const LeaderboardViewer: React.FC<LeaderboardViewerProps> = ({ onClose }) => {
           setError("未找到支出詳情，請手動刷新排行榜數據");
           setTimeout(() => setError(""), 3000);
         }
-      } catch (error) {
+      } catch (_error) {
         setError("獲取支出詳情失敗，請稍後再試");
         setTimeout(() => setError(""), 3000);
         setMemberExpenses(prev => ({
@@ -608,7 +603,7 @@ const LeaderboardViewer: React.FC<LeaderboardViewerProps> = ({ onClose }) => {
         // 移除加载中状态
         setLoadingMemberIds(prev => prev.filter(id => id !== member.userId));
       }
-    } catch (error) {
+    } catch (_error) {
       setError("處理請求失敗，請稍後再試");
       setTimeout(() => setError(""), 3000);
       setLoadingMemberIds(prev => prev.filter(id => id !== member.userId));
@@ -652,8 +647,7 @@ const LeaderboardViewer: React.FC<LeaderboardViewerProps> = ({ onClose }) => {
                   };
                 });
               }
-            } catch (error) {
-            }
+            } catch (_error) { /* noop */ }
           }, 100);
         }
       } else if (isLeaderboardCompleted(leaderboard)) {
@@ -697,11 +691,10 @@ const LeaderboardViewer: React.FC<LeaderboardViewerProps> = ({ onClose }) => {
                 createdAt
               });
             }
-          } catch (error) {
-          }
+          } catch (_error) { /* noop */ }
         }
       }
-    } catch (error) {
+    } catch (_error) {
       setError("載入排行榜數據失敗，請稍後再試");
       setTimeout(() => setError(""), 3000);
     } finally {
@@ -822,7 +815,7 @@ const LeaderboardViewer: React.FC<LeaderboardViewerProps> = ({ onClose }) => {
       setMemberExpenses({});
       setSuccessMessage(successMsg);
       setTimeout(() => setSuccessMessage(""), 5000);
-    } catch (error) {
+    } catch (_error) {
       setError("刷新數據失敗，請稍後再試");
       setTimeout(() => setError(""), 3000);
     } finally {

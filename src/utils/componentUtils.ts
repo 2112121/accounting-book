@@ -35,8 +35,6 @@ export const isComponentOpen = (componentKey: string): boolean => {
  */
 export const isFriendManagementOpen = (): boolean => {
   const isOpen = isComponentOpen('friendManagement');
-  if (isOpen) {
-  }
   return isOpen;
 };
 

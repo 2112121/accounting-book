@@ -80,8 +80,7 @@ const LeaderboardNotification: React.FC = () => {
             }
           }
         }
-      } catch (error) {
-      }
+      } catch (_error) { /* noop */ }
     };
     
     // 立即執行一次

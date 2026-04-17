@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../firebase';
 import { doc, getDoc, collection, query, where, getDocs, Timestamp } from 'firebase/firestore';
@@ -228,7 +228,7 @@ const BudgetProgressBars: React.FC = () => {
         await loadCategories();
         // 載入支出數據
         await loadExpenses();
-      } catch (err) {
+      } catch (_err) {
         setError('無法加載預算進度數據，請稍後再試。');
       } finally {
         setLoading(false);
@@ -258,7 +258,7 @@ const BudgetProgressBars: React.FC = () => {
           setTimeout(() => {
             setSuccess('');
           }, 3000);
-        } catch (err) {
+        } catch (_err) {
           setError('刷新預算數據時出錯，請再試一次。');
           // 5秒後清除錯誤提示
           setTimeout(() => {
@@ -272,9 +272,7 @@ const BudgetProgressBars: React.FC = () => {
 
     // 監聽支出新增事件
     const handleExpenseAdded = () => {
-      loadExpenses().then(() => {
-      }).catch(err => {
-      });
+      loadExpenses().catch(() => { /* noop */ });
     };
 
     // 也設置一個定時自動刷新，確保數據始終最新
@@ -376,7 +374,7 @@ const BudgetProgressBars: React.FC = () => {
                 budgetType: item.budgetType || 'multi',
                 categories: item.categories || []
               } as BudgetItem;
-            } catch (error) {
+            } catch (_error) {
               return null;
             }
           }).filter((item): item is BudgetItem => item !== null);
@@ -393,7 +391,7 @@ const BudgetProgressBars: React.FC = () => {
                 budgetType: item.budgetType || 'multi',
                 categories: item.categories || []
               } as BudgetItem;
-            } catch (error) {
+            } catch (_error) {
               return null;
             }
           }).filter((item): item is BudgetItem => item !== null);
@@ -429,8 +427,7 @@ const BudgetProgressBars: React.FC = () => {
                 endDate,
                 budgetType: 'overall'
               } as BudgetItem);
-            } catch (error) {
-            }
+            } catch (_error) { /* noop */ }
           }
           
           // 處理類別預算
@@ -467,8 +464,7 @@ const BudgetProgressBars: React.FC = () => {
                   endDate,
                   budgetType: 'multi'
                 } as BudgetItem);
-              } catch (error) {
-              }
+              } catch (_error) { /* noop */ }
             });
           }
         }
@@ -477,7 +473,7 @@ const BudgetProgressBars: React.FC = () => {
       } else {
         setBudgetItems([]);
       }
-    } catch (err) {
+    } catch (_err) {
       throw err;
     }
   };
@@ -519,7 +515,7 @@ const BudgetProgressBars: React.FC = () => {
         
         setCategories(defaultCategories);
       }
-    } catch (err) {
+    } catch (_err) {
       // 使用默認類別
       const defaultCategories = [
         { id: 'food', name: '餐飲' },
@@ -585,7 +581,7 @@ const BudgetProgressBars: React.FC = () => {
           if (isNaN(expenseDate.getTime())) {
             expenseDate = new Date(); // 使用當前日期作為後備
           }
-        } catch (error) {
+        } catch (_error) {
           expenseDate = new Date(); // 使用當前日期作為後備
         }
         
@@ -652,7 +648,7 @@ const BudgetProgressBars: React.FC = () => {
       });
       
       setExpenses(expensesData);
-    } catch (err) {
+    } catch (_err) {
       throw err;
     }
   };
@@ -790,11 +786,6 @@ const BudgetProgressBars: React.FC = () => {
     const startOfYear = new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0);
     const endOfYear = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
     
-      日: `${startOfDay.toLocaleDateString()} 至 ${endOfDay.toLocaleDateString()}`,
-      週: `${startOfWeek.toLocaleDateString()} 至 ${endOfWeek.toLocaleDateString()}`,
-      月: `${startOfMonth.toLocaleDateString()} 至 ${endOfMonth.toLocaleDateString()}`,
-      年: `${startOfYear.toLocaleDateString()} 至 ${endOfYear.toLocaleDateString()}`
-    });
     
     
     const progress: BudgetProgress[] = [];
@@ -890,28 +881,6 @@ const BudgetProgressBars: React.FC = () => {
           isCategoryMatch = isExpenseInCategory(expense, budget.categoryId);
         }
         
-        // 如果是多類別預算，輸出更詳細的調試資訊
-        if (budgetType === 'multi' && isInTimeRange) {
-        }
-        
-        // 添加詳細記錄，特別是對於關鍵類別
-        if (budgetType === 'overall' && 
-            (budget.categoryId === 'food' || budget.categoryName === '餐飲' ||
-            budget.categoryId === 'utilities' || budget.categoryName === '住支' ||
-            budget.categoryId === 'other' || budget.categoryName === '其他')) {
-          
-          // 如果是餐飲或住支類別且不匹配，顯示更多診斷信息
-          if (!isCategoryMatch) {
-              支出ID: expense.id,
-              查找的類別ID: budget.categoryId,
-              查找的類別名稱: budget.categoryName,
-              支出的類別ID: expense.categoryId,
-              支出的類別名稱: expense.categoryName,
-              支出的原始類別: expense.category,
-              支出備註: expense.notes
-            });
-          }
-        }
         
         return isInTimeRange && isCategoryMatch;
       });
@@ -970,7 +939,6 @@ const BudgetProgressBars: React.FC = () => {
                         (periodOrder[b.period as keyof typeof periodOrder] || 99);
       
       if (periodDiff !== 0) return periodDiff;
-      
       // 然後按類別排序，總體優先
       if (a.categoryId === 'overall' && b.categoryId !== 'overall') return -1;
       if (a.categoryId !== 'overall' && b.categoryId === 'overall') return 1;

@@ -28,8 +28,7 @@ window.addEventListener('error', (_event) => {
   try {
     localStorage.setItem('app_crashed', 'true');
     localStorage.setItem('crash_time', new Date().toISOString());
-  } catch (_e) {
-  }
+  } catch (_e) { /* noop */ }
 });
 
 // 處理未處理的Promise錯誤
@@ -75,8 +74,7 @@ window.addEventListener('beforeunload', () => {
         // 創建一個應急備份
         localStorage.setItem(`last_userState_${userId}`, currentExpenses);
       }
-    } catch (_error) {
-    }
+    } catch (_error) { /* noop */ }
   }
 });
 

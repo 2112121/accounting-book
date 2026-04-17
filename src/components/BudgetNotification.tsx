@@ -221,8 +221,7 @@ const BudgetNotification: React.FC = () => {
             }
           }
         }
-      } catch (_error) {
-      }
+      } catch (_error) { /* noop */ }
     };
     
     // 檢查借貸到期
@@ -305,8 +304,7 @@ const BudgetNotification: React.FC = () => {
             }
           }
         }
-      } catch (_error) {
-      }
+      } catch (_error) { /* noop */ }
     };
     
     // 請求瀏覽器通知權限

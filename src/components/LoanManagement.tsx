@@ -125,8 +125,7 @@ const LoanManagement: React.FC<LoanManagementProps> = ({ onClose, initialParams 
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('updateOverdueLoansCount', { detail: { count } }));
       }
-    } catch (error) {
-    }
+    } catch (_error) { /* noop */ }
   };
   
   // 加載借貸記錄的函數
@@ -177,8 +176,7 @@ const LoanManagement: React.FC<LoanManagementProps> = ({ onClose, initialParams 
       loansList.sort((a, b) => b.date.getTime() - a.date.getTime());
       
       setLoans(loansList);
-    } catch (error) {
-    } finally {
+    } catch (_error) { /* noop */ } finally {
       setLoading(false);
     }
   };
@@ -217,7 +215,7 @@ const LoanManagement: React.FC<LoanManagementProps> = ({ onClose, initialParams 
       setShowAddForm(false);
       setInitialFormValues(null); // 清除初始值
       loadLoans();
-    } catch (error) {
+    } catch (_error) {
       throw error;
     }
   };
@@ -281,7 +279,7 @@ const LoanManagement: React.FC<LoanManagementProps> = ({ onClose, initialParams 
       
       // 如果還款後狀態變為已還清，更新逾期借貸數
       updateOverdueLoansCount();
-    } catch (error) {
+    } catch (_error) {
       throw error;
     }
   };
@@ -304,7 +302,7 @@ const LoanManagement: React.FC<LoanManagementProps> = ({ onClose, initialParams 
       
       // 更新逾期借貸數
       updateOverdueLoansCount();
-    } catch (error) {
+    } catch (_error) {
       alert('刪除失敗，請稍後再試');
     }
   };
@@ -674,8 +672,7 @@ const LoanManagement: React.FC<LoanManagementProps> = ({ onClose, initialParams 
             : true
         );
       }
-    } catch (error) {
-    }
+    } catch (_error) { /* noop */ }
   };
   
   // 切換借貸到期提醒
@@ -688,7 +685,7 @@ const LoanManagement: React.FC<LoanManagementProps> = ({ onClose, initialParams 
       
       const budgetRef = doc(db, 'budgets', currentUser.uid);
       await setDoc(budgetRef, { loanDueNotificationEnabled: newValue }, { merge: true });
-    } catch (error) {
+    } catch (_error) {
       // 如果保存失敗，恢復狀態
       setLoanDueNotificationEnabled(!loanDueNotificationEnabled);
     }

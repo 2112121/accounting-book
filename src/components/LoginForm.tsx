@@ -87,7 +87,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess, initialMode = 'login' 
         try {
           // 將所有可能的錯誤細節記錄下來
           try {
-            const result = await register(email, password, nickname);
+            await register(email, password, nickname);
             
             // 註冊成功才清空表單並設置成功標記
             setEmail('');
