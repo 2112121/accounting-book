@@ -496,6 +496,7 @@ const chartRef = useRef<HTMLDivElement>(null);
             // 將y坐標從50%調整為40%，向上移動
             center: ["50%", "45%"],
             avoidLabelOverlap: false,
+            selectedMode: false,
             emphasis: {
               itemStyle: {
                 shadowBlur: 10,
