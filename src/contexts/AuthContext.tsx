@@ -18,7 +18,7 @@ import {
   fetchSignInMethodsForEmail
 } from '../firebase';
 import { db, storage } from '../firebase';
-import { doc, setDoc, getDoc, updateDoc, collection, query, where, getDocs, serverTimestamp, arrayUnion, arrayRemove, limit, addDoc, deleteDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, updateDoc, collection, query, where, getDocs, serverTimestamp, arrayUnion, arrayRemove, limit, addDoc, deleteDoc, documentId } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 // 更新類型定義
@@ -630,36 +630,34 @@ export function AuthProvider({ children }: AuthProviderProps) {
         });
       }
       
+      // 批次獲取所有成員的最新暱稱（一次查詢取代 N 次個別請求）
+      const nicknameMap: Record<string, string> = {};
+      try {
+        const userSnaps = await getDocs(
+          query(collection(db, "users"), where(documentId(), "in", memberUserIds))
+        );
+        userSnaps.forEach(d => {
+          const data = d.data();
+          if (data.nickname) nicknameMap[d.id] = data.nickname;
+        });
+      } catch (_error) { /* noop */ }
+
       // 更新成員數據
-      const updatedMembers = await Promise.all(leaderboard.members.map(async member => {
+      const updatedMembers = leaderboard.members.map(member => {
         const userId = member.userId;
         const userExpenseData = userExpenses[userId] || {
-          totalExpense: 0, 
-          expenseIds: [], 
+          totalExpense: 0,
+          expenseIds: [],
           expenseSummaries: []
         };
-        
-        // 獲取最新的用戶昵稱
-        let nickname = member.nickname || '';
-        try {
-          const userDoc = await getDoc(doc(db, "users", userId));
-          if (userDoc.exists()) {
-            const userData = userDoc.data();
-            if (userData.nickname) {
-              nickname = userData.nickname;
-            }
-          }
-        } catch (_error) { /* noop */ }
-        
-        
         return {
           ...member,
-          nickname, // 使用最新的昵稱
+          nickname: nicknameMap[userId] || member.nickname || '',
           totalExpense: userExpenseData.totalExpense,
           expenseIds: userExpenseData.expenseIds,
           expenseSummaries: userExpenseData.expenseSummaries
         };
-      }));
+      });
       
       // 更新排行榜成員數據
       const isLeaderboardEnded = new Date() > endDate;

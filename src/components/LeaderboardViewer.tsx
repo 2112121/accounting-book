@@ -347,7 +347,7 @@ const LeaderboardViewer: React.FC<LeaderboardViewerProps> = ({ onClose }) => {
         
         if (isOngoing && typeof updateLeaderboardMemberExpenses === "function") {
           // 優化8: 智能同步策略 - 根據優先級決定同步策略
-          const syncDelay = prioritySyncEnabled ? 10 : 2000 + Math.random() * 3000;
+          const syncDelay = prioritySyncEnabled ? 3000 : 5000 + Math.random() * 3000;
           
           setTimeout(async () => {
             try {
