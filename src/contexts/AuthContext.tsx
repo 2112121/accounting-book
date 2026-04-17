@@ -451,7 +451,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       
       // 批次查詢所有排行榜（一次請求取代 N 次 getDoc）
       const BATCH_SIZE = 30; // Firestore 'in' 最多 30 個值
-      let allLeaderboardDocs: any[] = [];
+      const allLeaderboardDocs: any[] = [];
       for (let i = 0; i < leaderboardIds.length; i += BATCH_SIZE) {
         const batch = leaderboardIds.slice(i, i + BATCH_SIZE);
         const snap = await getDocs(
