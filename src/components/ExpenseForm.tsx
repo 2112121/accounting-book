@@ -9,7 +9,8 @@ interface ExpenseFormProps {
     notes: string;
     attachments?: File[];
     isRecurring?: boolean;
-    recurringPeriod?: 'weekly' | 'monthly' | 'yearly';
+    recurringPeriod?: 'daily' | 'weekly' | 'monthly' | 'yearly';
+    recurringEndDate?: string;
   }) => void;
   onCancel: () => void;
   expense?: {
@@ -20,6 +21,7 @@ interface ExpenseFormProps {
     notes: string;
     attachments?: string[];
     recurringPeriod?: string;
+    recurringEndDate?: string;
   } | null;
 }
 
@@ -54,7 +56,8 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
   const [error, setError] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [isRecurring, setIsRecurring] = useState<boolean>(false);
-  const [recurringPeriod, setRecurringPeriod] = useState<'weekly' | 'monthly' | 'yearly'>('monthly');
+  const [recurringPeriod, setRecurringPeriod] = useState<'daily' | 'weekly' | 'monthly' | 'yearly'>('monthly');
+  const [recurringEndDate, setRecurringEndDate] = useState<string>("");
 
   // 貨幣轉換相關狀態
   const [selectedCurrency, setSelectedCurrency] = useState<CurrencyType>("TWD");
@@ -126,10 +129,12 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
       // 初始化定期設定
       if (expense.recurringPeriod) {
         setIsRecurring(true);
-        setRecurringPeriod(expense.recurringPeriod as 'weekly' | 'monthly' | 'yearly');
+        setRecurringPeriod(expense.recurringPeriod as 'daily' | 'weekly' | 'monthly' | 'yearly');
+        setRecurringEndDate(expense.recurringEndDate || "");
       } else {
         setIsRecurring(false);
         setRecurringPeriod('monthly');
+        setRecurringEndDate("");
       }
     } else {
       // 如果不是編輯模式，重置表單值
@@ -143,6 +148,9 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
       setSelectedCurrency("TWD");
       setConvertedAmount(null);
       setExchangeRate(null);
+      setIsRecurring(false);
+      setRecurringPeriod('monthly');
+      setRecurringEndDate("");
     }
   }, [expense]);
 
@@ -277,6 +285,12 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
           : "";
 
       // 提交數據 - 使用轉換後的數字和更新的備註
+      if (isRecurring && recurringEndDate && recurringEndDate < date) {
+        setError("定期結束日期不能早於支出日期");
+        setIsSubmitting(false);
+        return;
+      }
+
       const _result = await onSave({
         amount: finalAmount,
         category,
@@ -284,6 +298,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
         notes: finalNotes,
         isRecurring,
         recurringPeriod: isRecurring ? recurringPeriod : undefined,
+        recurringEndDate: isRecurring && recurringEndDate ? recurringEndDate : undefined,
       });
 
 
@@ -298,6 +313,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
         setExchangeRate(null);
         setIsRecurring(false);
         setRecurringPeriod('monthly');
+        setRecurringEndDate("");
       }
 
       // 重置提交狀態
@@ -332,7 +348,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
 
   return (
     <div className="p-3">
-      <div className="flex justify-between items-center mb-3">
+      <div className="sticky top-0 z-20 -mx-3 mb-3 flex justify-between items-center bg-white px-3 pb-3 pt-1">
         <h2 className="text-xl font-bold text-[#333333]">
           {expense ? "編輯支出" : "新增支出"}
         </h2>
@@ -524,7 +540,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
             </div>
             {isRecurring && (
               <div className="mt-3">
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                   {([
                     { value: 'weekly', label: '每週' },
                     { value: 'monthly', label: '每月' },
@@ -539,6 +555,26 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
                       {label}
                     </button>
                   ))}
+                  <button
+                    type="button"
+                    onClick={() => setRecurringPeriod('daily')}
+                    className={`order-first py-1.5 rounded-lg text-xs font-medium transition-all border ${recurringPeriod === 'daily' ? 'bg-[#A487C3] text-white border-[#A487C3]' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}
+                  >
+                    每日
+                  </button>
+                </div>
+                <div className="mt-3">
+                  <label htmlFor="recurringEndDate" className="block text-xs font-medium text-gray-600 mb-1">
+                    結束日期 <span className="text-gray-400">(選填，不填則持續重複)</span>
+                  </label>
+                  <input
+                    type="date"
+                    id="recurringEndDate"
+                    min={date || getTodayDate()}
+                    value={recurringEndDate}
+                    onChange={(e) => setRecurringEndDate(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#A487C3] focus:border-[#A487C3] text-sm text-gray-800 bg-white"
+                  />
                 </div>
               </div>
             )}

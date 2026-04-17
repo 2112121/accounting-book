@@ -36,6 +36,7 @@ import BudgetProgressBars from './components/BudgetProgressBars'; // 引入預�
 import SplitExpenseManagement from "./components/SplitExpenseManagement";
 import GroupInviteList from "./components/GroupInviteList"; // 引入群组邀请列表组件
 import GroupInviteNotification from "./components/GroupInviteNotification"; // 引入群组邀请通知组件
+import RecurringExpenseManagement from "./components/RecurringExpenseManagement";
 
 // 支出類型定義
 interface Expense {
@@ -50,6 +51,7 @@ interface Expense {
     notes: string;
   userId: string;
   recurringPeriod?: string;
+  recurringEndDate?: string;
 }
 
 const App: React.FC = () => {
@@ -57,6 +59,52 @@ const App: React.FC = () => {
     const normalized = new Date(date);
     normalized.setHours(0, 0, 0, 0);
     return `${normalized.getFullYear()}-${String(normalized.getMonth() + 1).padStart(2, "0")}-${String(normalized.getDate()).padStart(2, "0")}`;
+  };
+
+  const getLastDayOfMonth = (year: number, monthIndex: number) =>
+    new Date(year, monthIndex + 1, 0).getDate();
+
+  const getNextRecurringDate = (
+    from: Date,
+    period: "daily" | "weekly" | "monthly" | "yearly",
+    anchorDateValue?: string | Date,
+  ): Date => {
+    const baseDate = new Date(from);
+    baseDate.setHours(0, 0, 0, 0);
+
+    const anchorDate = anchorDateValue ? new Date(anchorDateValue) : new Date(baseDate);
+    anchorDate.setHours(0, 0, 0, 0);
+
+    if (period === "daily") {
+      const next = new Date(baseDate);
+      next.setDate(next.getDate() + 1);
+      return next;
+    }
+
+    if (period === "weekly") {
+      const next = new Date(baseDate);
+      next.setDate(next.getDate() + 7);
+      return next;
+    }
+
+    if (period === "monthly") {
+      const targetMonthIndex = baseDate.getMonth() + 1;
+      const targetYear = baseDate.getFullYear() + Math.floor(targetMonthIndex / 12);
+      const normalizedMonthIndex = targetMonthIndex % 12;
+      const targetDay = Math.min(
+        anchorDate.getDate(),
+        getLastDayOfMonth(targetYear, normalizedMonthIndex),
+      );
+      return new Date(targetYear, normalizedMonthIndex, targetDay);
+    }
+
+    const targetYear = baseDate.getFullYear() + 1;
+    const targetMonthIndex = anchorDate.getMonth();
+    const targetDay = Math.min(
+      anchorDate.getDate(),
+      getLastDayOfMonth(targetYear, targetMonthIndex),
+    );
+    return new Date(targetYear, targetMonthIndex, targetDay);
   };
 
   const buildRecurringExpenseDocId = (recurringRuleId: string, date: Date) =>
@@ -183,14 +231,16 @@ const chartRef = useRef<HTMLDivElement>(null);
     notes,
     period,
     startDate,
+    endDate,
   }: {
     sourceExpenseId: string;
     userId: string;
     amount: number;
     category: string;
     notes: string;
-    period: "weekly" | "monthly" | "yearly";
+    period: "daily" | "weekly" | "monthly" | "yearly";
     startDate: string;
+    endDate?: string;
   }) => {
     const existingRules = await findRecurringRulesForExpense({
       sourceExpenseId,
@@ -210,6 +260,7 @@ const chartRef = useRef<HTMLDivElement>(null);
             notes,
             period,
             startDate,
+            endDate: endDate || null,
             lastGeneratedDate: startDate,
             isActive: true,
             updatedAt: Timestamp.now(),
@@ -227,6 +278,7 @@ const chartRef = useRef<HTMLDivElement>(null);
       notes,
       period,
       startDate,
+      endDate: endDate || null,
       lastGeneratedDate: startDate,
       isActive: true,
       createdAt: Timestamp.now(),
@@ -1207,6 +1259,7 @@ const chartRef = useRef<HTMLDivElement>(null);
                   notes: data.notes || "",
                   userId: data.userId,
                   recurringPeriod: data.recurringPeriod || undefined,
+                  recurringEndDate: data.recurringEndDate || undefined,
                 });
               } catch (_e) { /* noop */ }
             }
@@ -1304,21 +1357,24 @@ const chartRef = useRef<HTMLDivElement>(null);
           const rec = docSnap.data();
           const lastDate = new Date(rec.lastGeneratedDate);
           lastDate.setHours(0, 0, 0, 0);
+          const recurringEndDate = rec.endDate ? new Date(rec.endDate) : null;
+          if (recurringEndDate && !isNaN(recurringEndDate.getTime())) {
+            recurringEndDate.setHours(0, 0, 0, 0);
+          }
 
-          // 計算下一次應產生的日期
-          const getNextDate = (from: Date): Date => {
-            const next = new Date(from);
-            if (rec.period === 'weekly') next.setDate(next.getDate() + 7);
-            else if (rec.period === 'monthly') next.setMonth(next.getMonth() + 1);
-            else if (rec.period === 'yearly') next.setFullYear(next.getFullYear() + 1);
-            return next;
-          };
-
-          let nextDate = getNextDate(lastDate);
+          let nextDate = getNextRecurringDate(
+            lastDate,
+            rec.period,
+            rec.startDate || rec.lastGeneratedDate,
+          );
           let latestGenerated = lastDate;
+          const generationEndDate =
+            recurringEndDate && !isNaN(recurringEndDate.getTime()) && recurringEndDate < today
+              ? recurringEndDate
+              : today;
 
           // 補產所有到期但未記的帳目
-          while (nextDate <= today) {
+          while (nextDate <= generationEndDate) {
             const recurringInstanceDate = formatDateKey(nextDate);
             const recurringExpenseRef = doc(
               db,
@@ -1341,6 +1397,7 @@ const chartRef = useRef<HTMLDivElement>(null);
                 userId: currentUser.uid,
                 createdAt: Timestamp.now(),
                 recurringPeriod: rec.period,
+                recurringEndDate: rec.endDate || null,
                 recurringRuleId: docSnap.id,
                 recurringSourceExpenseId: rec.sourceExpenseId || null,
                 recurringInstanceDate,
@@ -1348,15 +1405,31 @@ const chartRef = useRef<HTMLDivElement>(null);
             });
 
             latestGenerated = new Date(nextDate);
-            nextDate = getNextDate(nextDate);
+            nextDate = getNextRecurringDate(
+              nextDate,
+              rec.period,
+              rec.startDate || rec.lastGeneratedDate,
+            );
           }
 
           // 更新 lastGeneratedDate
-          if (latestGenerated > lastDate) {
-            const latestStr = formatDateKey(latestGenerated);
-            await updateDoc(doc(db, "recurringExpenses", docSnap.id), {
-              lastGeneratedDate: latestStr,
-            });
+          const shouldDeactivate =
+            !!recurringEndDate &&
+            !isNaN(recurringEndDate.getTime()) &&
+            nextDate > recurringEndDate;
+
+          if (latestGenerated > lastDate || shouldDeactivate) {
+            const updatePayload: Record<string, any> = {};
+
+            if (latestGenerated > lastDate) {
+              updatePayload.lastGeneratedDate = formatDateKey(latestGenerated);
+            }
+
+            if (shouldDeactivate) {
+              updatePayload.isActive = false;
+            }
+
+            await updateDoc(doc(db, "recurringExpenses", docSnap.id), updatePayload);
           }
         }
       } catch (_err) { /* noop */ }
@@ -1374,7 +1447,8 @@ const chartRef = useRef<HTMLDivElement>(null);
     attachments?: File[];
     isShared?: boolean;
     isRecurring?: boolean;
-    recurringPeriod?: 'weekly' | 'monthly' | 'yearly';
+    recurringPeriod?: 'daily' | 'weekly' | 'monthly' | 'yearly';
+    recurringEndDate?: string;
     sharedWith?: Array<{
       userId: string;
       nickname: string;
@@ -1418,6 +1492,10 @@ const chartRef = useRef<HTMLDivElement>(null);
           expense.isRecurring && expense.recurringPeriod
             ? expense.recurringPeriod
             : undefined,
+        recurringEndDate:
+          expense.isRecurring && expense.recurringEndDate
+            ? expense.recurringEndDate
+            : undefined,
       };
 
       // 立即更新UI以提高反應速度
@@ -1454,6 +1532,7 @@ const chartRef = useRef<HTMLDivElement>(null);
           ...(expense.isShared !== undefined ? { isShared: expense.isShared } : {}),
           ...(expense.sharedWith ? { sharedWith: expense.sharedWith } : {}),
           ...(expense.isRecurring && expense.recurringPeriod ? { recurringPeriod: expense.recurringPeriod } : {}),
+          ...(expense.isRecurring && expense.recurringEndDate ? { recurringEndDate: expense.recurringEndDate } : {}),
         };
         
         try {
@@ -1579,6 +1658,7 @@ const chartRef = useRef<HTMLDivElement>(null);
             notes: expense.notes || "",
             period: expense.recurringPeriod,
             startDate: expense.date,
+            endDate: expense.recurringEndDate,
           });
         } catch (_recErr) { /* noop */ }
       }
@@ -1836,6 +1916,7 @@ const chartRef = useRef<HTMLDivElement>(null);
       notes: expense.notes,
       attachments: [],
       recurringPeriod: expense.recurringPeriod,
+      recurringEndDate: expense.recurringEndDate,
     };
   };
 
@@ -1853,7 +1934,8 @@ const chartRef = useRef<HTMLDivElement>(null);
     notes: string;
     attachments?: File[];
     isRecurring?: boolean;
-    recurringPeriod?: 'weekly' | 'monthly' | 'yearly';
+    recurringPeriod?: 'daily' | 'weekly' | 'monthly' | 'yearly';
+    recurringEndDate?: string;
   }): Promise<boolean> => {
     try {
       if (!currentUser || !editingExpense) return false;
@@ -1895,6 +1977,7 @@ const chartRef = useRef<HTMLDivElement>(null);
         notes: updatedData.notes || "",
         userId: currentUser.uid,
         recurringPeriod: updatedData.isRecurring ? updatedData.recurringPeriod : undefined,
+        recurringEndDate: updatedData.isRecurring ? updatedData.recurringEndDate : undefined,
       };
 
       setExpenses((prev) => {
@@ -1921,6 +2004,7 @@ const chartRef = useRef<HTMLDivElement>(null);
         attachmentUrls,
         updatedAt: new Date(),
         recurringPeriod: updatedData.isRecurring ? (updatedData.recurringPeriod ?? null) : null,
+        recurringEndDate: updatedData.isRecurring ? (updatedData.recurringEndDate ?? null) : null,
       });
 
       // 處理定期設定變更
@@ -1938,6 +2022,7 @@ const chartRef = useRef<HTMLDivElement>(null);
           notes: updatedData.notes || "",
           period: nextRecurringPeriod,
           startDate: updatedData.date,
+          endDate: updatedData.recurringEndDate,
         });
       } else if (wasRecurring && !isNowRecurring) {
         // 關閉定期：停用對應的 recurringExpenses 文件
@@ -1972,6 +2057,7 @@ const chartRef = useRef<HTMLDivElement>(null);
               notes: updatedData.notes || "",
               period: nextRecurringPeriod,
               startDate: updatedData.date,
+              endDate: updatedData.recurringEndDate ?? null,
               lastGeneratedDate: updatedData.date,
               isActive: true,
               updatedAt: Timestamp.now(),
@@ -1986,6 +2072,7 @@ const chartRef = useRef<HTMLDivElement>(null);
             notes: updatedData.notes || "",
             period: nextRecurringPeriod,
             startDate: updatedData.date,
+            endDate: updatedData.recurringEndDate,
           });
         }
       }
@@ -2655,6 +2742,7 @@ const chartRef = useRef<HTMLDivElement>(null);
   
   // 添加預算設置狀態
   const [showBudgetSetting, setShowBudgetSetting] = useState(false);
+  const [showRecurringExpenseManagement, setShowRecurringExpenseManagement] = useState(false);
   const [showSplitExpenseForm, setShowSplitExpenseForm] = useState(false); // 添加好友分帳表單狀態
   
   // 處理顯示預算設置表單的事件
@@ -3520,7 +3608,7 @@ const chartRef = useRef<HTMLDivElement>(null);
                             <span className="inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 rounded text-[11px] font-medium"
                               style={{ backgroundColor: '#F0EAFA', color: '#A487C3' }}>
                               <i className="fas fa-redo" style={{ fontSize: '9px' }}></i>
-                              {{ weekly: '每週', monthly: '每月', yearly: '每年' }[transaction.recurringPeriod] || transaction.recurringPeriod}
+                              {{ daily: '每日', weekly: '每週', monthly: '每月', yearly: '每年' }[transaction.recurringPeriod] || transaction.recurringPeriod}
                             </span>
                           )}
                           {transaction.notes && <p className="text-sm mt-1 truncate max-w-[200px]">{transaction.notes}</p>}
@@ -3751,6 +3839,21 @@ const chartRef = useRef<HTMLDivElement>(null);
                   <button 
                     onClick={() => {
                       setShowSidebar(false);
+                      setShowRecurringExpenseManagement(true);
+                    }}
+  className="flex items-center gap-3 w-full p-3 text-left text-white bg-[#C6B2DD] hover:bg-[#D8CAEB] rounded-lg mb-2 relative shadow-sm transition-all duration-300 sidebar-menu-item sidebar-menu-item-6 tilt-hover ripple-effect"
+  style={{opacity: 1, transform: 'none'}}
+>
+  <div className="w-8 h-8 rounded-full bg-white bg-opacity-20 flex items-center justify-center backdrop-blur-sm">
+    <i className="fas fa-arrows-rotate text-white"></i>
+  </div>
+  <span>定期費用管理</span>
+                  </button>
+
+{/* 添加預算設置選項 */}
+                  <button 
+                    onClick={() => {
+                      setShowSidebar(false);
     setShowBudgetSetting(true);
   }}
   className="flex items-center gap-3 w-full p-3 text-left text-white bg-[#C6B2DD] hover:bg-[#D8CAEB] rounded-lg mb-2 relative shadow-sm transition-all duration-300 sidebar-menu-item sidebar-menu-item-6 tilt-hover ripple-effect"
@@ -3814,9 +3917,17 @@ const chartRef = useRef<HTMLDivElement>(null);
       
       {/* 添加支出表單 */}
       {showExpenseForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 animate-fadeIn">
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 animate-fadeIn"
+          onClick={() => {
+            setShowExpenseForm(false);
+            setEditingExpense(null);
+            setExpenseParams(null);
+          }}
+        >
           <div 
-            className="relative bg-white rounded-xl shadow-lg max-w-md w-full"
+            className="relative bg-white rounded-xl shadow-lg max-w-md w-full max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
             style={{animation: 'slideUpIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) both'}}
           >
             <div className="p-6" style={{animation: 'fadeIn 0.5s 0.2s both', position: 'relative', zIndex: 10}}>
@@ -4530,6 +4641,17 @@ const chartRef = useRef<HTMLDivElement>(null);
         </div>
       )}
 
+      {/* 定期費用管理表單 */}
+      {showRecurringExpenseManagement && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <RecurringExpenseManagement
+              onClose={() => setShowRecurringExpenseManagement(false)}
+            />
+          </div>
+        </div>
+      )}
+
       {/* 預算設置表單 */}
       {showBudgetSetting && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -4561,6 +4683,7 @@ const chartRef = useRef<HTMLDivElement>(null);
         !showFriendManagement && 
         !showLeaderboardViewer && 
         !showLoanManagement && 
+        !showRecurringExpenseManagement &&
         !showBudgetSetting && 
         !showSplitExpenseForm && 
         !showDatePicker && 
