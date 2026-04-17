@@ -1173,7 +1173,7 @@ const chartRef = useRef<HTMLDivElement>(null);
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [currentUser, initDailyChart, initPieChart]);
+  }, [currentUser]); // 圖表函式會隨 expenses 變動，不能放進這裡避免重複初始化
 
   // 當用戶未登入時，自動顯示登入界面
   useEffect(() => {
@@ -1183,7 +1183,7 @@ const chartRef = useRef<HTMLDivElement>(null);
       // 當用戶登入成功後，關閉登入表單
       setShowLoginForm(false);
     }
-  }, [currentUser, initDailyChart, initPieChart]);
+  }, [currentUser]); // 只在登入狀態切換時做資料恢復，避免 success toast 反覆跳出
 
   // 根據類別獲取對應的圖標
   const getCategoryIcon = (category: string): string => {
