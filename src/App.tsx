@@ -508,10 +508,7 @@ const chartRef = useRef<HTMLDivElement>(null);
             type: "pie",
             radius: ["30%", "60%"], // 原先是 ["40%", "70%"]，縮小比例
             // 將y坐標從50%調整為40%，向上移動
-            center: [
-              isSelectedMode ? (isMobile ? "48%" : "45%") : "50%",
-              "45%", // 從"40%"改為"45%"，向下移動
-            ],
+            center: ["50%", "45%"],
             avoidLabelOverlap: false,
             emphasis: {
               itemStyle: {
@@ -1941,14 +1938,7 @@ useEffect(() => {
             show: !isSelectedMode,
             left: "center",
           },
-          series: [
-            {
-              center: [
-                isSelectedMode ? (isMobile ? "48%" : "45%") : "50%",
-                "45%", // 從"40%"改為"45%"，向下移動
-              ],
-            },
-          ],
+          series: [{ center: ["50%", "45%"] }],
         });
       }
     };
@@ -1975,23 +1965,15 @@ useEffect(() => {
     if (chartInstance) {
       const isMobile = window.innerWidth < 768; // 檢測是否為移動設備
 
-      // 移除標題設定，調整圖例和位置
+      // 切換類別時只更新圖例顯示，不移動圓心位置（避免標籤浮動）
       chartInstance.setOption({
-        title: null, // 確保不顯示標題
-      legend: {
-          show: !selectedCategory, // 選中類別時隱藏圖例
+        animation: false,
+        legend: {
+          show: !selectedCategory,
           orient: "horizontal",
           left: "center",
-        bottom: 10,
+          bottom: 10,
         },
-        series: [
-          {
-            center: [
-              selectedCategory ? (isMobile ? "48%" : "45%") : "50%",
-              "45%", // 從"40%"改為"45%"，向下移動
-            ],
-          },
-        ],
       });
     }
   }, [selectedCategory]);
