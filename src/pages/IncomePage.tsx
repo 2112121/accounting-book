@@ -1148,30 +1148,19 @@ const IncomePage: React.FC = () => {
         
         {/* 收入分析卡片 */}
         <div className="relative bg-white bg-opacity-95 backdrop-blur-sm rounded-xl shadow-md border-l-4 border-[#4EA8DE] p-5 mb-6 hover:shadow-lg transition-all duration-300">
-          <div className="flex justify-between items-center mb-4">
-            <div className="flex items-center flex-wrap">
-              <h2 className="text-lg font-bold text-[#4EA8DE]">收入分析</h2>
-              <div className="ml-4 flex items-center space-x-2">
+          <div className="mb-4">
+            <h2 className="text-lg font-bold text-[#4EA8DE] mb-2">收入分析</h2>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
                 <button
-                  onClick={() => {
-                    setChartFilterMode('month');
-                    setChartsKey(Date.now());
-                  }}
-                  className={`text-xs px-2 py-1 rounded-md transition-colors ${
-                    chartFilterMode === 'month' 
-                      ? 'bg-[#4EA8DE] text-white' 
-                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                  }`}
+                  onClick={() => { setChartFilterMode('month'); setChartsKey(Date.now()); }}
+                  className={`text-xs px-2 py-1 rounded-md transition-colors ${chartFilterMode === 'month' ? 'bg-[#4EA8DE] text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
                 >
                   當月
                 </button>
                 <div className="relative">
                   <button
-                    className={`text-xs px-2 py-1 rounded-md transition-colors flex items-center ${
-                      chartFilterMode === 'custom' 
-                        ? 'bg-[#4EA8DE] text-white' 
-                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                    }`}
+                    className={`text-xs px-2 py-1 rounded-md transition-colors flex items-center ${chartFilterMode === 'custom' ? 'bg-[#4EA8DE] text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
                   >
                     選擇月份
                   </button>
@@ -1180,36 +1169,25 @@ const IncomePage: React.FC = () => {
                     className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
                     type="month"
                     value={pieChartMonth}
-                    onChange={(e) => {
-                      setPieChartMonth(e.target.value);
-                      setChartFilterMode('custom');
-                      setChartsKey(Date.now());
-                    }}
+                    onChange={(e) => { setPieChartMonth(e.target.value); setChartFilterMode('custom'); setChartsKey(Date.now()); }}
                   />
                 </div>
                 <button
-                  onClick={() => {
-                    setChartFilterMode('all');
-                    setChartsKey(Date.now());
-                  }}
-                  className={`text-xs px-2 py-1 rounded-md transition-colors ${
-                    chartFilterMode === 'all' 
-                      ? 'bg-[#4EA8DE] text-white' 
-                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                  }`}
+                  onClick={() => { setChartFilterMode('all'); setChartsKey(Date.now()); }}
+                  className={`text-xs px-2 py-1 rounded-md transition-colors ${chartFilterMode === 'all' ? 'bg-[#4EA8DE] text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
                 >
                   全部
                 </button>
               </div>
+              {selectedCategory && (
+                <button
+                  onClick={resetCategorySelection}
+                  className="text-xs px-2 py-1 rounded-md text-white bg-[#4EA8DE] hover:bg-[#3D97CD] flex items-center transition-colors shrink-0"
+                >
+                  <i className="fas fa-arrow-left mr-1"></i> 返回總覽
+                </button>
+              )}
             </div>
-            {selectedCategory && (
-              <button
-                onClick={resetCategorySelection}
-                className="text-sm text-white bg-[#4EA8DE] hover:bg-[#3D97CD] px-4 py-1.5 rounded-lg flex items-center transition-all duration-300 shadow-sm hover:shadow-md"
-              >
-                <i className="fas fa-arrow-left mr-1.5"></i> 返回總覽
-              </button>
-            )}
           </div>
           <div className="flex flex-col md:flex-row">
             <div
@@ -1220,7 +1198,7 @@ const IncomePage: React.FC = () => {
                   <div
                     ref={chartRef}
                     style={{
-                      height: "260px",
+                      height: "300px",
                       width: "100%",
                       display: "flex",
                       justifyContent: "center",
@@ -1914,64 +1892,37 @@ const IncomePage: React.FC = () => {
 
       {/* 添加懸浮按鈕 */}
       {currentUser && (
-        <div className="fixed bottom-8 right-8 z-[1000] flex flex-col gap-4 items-center">
-          {/* 歷史收入明細按鈕和提示 */}
+        <div className="fixed bottom-5 right-4 z-[1000] flex flex-col gap-2 items-center sm:bottom-8 sm:right-8 sm:gap-3">
           <div className="group relative">
             <button
               onClick={() => {
                 const element = document.getElementById('income-details');
                 if (element) {
                   element.scrollIntoView({ behavior: 'smooth' });
-                  // 添加一個高亮效果
                   element.classList.add('highlight-section');
-                  setTimeout(() => {
-                    element.classList.remove('highlight-section');
-                  }, 2000);
+                  setTimeout(() => { element.classList.remove('highlight-section'); }, 2000);
                 }
               }}
-              className="w-14 h-14 sm:w-12 sm:h-12 bg-gradient-to-r from-[#6BBFA0] to-[#8FD3B9] rounded-full shadow-xl hover:shadow-2xl flex items-center justify-center text-white transform hover:scale-110 active:scale-95 transition-all duration-300 relative overflow-hidden focus:outline-none focus:ring-4 focus:ring-green-300 focus:ring-opacity-50"
+              className="h-12 w-12 rounded-full bg-gradient-to-r from-[#6BBFA0] to-[#8FD3B9] shadow-lg flex items-center justify-center text-white opacity-60 hover:opacity-100 active:scale-95 transition-all duration-300 focus:outline-none"
               aria-label="歷史收入明細"
             >
-              <i className="fas fa-list-ul text-2xl sm:text-xl relative z-10"></i>
-              {/* 波紋效果元素 */}
-              <div className="absolute inset-0 bg-white opacity-0 hover:opacity-20 transition-opacity duration-300 rounded-full"></div>
+              <i className="fas fa-list-ul text-sm sm:text-lg"></i>
             </button>
-            {/* 歷史明細按鈕的懸停提示 */}
-            <div className="absolute -top-12 right-0 bg-[#333333] text-white text-xs px-3 py-1.5 rounded-md opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-300 whitespace-nowrap shadow-md transform group-hover:-translate-y-1">
-              <div className="flex items-center gap-1">
-                <i className="fas fa-list-ul text-xs"></i>
-                <span>歷史收入明細</span>
-              </div>
-              {/* 小三角形 */}
-              <div className="absolute w-3 h-3 bg-[#333333] transform rotate-45 right-4 bottom-[-6px]"></div>
+            <div className="absolute -top-10 right-0 bg-[#333333] text-white text-xs px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap shadow-md">
+              歷史收入明細
             </div>
           </div>
-          
-          {/* 新增收入按鈕和提示 */}
+
           <div className="group relative">
             <button
-              onClick={() => {
-                setShowIncomeForm(true);
-                setEditingIncome(null);
-              }}
-              className="w-16 h-16 sm:w-14 sm:h-14 bg-gradient-to-r from-[#4EA8DE] to-[#6BB9E7] rounded-full shadow-xl hover:shadow-2xl flex items-center justify-center text-white transform hover:scale-110 active:scale-95 transition-all duration-300 relative overflow-hidden focus:outline-none focus:ring-4 focus:ring-blue-300 focus:ring-opacity-50"
+              onClick={() => { setShowIncomeForm(true); setEditingIncome(null); }}
+              className="h-12 w-12 rounded-full bg-gradient-to-r from-[#4EA8DE] to-[#6BB9E7] shadow-xl flex items-center justify-center text-white opacity-75 hover:opacity-100 active:scale-95 transition-all duration-300 focus:outline-none"
               aria-label="新增收入"
             >
-              <i className="fas fa-plus text-2xl sm:text-xl relative z-10"></i>
-              {/* 波紋效果元素 */}
-              <div className="absolute inset-0 bg-white opacity-0 hover:opacity-20 transition-opacity duration-300 rounded-full"></div>
-              {/* 脈衝效果 - 使用兩層不同速度的脈衝 */}
-              <div className="absolute inset-0 rounded-full animate-ping opacity-30 bg-gradient-to-r from-[#4EA8DE] to-[#6BB9E7] duration-1000"></div>
-              <div className="absolute inset-0 rounded-full animate-ping opacity-20 bg-gradient-to-r from-[#4EA8DE] to-[#6BB9E7] duration-1500 delay-500"></div>
+              <i className="fas fa-plus text-xl sm:text-2xl"></i>
             </button>
-            {/* 新增收入按鈕的懸停提示 */}
-            <div className="absolute -top-12 right-0 bg-[#333333] text-white text-xs px-3 py-1.5 rounded-md opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-300 whitespace-nowrap shadow-md transform group-hover:-translate-y-1">
-              <div className="flex items-center gap-1">
-                <i className="fas fa-plus text-xs"></i>
-                <span>新增收入明細</span>
-              </div>
-              {/* 小三角形 */}
-              <div className="absolute w-3 h-3 bg-[#333333] transform rotate-45 right-4 bottom-[-6px]"></div>
+            <div className="absolute -top-10 right-0 bg-[#333333] text-white text-xs px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap shadow-md">
+              新增收入明細
             </div>
           </div>
         </div>
