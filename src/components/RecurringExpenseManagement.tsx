@@ -316,7 +316,7 @@ const RecurringExpenseManagement: React.FC<RecurringExpenseManagementProps> = ({
 
   return (
     <div className="p-5">
-      <div className="sticky top-0 z-20 -mx-5 mb-4 flex items-center justify-between bg-white px-5 pb-4 pt-1">
+      <div className="sticky top-0 z-20 -mx-5 mb-4 flex items-start justify-between bg-white px-5 pb-4 pt-1">
         <div>
           <h2 className="text-2xl font-bold text-[#A487C3]">定期費用管理</h2>
           <p className="text-sm text-gray-500 mt-1">
@@ -326,7 +326,7 @@ const RecurringExpenseManagement: React.FC<RecurringExpenseManagementProps> = ({
         <button
           type="button"
           onClick={onClose}
-          className="text-white hover:text-white bg-[#A487C3] hover:bg-[#8A5DC8] w-8 h-8 flex items-center justify-center border border-[#F5F5F5] rounded-full shadow-sm hover:shadow-md transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-white"
+          className="mt-1 shrink-0 text-white hover:text-white bg-[#A487C3] hover:bg-[#8A5DC8] w-8 h-8 flex items-center justify-center border border-[#F5F5F5] rounded-full shadow-sm hover:shadow-md transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-white"
         >
           <i className="fas fa-times"></i>
         </button>
@@ -334,9 +334,7 @@ const RecurringExpenseManagement: React.FC<RecurringExpenseManagementProps> = ({
 
       <div className="mb-5 rounded-xl border border-[#E6DDF3] bg-[#FBF8FF] p-4">
         <p className="text-sm text-gray-700 leading-6">
-          每月與每年規則會以開始日期當作基準日。
-          若遇到該月沒有這一天，例如 `31` 號遇到二月，系統會自動落到該月最後一天；
-          到下一個有 `31` 號的月份時，會回到 `31` 號。
+          每月與每年規則會以開始日期作為基準日。若該月份沒有對應日期（例如 31 號遇到二月），系統會自動調整至該月最後一天，並在下個有該日期的月份恢復原始日期。
         </p>
       </div>
 
