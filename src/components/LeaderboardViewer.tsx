@@ -846,23 +846,29 @@ const LeaderboardViewer: React.FC<LeaderboardViewerProps> = ({ onClose }) => {
 
   return (
     <div className="p-6">
-      <div className="sticky top-0 z-20 -mx-6 mb-6 flex justify-between items-center bg-white px-6 pb-4 pt-1">
-        <h2 className="text-2xl font-bold text-[#A487C3]">排行榜</h2>
+      <div className="sticky top-0 z-20 -mx-6 mb-6 bg-white px-6 pb-3 pt-1">
+        <div className="flex justify-between items-center mb-2">
+          <h2 className="text-2xl font-bold text-[#A487C3]">排行榜</h2>
+          <button
+            onClick={onClose}
+            className="text-white bg-[#A487C3] hover:bg-[#8A5DC8] w-8 h-8 flex items-center justify-center rounded-full shadow-sm transition-all duration-300 focus:outline-none"
+          >
+            <i className="fas fa-times"></i>
+          </button>
+        </div>
         <div className="flex items-center gap-2">
           <button
             onClick={() => {
-              // 觸發通知中心的排行榜邀請點擊事件
               if (typeof window !== "undefined") {
                 const event = new CustomEvent("showLeaderboardInvites");
                 window.dispatchEvent(event);
-                // 關閉當前排行榜頁面
                 onClose();
               }
             }}
-            className="flex items-center gap-2 bg-[#F8F3FF] hover:bg-[#EFE5FF] text-[#A487C3] px-3 py-1.5 rounded-lg text-sm transition-all duration-300 shadow-sm hover:shadow-md relative"
+            className="flex items-center gap-1.5 bg-[#F8F3FF] hover:bg-[#EFE5FF] text-[#A487C3] px-3 py-1.5 rounded-lg text-sm transition-all duration-300 shadow-sm hover:shadow-md relative"
           >
             <i className="fas fa-bell"></i>
-            <span>查看排行榜邀請</span>
+            <span>排行榜邀請</span>
             {inviteCount > 0 && (
               <span className="absolute -top-2 -right-2 bg-white text-[#A487C3] text-xs rounded-full w-5 h-5 flex items-center justify-center border border-[#C6B2DD]">
                 {inviteCount}
@@ -872,21 +878,14 @@ const LeaderboardViewer: React.FC<LeaderboardViewerProps> = ({ onClose }) => {
           <button
             onClick={() => {
               onClose();
-              // 觸發顯示排行榜管理頁面
               if (typeof window !== "undefined") {
                 window.dispatchEvent(new Event("returnToLeaderboardManager"));
               }
             }}
-            className="flex items-center gap-1 bg-[#A487C3] hover:bg-[#8A5DC8] text-white px-3 py-1.5 rounded-lg text-sm transition-all duration-300 shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-white"
+            className="flex items-center gap-1.5 bg-[#A487C3] hover:bg-[#8A5DC8] text-white px-3 py-1.5 rounded-lg text-sm transition-all duration-300 shadow-sm hover:shadow-md focus:outline-none"
           >
             <i className="fas fa-cog"></i>
             <span>排行榜管理</span>
-          </button>
-          <button
-            onClick={onClose}
-            className="text-white hover:text-white bg-[#A487C3] hover:bg-[#8A5DC8] w-8 h-8 flex items-center justify-center border border-[#F5F5F5] rounded-full shadow-sm hover:shadow-md transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-white"
-          >
-            <i className="fas fa-times"></i>
           </button>
         </div>
       </div>
@@ -1270,7 +1269,7 @@ const LeaderboardViewer: React.FC<LeaderboardViewerProps> = ({ onClose }) => {
                                   {leaderboard.timeRange === "year" && "一年"}
                                   {leaderboard.timeRange === "custom" && "自定義"}
                                 </span>
-                                <span className="inline-flex items-center px-2.5 py-1 bg-[#F5F5F5] text-gray-600 rounded-full">
+                                <span className="inline-flex items-center px-2.5 py-1 bg-[#F5F5F5] text-gray-600 rounded-full whitespace-nowrap">
                                   <i className="far fa-calendar-alt mr-1.5"></i>
                                   結束於 {formatDate(leaderboard.endDate)}
                                 </span>
@@ -1318,7 +1317,7 @@ const LeaderboardViewer: React.FC<LeaderboardViewerProps> = ({ onClose }) => {
                                   {leaderboard.timeRange === "year" && "一年"}
                                   {leaderboard.timeRange === "custom" && "自定義"}
                                 </span>
-                                <span className="inline-flex items-center px-2.5 py-1 bg-[#F5F5F5] text-gray-600 rounded-full">
+                                <span className="inline-flex items-center px-2.5 py-1 bg-[#F5F5F5] text-gray-600 rounded-full whitespace-nowrap">
                                   <i className="far fa-calendar-check mr-1.5"></i>
                                   結束於 {formatDate(leaderboard.endDate)}
                                 </span>
