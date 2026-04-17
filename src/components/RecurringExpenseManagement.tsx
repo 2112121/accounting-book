@@ -326,7 +326,7 @@ const RecurringExpenseManagement: React.FC<RecurringExpenseManagementProps> = ({
         <button
           type="button"
           onClick={onClose}
-          className="w-9 h-9 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 transition-colors"
+          className="text-white hover:text-white bg-[#A487C3] hover:bg-[#8A5DC8] w-8 h-8 flex items-center justify-center border border-[#F5F5F5] rounded-full shadow-sm hover:shadow-md transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-white"
         >
           <i className="fas fa-times"></i>
         </button>
