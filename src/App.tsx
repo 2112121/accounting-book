@@ -1918,10 +1918,21 @@ const chartRef = useRef<HTMLDivElement>(null);
     };
   }, [expenses, pieChartMode, pieChartMonth]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // 追蹤上一個 selectedCategory，用來判斷容器寬度是否真的改變
+  const prevSelectedCategoryRef = useRef<string | null>(undefined as unknown as null);
+
   // 圓餅圖：切換類別時只更新圖例，不重建圖表
   useEffect(() => {
-    setTimeout(() => {
-      chartInstanceRef.current?.resize();
+    const wasSelected = prevSelectedCategoryRef.current !== null && prevSelectedCategoryRef.current !== undefined;
+    const isSelected = selectedCategory !== null;
+    const containerWidthChanged = wasSelected !== isSelected;
+    prevSelectedCategoryRef.current = selectedCategory;
+
+    // 只有容器寬度真的改變（null↔有值）時才 resize，切換不同類別不 resize
+    const doUpdate = () => {
+      if (containerWidthChanged) {
+        chartInstanceRef.current?.resize();
+      }
       chartInstanceRef.current?.setOption({
         animation: false,
         legend: {
@@ -1931,7 +1942,10 @@ const chartRef = useRef<HTMLDivElement>(null);
           bottom: 10,
         },
       });
-    }, 50);
+    };
+
+    // 容器有 300ms CSS transition，resize 要等它結束
+    setTimeout(doUpdate, containerWidthChanged ? 320 : 0);
   }, [selectedCategory]);
 
   // 重構每日趨勢圖初始化
