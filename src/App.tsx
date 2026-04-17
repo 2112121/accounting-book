@@ -453,7 +453,7 @@ const chartRef = useRef<HTMLDivElement>(null);
         },
         legend: {
           // 當選中類別時，隱藏圖例
-          show: !isSelectedMode,
+          show: true,
           orient: "horizontal",
           left: "center",
           bottom: 0,
@@ -1936,7 +1936,7 @@ const chartRef = useRef<HTMLDivElement>(null);
       chartInstanceRef.current?.setOption({
         animation: false,
         legend: {
-          show: !selectedCategory,
+          show: true,
           orient: "horizontal",
           left: "center",
           bottom: 10,
