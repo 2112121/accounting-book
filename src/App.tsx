@@ -614,19 +614,11 @@ const chartRef = useRef<HTMLDivElement>(null);
         return;
       }
 
-      // 準備圖表數據，小於 3% 的切片隱藏 label 和 labelLine
-      const total = Object.values(categorySum).reduce((a, b) => a + b, 0);
-      const pieData = Object.keys(categorySum).map((category) => {
-        const value = categorySum[category];
-        const pct = total > 0 ? (value / total) * 100 : 0;
-        const showLabel = pct >= 3;
-        return {
-          name: category,
-          value,
-          label: { show: showLabel },
-          labelLine: { show: showLabel },
-        };
-      });
+      // 準備圖表數據
+      const pieData = Object.keys(categorySum).map((category) => ({
+        name: category,
+        value: categorySum[category],
+      }));
 
 
       // 標準圓餅圖配置
@@ -644,7 +636,7 @@ const chartRef = useRef<HTMLDivElement>(null);
           orient: "horizontal",
           left: "center",
           bottom: 0,
-          padding: [20, 0, 0, 0],
+          padding: [8, 0, 0, 0],
           itemWidth: 14,
           itemHeight: 14,
           itemGap: 20,
@@ -685,10 +677,9 @@ const chartRef = useRef<HTMLDivElement>(null);
           {
             name: "支出金額",
             type: "pie",
-            radius: ["28%", "55%"],
-            center: ["50%", "42%"],
+            radius: ["30%", "60%"],
+            center: ["50%", "40%"],
             avoidLabelOverlap: true,
-            minShowLabelAngle: 1,
             selectedMode: false,
             emphasis: {
               itemStyle: {
@@ -697,23 +688,18 @@ const chartRef = useRef<HTMLDivElement>(null);
                 shadowColor: "rgba(0, 0, 0, 0.2)",
               },
               scale: true,
-              scaleSize: 8
+              scaleSize: 10
             },
             label: {
               show: true,
               formatter: "{b}\n{d}%",
-              fontSize: 10,
-              lineHeight: 14,
-            },
-            labelLayout: {
-              moveOverlap: "shiftY",
+              fontSize: 11,
             },
             labelLine: {
               show: true,
-              showAbove: false,
-              smooth: false,
-              length: 8,
-              length2: 6,
+              smooth: true,
+              length: 15,
+              length2: 12,
             },
             data: pieData,
             // 簡化餅圖動畫設置
@@ -3285,7 +3271,7 @@ const chartRef = useRef<HTMLDivElement>(null);
                   <div
                     ref={chartRef}
                     style={{
-                      height: "310px",
+                      height: "300px",
                       width: "100%",
                       display: "flex",
                       justifyContent: "center",
@@ -3372,7 +3358,7 @@ const chartRef = useRef<HTMLDivElement>(null);
 
                     <div className="mt-4 pt-2 sticky bottom-0">
                       <div className="bg-[#F8FBFE] rounded-lg p-3 shadow-sm border border-gray-100">
-                        <div className="flex justify-between items-center pr-20 sm:pr-0">
+                        <div className="flex justify-between items-center">
                           <div>
                             <span className="text-xs text-gray-500">類別總計</span>
                             <h4 className="font-medium text-gray-700">{selectedCategory}</h4>
@@ -4738,66 +4724,54 @@ const chartRef = useRef<HTMLDivElement>(null);
         !showDatePicker && 
         !showMonthPicker && 
         !showNotifications && (
-        <div className="fixed bottom-5 right-4 z-[1000] flex flex-col gap-3 items-center sm:bottom-8 sm:right-8 sm:gap-4">
-          {/* 添加历史明细按钮和提示 */}
-          <div className="group relative">
+        <>
+          {/* 歷史消費明細按鈕 - 左下角 */}
+          <div className="fixed bottom-5 left-4 z-[1000] group sm:bottom-8 sm:left-8">
             <button
               onClick={() => {
                 const element = document.getElementById('expense-details');
                 if (element) {
                   element.scrollIntoView({ behavior: 'smooth' });
-                  // 添加一个高亮效果
                   element.classList.add('highlight-section');
-                  setTimeout(() => {
-                    element.classList.remove('highlight-section');
-                  }, 2000);
+                  setTimeout(() => { element.classList.remove('highlight-section'); }, 2000);
                 }
               }}
               className="h-12 w-12 rounded-full bg-gradient-to-r from-[#6BBFA0] to-[#8FD3B9] shadow-xl hover:shadow-2xl flex items-center justify-center text-white transform hover:scale-110 active:scale-95 transition-all duration-300 relative overflow-hidden focus:outline-none focus:ring-4 focus:ring-green-300 focus:ring-opacity-50 sm:h-14 sm:w-14"
               aria-label="歷史消費明細"
             >
               <i className="fas fa-list-ul relative z-10 text-xl sm:text-2xl"></i>
-              {/* 波紋效果元素 */}
               <div className="absolute inset-0 bg-white opacity-0 hover:opacity-20 transition-opacity duration-300 rounded-full"></div>
             </button>
-            {/* 歷史明細按鈕的懸停提示 */}
-            <div className="absolute -top-12 right-0 bg-[#333333] text-white text-xs px-3 py-1.5 rounded-md opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-300 whitespace-nowrap shadow-md transform group-hover:-translate-y-1">
+            <div className="absolute -top-12 left-0 bg-[#333333] text-white text-xs px-3 py-1.5 rounded-md opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-300 whitespace-nowrap shadow-md transform group-hover:-translate-y-1">
               <div className="flex items-center gap-1">
                 <i className="fas fa-list-ul text-xs"></i>
                 <span>歷史消費明細</span>
               </div>
-              {/* 小三角形 */}
-              <div className="absolute w-3 h-3 bg-[#333333] transform rotate-45 right-4 bottom-[-6px]"></div>
+              <div className="absolute w-3 h-3 bg-[#333333] transform rotate-45 left-4 bottom-[-6px]"></div>
             </div>
           </div>
-          
-          {/* 收入管理按鈕和提示 - 移除此區塊 */}
-          
-          {/* 新增支出按鈕和提示 */}
-          <div className="group relative">
+
+          {/* 新增支出按鈕 - 右下角 */}
+          <div className="fixed bottom-5 right-4 z-[1000] group sm:bottom-8 sm:right-8">
             <button
               onClick={() => setShowExpenseForm(true)}
               className="h-14 w-14 rounded-full bg-gradient-to-r from-[#E07A8D] to-[#F09CA7] shadow-xl hover:shadow-2xl flex items-center justify-center text-white transform hover:scale-110 active:scale-95 transition-all duration-300 relative overflow-hidden focus:outline-none focus:ring-4 focus:ring-pink-300 focus:ring-opacity-50 sm:h-16 sm:w-16"
               aria-label="新增支出"
             >
               <i className="fas fa-plus relative z-10 text-2xl"></i>
-              {/* 波紋效果元素 */}
               <div className="absolute inset-0 bg-white opacity-0 hover:opacity-20 transition-opacity duration-300 rounded-full"></div>
-              {/* 脈衝效果 - 使用兩層不同速度的脈衝 */}
               <div className="absolute inset-0 rounded-full animate-ping opacity-30 bg-gradient-to-r from-[#E07A8D] to-[#F09CA7] duration-1000"></div>
               <div className="absolute inset-0 rounded-full animate-ping opacity-20 bg-gradient-to-r from-[#E07A8D] to-[#F09CA7] duration-1500 delay-500"></div>
             </button>
-            {/* 新增支出按鈕的懸停提示 */}
             <div className="absolute -top-12 right-0 bg-[#333333] text-white text-xs px-3 py-1.5 rounded-md opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-300 whitespace-nowrap shadow-md transform group-hover:-translate-y-1">
               <div className="flex items-center gap-1">
                 <i className="fas fa-receipt text-xs"></i>
                 <span>新增支出</span>
               </div>
-              {/* 小三角形 */}
               <div className="absolute w-3 h-3 bg-[#333333] transform rotate-45 right-4 bottom-[-6px]"></div>
             </div>
           </div>
-        </div>
+        </>
       )}
 
       {/* 分帳群組邀請列表 */}
