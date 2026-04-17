@@ -108,7 +108,6 @@ const GroupInviteList: React.FC<GroupInviteListProps> = ({ onClose }) => {
         throw new Error('邀請不存在');
       }
       
-      const _inviteData = inviteDoc.data();
 
       // 獲取群組文檔
       const groupRef = doc(db, 'expenseGroups', groupId);
