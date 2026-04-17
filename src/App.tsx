@@ -317,8 +317,7 @@ const chartRef = useRef<HTMLDivElement>(null);
 
   // 用 useRef 儲存圖表實例，避免 stale closure 問題
   const chartInstanceRef = useRef<echarts.ECharts | null>(null);
-  const [dailyChartInstance, setDailyChartInstance] =
-    useState<echarts.ECharts | null>(null);
+  const dailyChartInstanceRef = useRef<echarts.ECharts | null>(null);
 
   const [chartsKey, setChartsKey] = useState(0);
   // 添加圖例選擇狀態管理
@@ -777,10 +776,11 @@ const chartRef = useRef<HTMLDivElement>(null);
     }
 
     // 先清除舊的實例
-    if (dailyChartInstance) {
+    if (dailyChartInstanceRef.current) {
       try {
-        dailyChartInstance.dispose();
+        dailyChartInstanceRef.current.dispose();
       } catch (_e) { /* noop */ }
+      dailyChartInstanceRef.current = null;
     }
 
     // 創建新實例
@@ -824,6 +824,8 @@ const chartRef = useRef<HTMLDivElement>(null);
             name: "每日支出",
             type: "bar",
             data: [0, 0, 0, 0, 0, 0, 0], // 顯示空數據而非提示文字
+            barMaxWidth: 24,
+            barCategoryGap: "45%",
             itemStyle: {
               color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
                 { offset: 0, color: "#B8E3C9" },
@@ -834,10 +836,9 @@ const chartRef = useRef<HTMLDivElement>(null);
         ],
       });
 
-      // 設置實例後再保存
-      setDailyChartInstance(chart);
+      dailyChartInstanceRef.current = chart;
     } catch (_e) { /* noop */ }
-  }, [dailyChartInstance]);
+  }, []);
 
   // 每日趨勢圖初始化函數
   const initDailyChart = useCallback(() => {
@@ -853,10 +854,11 @@ const chartRef = useRef<HTMLDivElement>(null);
     }
 
     // 先清除舊的實例
-    if (dailyChartInstance) {
+    if (dailyChartInstanceRef.current) {
       try {
-        dailyChartInstance.dispose();
+        dailyChartInstanceRef.current.dispose();
       } catch (_e) { /* noop */ }
+      dailyChartInstanceRef.current = null;
     }
 
     // 創建新實例
@@ -964,6 +966,8 @@ const chartRef = useRef<HTMLDivElement>(null);
             name: "每日支出",
             type: "bar",
             data: seriesData,
+            barMaxWidth: isMobile ? 18 : 24,
+            barCategoryGap: isMobile ? "55%" : "45%",
             itemStyle: {
               color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
                 { offset: 0, color: "#B8E3C9" },
@@ -974,13 +978,12 @@ const chartRef = useRef<HTMLDivElement>(null);
         ],
       });
 
-      // 設置實例後再保存
-      setDailyChartInstance(chart);
+      dailyChartInstanceRef.current = chart;
     } catch (_e) {
       // 出錯時顯示空圖表
       createEmptyDailyChart();
     }
-  }, [createEmptyDailyChart, dailyChartInstance, expenses]);
+  }, [createEmptyDailyChart, expenses]);
 
   // 完全重寫的數據初始化邏輯
   useEffect(() => {
@@ -2197,12 +2200,12 @@ const chartRef = useRef<HTMLDivElement>(null);
 
     // 處理窗口大小變化
     const handleResize = () => {
-      if (dailyChartInstance) {
-        dailyChartInstance.resize();
+      if (dailyChartInstanceRef.current) {
+        dailyChartInstanceRef.current.resize();
 
         // 確保趨勢圖在移動端也能正確顯示
         const isMobile = window.innerWidth < 768;
-        dailyChartInstance.setOption({
+        dailyChartInstanceRef.current.setOption({
           grid: {
             left: isMobile ? "10%" : "3%",
             right: isMobile ? "5%" : "4%",
@@ -2221,13 +2224,14 @@ const chartRef = useRef<HTMLDivElement>(null);
   
   return () => {
       // 清理
-      if (dailyChartInstance) {
-        dailyChartInstance.dispose();
+      if (dailyChartInstanceRef.current) {
+        dailyChartInstanceRef.current.dispose();
+        dailyChartInstanceRef.current = null;
       }
       window.removeEventListener("resize", handleResize);
       window.removeEventListener("expenses-changed", handleExpensesChanged);
     };
-  }, [dailyChartInstance, initDailyChart]);
+  }, [initDailyChart]);
 
   // 篩選當前選中日期的消費 - 完全重寫確保日期比較正確
   const getFilteredExpenses = () => {
@@ -3588,8 +3592,8 @@ const chartRef = useRef<HTMLDivElement>(null);
                       key={transaction.id}
                       className="rounded-lg border border-gray-100 bg-white p-3.5 transition-all duration-300 hover:shadow-md sm:p-4"
                     >
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                    <div className="flex min-w-0 flex-1 items-start gap-3">
+                    <div className="flex flex-row items-start justify-between gap-2">
+                      <div className="flex min-w-0 flex-1 items-start gap-3">
                         <div
                           className="w-10 h-10 shrink-0 rounded-full flex items-center justify-center text-white"
                           style={{
@@ -3603,14 +3607,14 @@ const chartRef = useRef<HTMLDivElement>(null);
                           <i
                             className={`fas ${typeof transaction.category === "string" ? getCategoryIcon(transaction.category) : transaction.category?.icon || "fa-question"}`}
                           ></i>
-                      </div>
-                      <div className="min-w-0 flex-1">
-                          <h3 className="font-medium text-gray-800 break-words">
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <h3 className="font-medium text-gray-800 truncate">
                             {typeof transaction.category === "string"
                               ? transaction.category
                               : transaction.category?.name || "未分類"}
                           </h3>
-                          <p className="text-sm text-gray-500 break-words">
+                          <p className="text-sm text-gray-500">
                             {transaction.date.toLocaleDateString('zh-TW', { year: 'numeric', month: 'long', day: 'numeric' })}
                           </p>
                           {transaction.recurringPeriod && (
@@ -3620,31 +3624,31 @@ const chartRef = useRef<HTMLDivElement>(null);
                               {{ daily: '每日', weekly: '每週', monthly: '每月', yearly: '每年' }[transaction.recurringPeriod] || transaction.recurringPeriod}
                             </span>
                           )}
-                          {transaction.notes && <p className="mt-1 text-sm text-gray-600 break-words line-clamp-2 sm:line-clamp-none">{transaction.notes}</p>}
-</div>
-</div>
-                      <div className="flex w-full items-center justify-between gap-3 sm:w-auto sm:flex-col sm:items-end sm:justify-start">
-                        <span className="shrink-0 whitespace-nowrap text-right text-xl font-bold leading-tight text-[#E07A8D] sm:text-lg">
+                          {transaction.notes && <p className="mt-1 text-sm text-gray-600 truncate max-w-[180px]">{transaction.notes}</p>}
+                        </div>
+                      </div>
+                      <div className="flex shrink-0 flex-col items-end gap-2">
+                        <span className="whitespace-nowrap text-right text-base font-bold leading-tight text-[#E07A8D]">
                           NT$ {transaction.amount.toLocaleString('zh-TW')}
                         </span>
-                        <div className="flex gap-2 sm:mt-2">
-                        <button 
-                          onClick={() => editExpense(transaction)}
-                          className="rounded bg-blue-50 p-2 text-xs text-blue-600 hover:bg-blue-100"
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => editExpense(transaction)}
+                            className="rounded bg-blue-50 p-2 text-xs text-blue-600 hover:bg-blue-100"
                             title="編輯消費明細"
-                        >
-                          <i className="fas fa-edit"></i>
-                        </button>
-                        <button
-                          onClick={() => {
-                            deleteExpense(transaction.id);
-                          }}
-                          className="rounded bg-red-50 p-2 text-xs text-red-600 hover:bg-red-100"
-                          title="刪除消費明細"
-                        >
-                          <i className="fas fa-trash-alt"></i>
-                        </button>
-                      </div>
+                          >
+                            <i className="fas fa-edit"></i>
+                          </button>
+                          <button
+                            onClick={() => {
+                              deleteExpense(transaction.id);
+                            }}
+                            className="rounded bg-red-50 p-2 text-xs text-red-600 hover:bg-red-100"
+                            title="刪除消費明細"
+                          >
+                            <i className="fas fa-trash-alt"></i>
+                          </button>
+                        </div>
                       </div>
                     </div>
 </div>
