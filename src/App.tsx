@@ -439,9 +439,6 @@ const chartRef = useRef<HTMLDivElement>(null);
       }));
 
 
-      // 當前是否選中某個類別
-      const isSelectedMode = selectedCategory !== null;
-
       // 標準圓餅圖配置
       const option = {
         // 確保沒有標題
@@ -982,10 +979,16 @@ const chartRef = useRef<HTMLDivElement>(null);
       setShowLoginForm(true);
     }
 
-    // 當頁面變為可見時重新加載數據
+    // 當頁面變為可見時重新加載數據（5分鐘內不重複刷新）
+    let lastRefreshTime = Date.now();
+    const REFRESH_COOLDOWN = 5 * 60 * 1000;
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible" && currentUser) {
-        initializeAppData();
+        const now = Date.now();
+        if (now - lastRefreshTime >= REFRESH_COOLDOWN) {
+          lastRefreshTime = now;
+          initializeAppData();
+        }
       }
     };
 
