@@ -1962,18 +1962,21 @@ useEffect(() => {
   // 監聽selectedCategory狀態變化，更新餅圖位置
   useEffect(() => {
     if (chartInstance) {
-      // 切換類別時只更新圖例顯示，不移動圓心位置（避免標籤浮動）
-      chartInstance.setOption({
-        animation: false,
-        legend: {
-          show: !selectedCategory,
-          orient: "horizontal",
-          left: "center",
-          bottom: 10,
-        },
-      });
+      // 容器寬度改變後先 resize，再更新圖例
+      setTimeout(() => {
+        chartInstance.resize();
+        chartInstance.setOption({
+          animation: false,
+          legend: {
+            show: !selectedCategory,
+            orient: "horizontal",
+            left: "center",
+            bottom: 10,
+          },
+        });
+      }, 50);
     }
-  }, [selectedCategory]);
+  }, [selectedCategory]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 重構每日趨勢圖初始化
   useEffect(() => {
