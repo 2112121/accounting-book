@@ -3119,38 +3119,32 @@ const chartRef = useRef<HTMLDivElement>(null);
           
           {/* 快速記帳按鈕 */}
           <div className="mb-8 relative flex gap-2">
-            <button 
-              className="px-5 py-3 bg-[#E07A8D] hover:bg-[#F09CA7] text-white rounded-xl shadow-sm hover:shadow-md flex items-center gap-2 font-medium transition-all duration-300"
+            <button
+              className="flex-1 py-3 bg-[#E07A8D] hover:bg-[#F09CA7] text-white rounded-xl shadow-sm hover:shadow-md flex items-center justify-center gap-1.5 text-sm font-medium transition-all duration-300 whitespace-nowrap"
               onClick={() => setShowExpenseForm(true)}
             >
               <i className="fas fa-plus"></i>
               <span>新增消費</span>
             </button>
             
-            <button 
-              className="px-5 py-3 bg-[#6BBFA0] hover:bg-[#5CAA90] text-white rounded-xl shadow-sm hover:shadow-md flex items-center gap-2 font-medium transition-all duration-300"
+            <button
+              className="flex-1 py-3 bg-[#6BBFA0] hover:bg-[#5CAA90] text-white rounded-xl shadow-sm hover:shadow-md flex items-center justify-center gap-1.5 text-sm font-medium transition-all duration-300 whitespace-nowrap"
               onClick={() => {
                 const element = document.getElementById('expense-details');
                 if (element) {
                   element.scrollIntoView({ behavior: 'smooth' });
-                  // 添加一个高亮效果
                   element.classList.add('highlight-section');
-                  setTimeout(() => {
-                    element.classList.remove('highlight-section');
-                  }, 2000);
+                  setTimeout(() => { element.classList.remove('highlight-section'); }, 2000);
                 }
               }}
             >
               <i className="fas fa-list-ul"></i>
               <span>歷史消費</span>
             </button>
-            
-            <button 
-              className="px-5 py-3 bg-[#4EA8DE] hover:bg-[#3D97CD] text-white rounded-xl shadow-sm hover:shadow-md flex items-center gap-2 font-medium transition-all duration-300"
-              onClick={() => {
-                // 導航到收入管理頁面
-                window.location.href = '/income';
-              }}
+
+            <button
+              className="flex-1 py-3 bg-[#4EA8DE] hover:bg-[#3D97CD] text-white rounded-xl shadow-sm hover:shadow-md flex items-center justify-center gap-1.5 text-sm font-medium transition-all duration-300 whitespace-nowrap"
+              onClick={() => { window.location.href = '/income'; }}
             >
               <i className="fas fa-coins"></i>
               <span>收入管理</span>
