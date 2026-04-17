@@ -167,7 +167,6 @@ const chartRef = useRef<HTMLDivElement>(null);
     // 直接重置時間為當天0點0分0秒，保留原始時區信息
     now.setHours(0, 0, 0, 0);
     // 輸出完整日期信息用於調試
-    console.log("===獲取今日日期===", {
       日期對象: now.toString(),
       ISO格式: now.toISOString(),
       本地日期: now.toLocaleDateString("zh-TW"),
@@ -181,10 +180,8 @@ const chartRef = useRef<HTMLDivElement>(null);
 
   // 在應用啟動時強制更新當前日期
   useEffect(() => {
-    console.log("應用啟動，強制更新當前日期");
     // 強制獲取最新的當前日期
     const freshToday = getTodayDate();
-    console.log("應用啟動使用的今日日期:", freshToday.toISOString());
     setSelectedDate(freshToday);
     setSelectedDateOption("today");
   }, []);
@@ -192,7 +189,6 @@ const chartRef = useRef<HTMLDivElement>(null);
   // 監聽排行榜瀏覽器顯示事件
   useEffect(() => {
     const handleShowLeaderboardViewer = () => {
-      console.log("接收到顯示排行榜瀏覽頁面事件");
       // 關閉排行榜管理頁面
       setShowLeaderboardForm(false);
       // 顯示排行榜瀏覽頁面
@@ -216,28 +212,23 @@ const chartRef = useRef<HTMLDivElement>(null);
 
   // 每當selectedDateOption變化時更新實際日期
   useEffect(() => {
-    console.log("日期選項變更:", selectedDateOption);
     if (selectedDateOption === "today") {
       // 強制獲取最新的今天日期
       const currentToday = getTodayDate();
-      console.log("更新為今天日期:", currentToday.toISOString());
       setSelectedDate(currentToday);
     } else if (selectedDateOption === "yesterday") {
       // 計算昨天日期
       const yesterday = new Date();
       yesterday.setDate(yesterday.getDate() - 1);
       yesterday.setHours(0, 0, 0, 0);
-      console.log("更新為昨天日期:", yesterday.toISOString());
       setSelectedDate(yesterday);
     }
   }, [selectedDateOption]);
 
   // 圓餅圖初始化函數 - 移到useEffect外部
   const createEmptyPieChart = () => {
-    console.log("創建空圓餅圖 - 不顯示暫無數據提示");
 
     if (!chartRef.current) {
-      console.warn("圓餅圖DOM元素不存在，等待渲染");
       return;
     }
 
@@ -247,7 +238,6 @@ const chartRef = useRef<HTMLDivElement>(null);
         try {
           chartInstance.dispose();
         } catch (e) {
-          console.error("清除圓餅圖實例時出錯:", e);
         }
       }
 
@@ -313,22 +303,18 @@ const chartRef = useRef<HTMLDivElement>(null);
       chart.setOption(option);
       setChartInstance(chart);
     } catch (e) {
-      console.error("創建空圓餅圖時出錯:", e);
     }
   };
 
   // 簡化圓餅圖初始化流程，確保圖表能夠顯示
   const initPieChart = () => {
-    console.log("初始化圓餅圖 - 開始檢查數據");
 
     if (!chartRef.current) {
-      console.warn("圓餅圖DOM元素不存在，等待渲染");
       return;
     }
 
     // 根據模式選擇數據
     let dataToUse: Expense[] = [];
-    console.log("原始數據筆數:", expenses.length);
     
     // 使用最嚴格的年月直接比較，完全避開日期範圍比較
     if (pieChartMode === 'current') {
@@ -337,13 +323,11 @@ const chartRef = useRef<HTMLDivElement>(null);
       const currentMonth = today.getMonth(); // 0-11
       const currentYear = today.getFullYear();
       
-      console.log(`嚴格過濾當前月份: ${currentYear}年${currentMonth + 1}月`);
       
       // 逐條檢查每筆支出記錄
       expenses.forEach(expense => {
         try {
           if (!expense.date) {
-            console.warn(`支出 ${expense.id} 沒有日期資料，已跳過`);
             return;
           }
           
@@ -354,7 +338,6 @@ const chartRef = useRef<HTMLDivElement>(null);
             
           // 檢查日期是否有效
           if (isNaN(expDate.getTime())) {
-            console.warn(`支出 ${expense.id} 日期無效: ${expense.date}，已跳過`);
             return;
           }
           
@@ -365,7 +348,6 @@ const chartRef = useRef<HTMLDivElement>(null);
           const matchesCurrentMonth = (expYear === currentYear && expMonth === currentMonth);
           
           // 打印詳細信息用於調試
-          console.log(`檢查支出 ${expense.id}:`, {
             原始日期值: String(expense.date),
             解析後日期: expDate.toISOString(),
             年份: expYear === currentYear ? '✓' : '✗',
@@ -381,16 +363,13 @@ const chartRef = useRef<HTMLDivElement>(null);
             dataToUse.push(expense);
           }
         } catch (err) {
-          console.error(`處理支出 ${expense.id} 時出錯:`, err);
         }
       });
       
-      console.log(`當月過濾結果: 總計 ${dataToUse.length} 筆支出記錄`);
       
       // 再次確認過濾後的每筆記錄
       dataToUse.forEach((exp, idx) => {
         const expDate = exp.date instanceof Date ? exp.date : new Date(exp.date);
-        console.log(`當月數據 #${idx}:`, {
           id: exp.id,
           日期: expDate.toISOString().split('T')[0],
           年月: `${expDate.getFullYear()}/${expDate.getMonth()+1}`,
@@ -405,13 +384,11 @@ const chartRef = useRef<HTMLDivElement>(null);
       // 注意：月份需要-1因為JavaScript的月份是0-11
       const targetMonth = month - 1;
       
-      console.log(`嚴格過濾選定月份: ${year}年${month}月 (內部月份索引: ${targetMonth})`);
       
       // 逐條檢查每筆支出記錄
       expenses.forEach(expense => {
         try {
           if (!expense.date) {
-            console.warn(`支出 ${expense.id} 沒有日期資料，已跳過`);
             return;
           }
           
@@ -422,7 +399,6 @@ const chartRef = useRef<HTMLDivElement>(null);
             
           // 檢查日期是否有效
           if (isNaN(expDate.getTime())) {
-            console.warn(`支出 ${expense.id} 日期無效: ${expense.date}，已跳過`);
             return;
           }
           
@@ -435,24 +411,19 @@ const chartRef = useRef<HTMLDivElement>(null);
           // 只添加匹配選擇月份的支出
           if (matchesSelectedMonth) {
             dataToUse.push(expense);
-            console.log(`選擇月份匹配: ${expense.id}, ${expDate.toISOString().split('T')[0]}, ${typeof expense.category === 'string' ? expense.category : expense.category?.name}, $${expense.amount}`);
           }
         } catch (err) {
-          console.error(`處理支出 ${expense.id} 時出錯:`, err);
         }
       });
       
-      console.log(`選擇月份過濾結果: 總計 ${dataToUse.length} 筆支出記錄`);
     } 
     else {
       // 全部數據模式 - 直接使用所有支出
       dataToUse = [...expenses];
-      console.log("使用全部數據, 筆數:", dataToUse.length);
     }
 
     // 檢查是否有數據
     if (!dataToUse || dataToUse.length === 0) {
-      console.log("沒有支出數據，顯示空圓餅圖");
       createEmptyPieChart();
       return;
     }
@@ -462,13 +433,11 @@ const chartRef = useRef<HTMLDivElement>(null);
       try {
         chartInstance.dispose();
       } catch (e) {
-        console.error("清除圓餅圖實例時出錯:", e);
       }
     }
 
     // 創建新實例
     try {
-      console.log("開始初始化圓餅圖，數據筆數:", dataToUse.length);
       const chart = echarts.init(chartRef.current);
 
       // 計算分類支出
@@ -495,14 +464,12 @@ const chartRef = useRef<HTMLDivElement>(null);
         }
       });
 
-      console.log("計算的分類支出:", categorySum, "總金額:", totalAmount);
 
       // 確認是否有數據 - 只要有分類數據就顯示圖表
       const hasData = Object.keys(categorySum).length > 0;
 
       // 如果沒有數據，顯示空圖表
       if (!hasData) {
-        console.log("圓餅圖沒有有效數據，顯示空圖表");
         createEmptyPieChart();
         return;
       }
@@ -513,7 +480,6 @@ const chartRef = useRef<HTMLDivElement>(null);
         value: categorySum[category],
       }));
 
-      console.log("準備的圓餅圖數據:", pieData);
 
       // 設置圖表選項
       const isMobile = window.innerWidth < 768; // 檢測是否為移動設備
@@ -618,12 +584,10 @@ const chartRef = useRef<HTMLDivElement>(null);
       };
 
       // 明確移除graphic屬性，確保不會顯示"暫無數據"
-      console.log("設置圓餅圖選項，數據項數量:", pieData.length);
       chart.setOption(option);
 
       // 添加圖例選擇變化事件
       chart.on("legendselectchanged", function (params: any) {
-        console.log("圖例選擇變更:", params);
         // 更新React狀態中的圖例選擇
         setLegendSelectedMap(params.selected);
       });
@@ -631,7 +595,6 @@ const chartRef = useRef<HTMLDivElement>(null);
       // 點擊事件處理
       chart.on("click", function (params) {
         if (params.componentType === "series") {
-          console.log("點擊圓餅圖分類:", params.name);
           setSelectedCategory(params.name);
 
           // 點擊後，重新設置圖表，確保標題不顯示並調整圖表位置
@@ -653,9 +616,7 @@ const chartRef = useRef<HTMLDivElement>(null);
 
       // 設置實例後再保存
       setChartInstance(chart);
-      console.log("圓餅圖初始化完成");
     } catch (e) {
-      console.error("創建圓餅圖時出錯:", e);
       // 出錯時顯示空圖表
       createEmptyPieChart();
     }
@@ -663,7 +624,6 @@ const chartRef = useRef<HTMLDivElement>(null);
 
   // 修改重置函數，確保圖表重置時保留圖例選擇狀態
   const resetCategorySelection = () => {
-    console.log("重置類別選擇 - 開始", legendSelectedMap);
 
     // 更新狀態
     setSelectedCategory(null);
@@ -689,7 +649,6 @@ const chartRef = useRef<HTMLDivElement>(null);
           chartInstance.resize();
         }, 10);
       } catch (err) {
-        console.error("調整圖表位置出錯:", err);
         // 只有在出錯時才強制重新渲染
         setChartsKey((prev) => prev + 1);
       }
@@ -702,7 +661,6 @@ const chartRef = useRef<HTMLDivElement>(null);
   // 每日趨勢圖初始化函數 - 移到useEffect外部
   const createEmptyDailyChart = () => {
     if (!dailyChartRef.current) {
-      console.warn("每日趨勢圖DOM元素不存在，等待渲染");
       return;
     }
 
@@ -711,13 +669,11 @@ const chartRef = useRef<HTMLDivElement>(null);
       try {
         dailyChartInstance.dispose();
       } catch (e) {
-        console.error("清除每日趨勢圖實例時出錯:", e);
       }
     }
 
     // 創建新實例
     try {
-      console.log("創建空每日趨勢圖 - 不顯示暫無數據提示");
       const chart = echarts.init(dailyChartRef.current);
 
       // 設置空狀態 - 改為顯示空白圖表而非"暫無數據"文字
@@ -770,22 +726,18 @@ const chartRef = useRef<HTMLDivElement>(null);
       // 設置實例後再保存
       setDailyChartInstance(chart);
     } catch (e) {
-      console.error("創建空每日趨勢圖時出錯:", e);
     }
   };
 
   // 每日趨勢圖初始化函數
   const initDailyChart = () => {
-    console.log("初始化每日趨勢圖 - 開始檢查數據");
 
     if (!dailyChartRef.current) {
-      console.warn("每日趨勢圖DOM元素不存在，等待渲染");
       return;
     }
 
     // 檢查是否有數據
     if (!expenses || expenses.length === 0) {
-      console.log("沒有支出數據，顯示空每日趨勢圖");
       createEmptyDailyChart();
       return;
     }
@@ -795,20 +747,17 @@ const chartRef = useRef<HTMLDivElement>(null);
       try {
         dailyChartInstance.dispose();
       } catch (e) {
-        console.error("清除每日趨勢圖實例時出錯:", e);
       }
     }
 
     // 創建新實例
     try {
-      console.log("開始初始化每日趨勢圖，數據筆數:", expenses.length);
       const chart = echarts.init(dailyChartRef.current);
 
       // 獲取真正的今天日期（不使用緩存的日期）
       const rightNow = new Date();
       // 重置時間為0點0分0秒
       rightNow.setHours(0, 0, 0, 0);
-      console.log("趨勢圖使用的今天日期:", rightNow.toISOString());
 
       // 計算每日支出
       const dailySum: Record<string, number> = {};
@@ -828,7 +777,6 @@ const chartRef = useRef<HTMLDivElement>(null);
         dailySum[dateKey] = 0;
       }
 
-      console.log("趨勢圖日期範圍:", dates);
 
       // 計算每天支出總和
       let hasData = false;
@@ -845,16 +793,13 @@ const chartRef = useRef<HTMLDivElement>(null);
 
           if (dailySum[expenseKey] !== undefined) {
             dailySum[expenseKey] += expense.amount;
-            console.log(`找到日期 ${expenseKey} 的支出:`, expense.amount);
             hasData = true;
           }
         } catch (err) {
-          console.error("處理expense日期出錯:", err, expense);
         }
       });
 
       // 輸出日期和支出記錄，用於調試
-      console.log("每日支出統計:", dailySum);
 
       // 檢查是否所有日期都沒有支出
       if (!hasData) {
@@ -870,7 +815,6 @@ const chartRef = useRef<HTMLDivElement>(null);
 
       const seriesData = dates.map((date) => dailySum[date]);
 
-      console.log("每日趨勢圖數據:", { 日期: xAxisData, 金額: seriesData });
 
       // 設置圖表選項
       const isMobile = window.innerWidth < 768; // 檢測是否為移動設備
@@ -924,9 +868,7 @@ const chartRef = useRef<HTMLDivElement>(null);
 
       // 設置實例後再保存
       setDailyChartInstance(chart);
-      console.log("每日趨勢圖初始化完成");
     } catch (e) {
-      console.error("創建每日趨勢圖出錯:", e);
       // 出錯時顯示空圖表
       createEmptyDailyChart();
     }
@@ -935,34 +877,26 @@ const chartRef = useRef<HTMLDivElement>(null);
   // 完全重寫的數據初始化邏輯
   useEffect(() => {
     const initializeAppData = async () => {
-      console.log("===========應用數據初始化開始===========");
-      console.log("Firebase連接狀態檢查...");
 
       // 只有登入用戶才加載數據
       if (!currentUser || !currentUser.uid) {
-        console.log("用戶未登入，不加載數據");
         setExpenses([]);
         return;
       }
       
       // 獲取用戶ID用於數據過濾
       const userId = currentUser.uid;
-      console.log("當前用戶ID:", userId);
-      console.log("用戶郵箱:", currentUser.email);
 
       // 顯示加載中提示
       setSuccessMessage("正在連線中...");
       setShowSuccessMessage(true);
 
       try {
-        console.log("嘗試從Firebase獲取最新數據...");
 
         // 1. 檢查數據庫連接
-        console.log("Firestore實例:", db ? "已初始化" : "未初始化");
 
         // 2. 構建查詢
         const expensesRef = collection(db, "expenses");
-        console.log("集合路徑: expenses");
 
         // 查詢當前用戶的記錄
       const q = query(
@@ -970,12 +904,9 @@ const chartRef = useRef<HTMLDivElement>(null);
           where("userId", "==", userId),
           orderBy("createdAt", "desc"),
         );
-        console.log("查詢條件: userId =", userId);
 
         // 3. 執行查詢
-        console.log("開始執行查詢...");
         const querySnapshot = await getDocs(q);
-        console.log("查詢完成, 結果數量:", querySnapshot.size);
         
         // 處理查詢結果
         const fetchedExpenses: Expense[] = [];
@@ -983,7 +914,6 @@ const chartRef = useRef<HTMLDivElement>(null);
         // 4. 處理結果
         querySnapshot.forEach((doc) => {
           const data = doc.data();
-          console.log("讀取文檔ID:", doc.id, "用戶ID:", data.userId);
 
           // 確認用戶ID匹配
           if (data.userId === userId) {
@@ -994,15 +924,12 @@ const chartRef = useRef<HTMLDivElement>(null);
                 if (data.date && typeof data.date.toDate === "function") {
                   // Firestore Timestamp 對象
                   expenseDate = data.date.toDate();
-                  console.log(`文檔 ${doc.id}: 從Timestamp轉換日期:`, expenseDate.toISOString());
                 } else if (data.date && data.date._seconds) {
                   // Firestore Timestamp 從JSON
                   expenseDate = new Date(data.date._seconds * 1000);
-                  console.log(`文檔 ${doc.id}: 從_seconds轉換日期:`, expenseDate.toISOString());
                 } else if (data.date instanceof Date) {
                   // 已經是日期對象
                   expenseDate = new Date(data.date.getTime());
-                  console.log(`文檔 ${doc.id}: 使用日期對象:`, expenseDate.toISOString());
                 } else if (typeof data.date === "string") {
                   // 字符串日期 - 確保正確解析
                   // 為了解決時區問題，我們需要保留原始字符串的日期部分
@@ -1014,15 +941,12 @@ const chartRef = useRef<HTMLDivElement>(null);
                     
                     // 創建本地時間的日期對象，避免時區轉換問題
                     expenseDate = new Date(year, month - 1, day, 0, 0, 0);
-                    console.log(`文檔 ${doc.id}: 從日期字符串 "${dateString}" 轉換:`, expenseDate.toISOString());
                   } else {
                     // 嘗試作為標準ISO字符串解析
                     expenseDate = new Date(dateString);
-                    console.log(`文檔 ${doc.id}: 從一般字符串轉換:`, expenseDate.toISOString());
                   }
                 } else {
                   // 默認為當前日期
-                  console.warn(`文檔 ${doc.id}: 無效的日期格式:`, JSON.stringify(data.date));
                   expenseDate = new Date();
                 }
                 
@@ -1049,9 +973,7 @@ const chartRef = useRef<HTMLDivElement>(null);
                   userId: data.userId,
                 });
                 
-                console.log(`成功處理文檔 ${doc.id} 的日期:`, normalizedDate.toISOString());
               } catch (e) {
-                console.error(`處理文檔 ${doc.id} 的日期時出錯:`, e);
                 // 如果日期處理出錯，仍然添加記錄但使用當前日期
                 fetchedExpenses.push({
                   id: doc.id,
@@ -1063,16 +985,13 @@ const chartRef = useRef<HTMLDivElement>(null);
                 });
               }
             } catch (e) {
-              console.error(`處理消費明細 ${doc.id} 時出錯:`, e);
             }
           }
         });
 
-        console.log(
           `成功從Firebase獲取了 ${fetchedExpenses.length} 筆消費明細`,
         );
         if (fetchedExpenses.length === 0) {
-          console.log(
             "提示: 沒有找到消費明細，請確認是否已添加消費明細或索引是否已創建",
           );
         }
@@ -1082,7 +1001,6 @@ const chartRef = useRef<HTMLDivElement>(null);
 
         // 確保在設置expenses後強制重新渲染圖表
         // 增加雙重延遲時間，確保數據和DOM完全更新後再渲染圖表
-        console.log("準備重新渲染圖表...");
         setTimeout(() => {
           try {
             // 先強制重新渲染一次
@@ -1091,25 +1009,20 @@ const chartRef = useRef<HTMLDivElement>(null);
             // 再加一個延遲確保DOM完全渲染
             setTimeout(() => {
               try {
-                console.log("嘗試渲染圓餅圖...");
                 if (chartRef.current) {
                   initPieChart();
                 }
 
-                console.log("嘗試渲染每日趨勢圖...");
                 if (dailyChartRef.current) {
                   initDailyChart();
                 }
 
                 // 觸發圖表重新渲染事件
                 window.dispatchEvent(new Event("expenses-changed"));
-                console.log("圖表渲染完成");
               } catch (error) {
-                console.error("圖表渲染失敗:", error);
               }
             }, 300);
           } catch (error) {
-            console.error("圖表渲染前準備失敗:", error);
           }
         }, 800); // 增加主延遲時間
 
@@ -1119,14 +1032,9 @@ const chartRef = useRef<HTMLDivElement>(null);
         }
         setShowSuccessMessage(false);
 
-        console.log("===========應用數據初始化完成===========");
       } catch (error) {
-        console.error("從Firebase獲取數據失敗:", error);
         // 顯示更詳細的錯誤信息
         if (error instanceof Error) {
-          console.error("錯誤類型:", error.name);
-          console.error("錯誤消息:", error.message);
-          console.error("錯誤堆棧:", error.stack);
           setError(`讀取消費明細失敗: ${error.message}`);
         } else {
           setError("讀取消費明細失敗，請檢查控制檯日誌");
@@ -1134,7 +1042,6 @@ const chartRef = useRef<HTMLDivElement>(null);
         setTimeout(() => setError(null), 5000);
         setExpenses([]);
         setShowSuccessMessage(false);
-        console.log("===========應用數據初始化失敗===========");
       }
     };
 
@@ -1153,7 +1060,6 @@ const chartRef = useRef<HTMLDivElement>(null);
     // 當頁面變為可見時重新加載數據
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible" && currentUser) {
-        console.log("頁面變為可見，重新加載數據");
         initializeAppData();
       }
     };
@@ -1224,7 +1130,6 @@ const chartRef = useRef<HTMLDivElement>(null);
         return;
       }
 
-      console.log("===開始刷新後數據恢復過程===");
 
       try {
         // 先清空當前狀態，避免顯示舊數據
@@ -1232,7 +1137,6 @@ const chartRef = useRef<HTMLDivElement>(null);
 
         // 直接從Firebase獲取最新數據
         const userId = currentUser.uid;
-        console.log(`嘗試為用戶 ${userId} 從Firebase獲取最新數據`);
 
         const expensesRef = collection(db, "expenses");
         const q = query(
@@ -1267,7 +1171,6 @@ const chartRef = useRef<HTMLDivElement>(null);
                   expenseDate = new Date(data.date);
                 } else {
                   // 默認為當前日期
-                  console.warn(`無效的日期格式: ${JSON.stringify(data.date)}`);
                   expenseDate = new Date();
                 }
 
@@ -1281,13 +1184,11 @@ const chartRef = useRef<HTMLDivElement>(null);
                   recurringPeriod: data.recurringPeriod || undefined,
                 });
               } catch (e) {
-                console.error(`處理消費明細 ${doc.id} 時出錯:`, e);
               }
             }
           });
 
           if (fetchedExpenses.length > 0) {
-            console.log(
               `成功從Firebase獲取 ${fetchedExpenses.length} 筆消費明細`,
             );
 
@@ -1300,7 +1201,6 @@ const chartRef = useRef<HTMLDivElement>(null);
             // 增加延遲時間，確保數據已完全更新且DOM已渲染完成
             setTimeout(() => {
               try {
-                console.log("數據恢復後重新渲染圖表...");
                 // 觸發圖表重新渲染事件
                 window.dispatchEvent(new Event("expenses-changed"));
 
@@ -1313,9 +1213,7 @@ const chartRef = useRef<HTMLDivElement>(null);
                   initDailyChart();
                 }
 
-                console.log("數據恢復後圖表渲染完成");
               } catch (error) {
-                console.error("數據恢復後圖表渲染失敗:", error);
               }
             }, 800);
 
@@ -1330,15 +1228,12 @@ const chartRef = useRef<HTMLDivElement>(null);
               1500,
             );
           } else {
-            console.log("Firebase中沒有找到當前用戶的記錄");
             setExpenses([]);
           }
         } else {
-          console.log("Firebase查詢結果為空");
           setExpenses([]);
       }
     } catch (error) {
-        console.error("刷新後數據恢復失敗:", error);
         // 不再顯示錯誤提示，只在控制台輸出錯誤信息
         // setError("無法恢復數據，請嘗試手動刷新頁面");
         // setTimeout(() => setError(null), 3000);
@@ -1347,9 +1242,7 @@ const chartRef = useRef<HTMLDivElement>(null);
         setExpenses([]);
         
         // 靜默處理錯誤，不顯示給用戶
-        console.log("數據恢復失敗，繼續使用應用...");
       } finally {
-        console.log("===數據恢復過程結束===");
       }
     };
 
@@ -1360,7 +1253,6 @@ const chartRef = useRef<HTMLDivElement>(null);
 
     // 監聽強制數據恢復事件
     const handleForceDataRecovery = () => {
-      console.log("收到強制數據恢復事件");
       recoverDataAfterRefresh();
     };
 
@@ -1427,11 +1319,9 @@ const chartRef = useRef<HTMLDivElement>(null);
             await updateDoc(doc(db, "recurringExpenses", docSnap.id), {
               lastGeneratedDate: latestStr,
             });
-            console.log(`定期支出已補產至 ${latestStr}`);
           }
         }
       } catch (err) {
-        console.error("定期支出自動補產失敗:", err);
       }
     };
 
@@ -1463,7 +1353,6 @@ const chartRef = useRef<HTMLDivElement>(null);
         return false;
       }
       
-      console.log("開始添加支出記錄");
       
       // 處理附件
       let attachmentUrls: string[] = [];
@@ -1528,7 +1417,6 @@ const chartRef = useRef<HTMLDivElement>(null);
         try {
           // 嘗試使用事務確保一致性
           const { docId, splitDocId } = await addExpenseWithTransaction(expenseData, expense.isShared, expense.sharedWith);
-          console.log("使用事務成功添加記錄，支出ID:", docId, "分帳ID:", splitDocId || "無分帳");
   
           // 更新真實ID
           setExpenses((prevExpenses) =>
@@ -1538,11 +1426,9 @@ const chartRef = useRef<HTMLDivElement>(null);
           );
         } catch (txError) {
           // 事務失敗時，嘗試直接添加支出記錄（不含排行榜更新）
-          console.error("事務處理失敗:", txError);
           
           // 記錄具體錯誤信息到日誌
           if (txError instanceof Error) {
-            console.error("事務錯誤詳情:", {
               名稱: txError.name,
               訊息: txError.message,
               堆疊: txError.stack
@@ -1550,9 +1436,7 @@ const chartRef = useRef<HTMLDivElement>(null);
           }
           
           // 後備方案：直接添加支出記錄
-          console.log("嘗試使用後備方案直接添加支出...");
           const docRef = await addDoc(collection(db, "expenses"), expenseData);
-          console.log("使用後備方案成功添加記錄，支出ID:", docRef.id);
           
           // 更新真實ID
           setExpenses((prevExpenses) =>
@@ -1571,7 +1455,6 @@ const chartRef = useRef<HTMLDivElement>(null);
               if (userDoc.exists()) {
                 const userData = userDoc.data();
                 creatorNickname = userData.nickname || currentUser.displayName || "";
-                console.log("后备方案: 获取到当前用户昵称:", creatorNickname);
               }
               
               // 準備分帳數據 - 确保使用最新的用户昵称
@@ -1592,7 +1475,6 @@ const chartRef = useRef<HTMLDivElement>(null);
                       };
                     }
                   } catch (e) {
-                    console.warn(`无法获取参与者 ${person.userId} 的最新资料，使用提供的资料`, e);
                   }
                 }
                 
@@ -1626,7 +1508,6 @@ const chartRef = useRef<HTMLDivElement>(null);
               
               // 保存分帳記錄
               const splitRef = await addDoc(collection(db, "splitExpenses"), splitData);
-              console.log("使用後備方案創建分帳記錄，ID:", splitRef.id);
               
               // 更新原始支出記錄，標記為已分帳
               await updateDoc(doc(db, "expenses", docRef.id), {
@@ -1634,7 +1515,6 @@ const chartRef = useRef<HTMLDivElement>(null);
                 splitTransactionId: splitRef.id
               });
             } catch (splitError) {
-              console.error("創建分帳記錄失敗:", splitError);
             }
           }
           
@@ -1650,11 +1530,9 @@ const chartRef = useRef<HTMLDivElement>(null);
           );
         }
       } catch (error) {
-        console.error("保存到Firebase失敗，但UI已更新:", error);
         
         // 記錄具體錯誤類型和訊息
         if (error instanceof Error) {
-          console.error("Firebase錯誤詳情:", {
             名稱: error.name,
             訊息: error.message,
             堆疊: error.stack
@@ -1680,15 +1558,12 @@ const chartRef = useRef<HTMLDivElement>(null);
             isActive: true,
             createdAt: Timestamp.now(),
           });
-          console.log("定期支出設定已儲存");
         } catch (recErr) {
-          console.error("儲存定期支出設定失敗:", recErr);
         }
       }
 
       return true;
     } catch (error) {
-      console.error("添加支出失敗:", error);
       setError("添加支出失敗，請稍後再試");
       setTimeout(() => setError(null), 3000);
       return false;
@@ -1717,31 +1592,26 @@ const chartRef = useRef<HTMLDivElement>(null);
       throw new Error("支出數據不完整");
     }
     
-    console.log("準備開始 Firestore 事務...");
     
     try {
       // 獲取當前用戶參與的所有進行中排行榜
       const result = await runTransaction(db, async (transaction) => {
-        console.log("開始執行 Firestore 事務...");
         
         try {
           // 步驟 1: 添加支出記錄
           const expenseRef = doc(collection(db, "expenses"));
           transaction.set(expenseRef, expenseData);
-          console.log("事務中創建支出文檔，ID:", expenseRef.id);
           
           // 步驟 2: 如果是分帳支出，創建分帳記錄
           let splitDocId;
           if (isShared && sharedWith && sharedWith.length > 0) {
             // 獲取當前用戶的最新數據
-            console.log("事務中獲取用戶文檔，UID:", currentUser.uid);
             const userDoc = await transaction.get(doc(db, "users", currentUser.uid));
             let creatorNickname = "";
             
             if (userDoc.exists()) {
               const userData = userDoc.data();
               creatorNickname = userData.nickname || currentUser.displayName || "";
-              console.log("獲取到當前用戶暱稱:", creatorNickname);
             }
             
             // 準備分帳數據 - 確保使用最新的用戶昵称
@@ -1763,7 +1633,6 @@ const chartRef = useRef<HTMLDivElement>(null);
                     };
                   }
                 } catch (e) {
-                  console.warn(`無法獲取參與者 ${person.userId} 的最新資料，使用提供的資料`, e);
                 }
               }
               
@@ -1799,7 +1668,6 @@ const chartRef = useRef<HTMLDivElement>(null);
             // 添加分帳記錄
             const splitRef = doc(collection(db, "splitExpenses"));
             transaction.set(splitRef, splitData);
-            console.log("事務中創建分帳文檔，ID:", splitRef.id);
             
             // 更新原始支出記錄，標記為已分帳
             transaction.update(expenseRef, {
@@ -1811,15 +1679,12 @@ const chartRef = useRef<HTMLDivElement>(null);
           }
           
           // 步驟 3: 獲取用戶參與的進行中排行榜
-          console.log("事務中獲取用戶文檔，UID:", currentUser.uid);
           const userDoc = await transaction.get(doc(db, "users", currentUser.uid));
           if (!userDoc.exists()) {
-            console.error("事務中用戶文檔不存在");
             throw new Error("用戶數據不存在");
           }
           
           const userData = userDoc.data();
-          console.log("事務中用戶數據:", { 
             暱稱: userData.nickname || '未知', 
             排行榜數量: (userData.leaderboards || []).length 
           });
@@ -1828,7 +1693,6 @@ const chartRef = useRef<HTMLDivElement>(null);
           
           // 如果用戶沒有參與排行榜，就不需要更新
           if (userLeaderboardIds.length === 0) {
-            console.log("事務中: 用戶沒有參與任何排行榜，跳過排行榜更新");
             return { 
               docId: expenseRef.id, 
               splitDocId 
@@ -1836,14 +1700,11 @@ const chartRef = useRef<HTMLDivElement>(null);
           }
           
           // 獲取所有排行榜數據
-          console.log("事務中: 獲取 " + userLeaderboardIds.length + " 個排行榜數據");
           const leaderboardPromises = userLeaderboardIds.map((id: string) => {
-            console.log("事務中: 準備獲取排行榜 ID:", id);
             return transaction.get(doc(db, "leaderboards", id));
           });
           
           const leaderboardDocs = await Promise.all(leaderboardPromises);
-          console.log("事務中: 成功獲取 " + leaderboardDocs.length + " 個排行榜文檔");
           
           // 篩選出進行中的排行榜並立即更新
           const now = new Date();
@@ -1852,19 +1713,16 @@ const chartRef = useRef<HTMLDivElement>(null);
             : new Date(expenseData.date);
           const expenseAmount = expenseData.amount;
           
-          console.log(`事務中: 檢查 ${leaderboardDocs.length} 個排行榜是否需要更新，支出日期:`, expenseDate.toLocaleDateString());
           
           let updatedLeaderboardCount = 0;
           
           for (let i = 0; i < leaderboardDocs.length; i++) {
             const leaderboardDoc = leaderboardDocs[i];
             if (!leaderboardDoc.exists()) {
-              console.log("事務中: 排行榜文檔不存在，跳過");
               continue;
             }
             
             const leaderboardData = leaderboardDoc.data();
-            console.log("事務中: 處理排行榜 - ", { 
               ID: leaderboardDoc.id, 
               名稱: leaderboardData.name,
               成員數: (leaderboardData.members || []).length
@@ -1889,8 +1747,6 @@ const chartRef = useRef<HTMLDivElement>(null);
             const isOngoing = now <= endDate;
             const isInRange = expenseDate >= startDate && (isOngoing || expenseDate <= endDateFull);
             
-            console.log(`事務中: 排行榜 ${leaderboardData.name} (${leaderboardDoc.id}): 進行中=${isOngoing}, 支出在範圍內=${isInRange}`);
-            console.log(`排行榜時間範圍: ${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()} (含結束日整天)`);
             
             if (isInRange) {
               // 獲取用戶在排行榜中的成員索引
@@ -1922,39 +1778,31 @@ const chartRef = useRef<HTMLDivElement>(null);
                 updatedMembers[memberIndex] = member;
                 
                 // 更新排行榜
-                console.log(`事務中: 更新排行榜 ${leaderboardData.name} (${leaderboardDoc.id}): 用戶支出 +${expenseAmount}, 新總額=${member.totalExpense}`);
                 transaction.update(doc(db, "leaderboards", leaderboardDoc.id), {
                   members: updatedMembers
                 });
                 
                 updatedLeaderboardCount++;
               } else {
-                console.log(`事務中: 用戶不是排行榜 ${leaderboardData.name} 的成員，跳過更新`);
               }
             }
           }
           
-          console.log(`事務中: 共更新 ${updatedLeaderboardCount} 個排行榜`);
           
           return { 
             docId: expenseRef.id, 
             splitDocId 
           };
         } catch (error) {
-          console.error("事務內部執行失敗:", error);
           if (error instanceof Error) {
-            console.error("事務內部錯誤詳情:", error.message);
           }
           throw error; // 重新拋出以便外部捕獲
         }
       });
       
-      console.log("Firestore 事務完成", result);
       return result;
     } catch (error) {
-      console.error("Firestore 事務整體失敗", error);
       if (error instanceof Error) {
-        console.error("事務失敗詳細信息:", {
           名稱: error.name,
           訊息: error.message,
           堆疊: error.stack
@@ -2023,7 +1871,6 @@ const chartRef = useRef<HTMLDivElement>(null);
     try {
       if (!currentUser || !editingExpense) return false;
       
-      console.log("開始更新支出記錄:", updatedData);
       
       // 處理附件
       let attachmentUrls: string[] = [];
@@ -2045,7 +1892,6 @@ const chartRef = useRef<HTMLDivElement>(null);
         }
       } catch (_e) {
         // 默認為當前日期
-        console.warn(`無效的日期格式: ${JSON.stringify(updatedData.date)}`);
         expenseDate = new Date();
       }
       
@@ -2137,14 +1983,12 @@ const chartRef = useRef<HTMLDivElement>(null);
         }
       }
 
-      console.log("支出記錄已更新，ID:", editingExpense.id);
       
       // 重置編輯狀態
       setEditingExpense(null);
       
       return true;
     } catch (error) {
-      console.error("更新支出失敗:", error);
       alert("更新支出記錄時出現錯誤，請稍後再試");
       return false;
     }
@@ -2159,7 +2003,6 @@ const chartRef = useRef<HTMLDivElement>(null);
         return;
       }
 
-      console.log(`開始刪除支出記錄: ${id}`);
 
       // 立即更新UI，提高響應速度
       setExpenses((prev) => prev.filter((expense) => expense.id !== id));
@@ -2178,9 +2021,7 @@ const chartRef = useRef<HTMLDivElement>(null);
       // 後臺執行Firebase記錄刪除
       try {
         await deleteDoc(doc(db, "expenses", id));
-        console.log(`Firebase記錄刪除成功: ${id}`);
       } catch (error) {
-        console.error(`Firebase刪除失敗:`, error);
         // 即便Firebase刪除失敗，UI已經更新，用戶體驗不受影響
         // 下次刷新時會從Firebase獲取正確數據
       }
@@ -2191,7 +2032,6 @@ const chartRef = useRef<HTMLDivElement>(null);
         100,
       );
     } catch (error) {
-      console.error("刪除記錄時發生未知錯誤:", error);
       setError("刪除失敗，請稍後再試");
       setTimeout(() => setError(null), 3000);
     }
@@ -2234,7 +2074,6 @@ useEffect(() => {
 
     // 處理數據變化
     const handleExpensesChanged = () => {
-      console.log("支出數據變更, 重新渲染圓餅圖");
       initPieChart();
     };
     window.addEventListener("expenses-changed", handleExpensesChanged);
@@ -2300,7 +2139,6 @@ useEffect(() => {
 
     // 處理數據變化
     const handleExpensesChanged = () => {
-      console.log("支出數據變更, 重新渲染每日趨勢圖");
       initDailyChart();
     };
     window.addEventListener("expenses-changed", handleExpensesChanged);
@@ -2317,18 +2155,14 @@ useEffect(() => {
 
   // 篩選當前選中日期的消費 - 完全重寫確保日期比較正確
   const getFilteredExpenses = () => {
-    console.log("===開始篩選支出記錄===");
-    console.log("當前選擇的日期選項:", selectedDateOption);
 
     // 全部記錄直接返回
     if (selectedDateOption === "all") {
-      console.log("顯示全部消費記錄");
       return expenses;
     }
 
     // 處理按月過濾
     if (selectedDateOption === "month") {
-      console.log("按本月過濾消費記錄");
       const today = new Date();
       const currentMonth = today.getMonth();
       const currentYear = today.getFullYear();
@@ -2342,7 +2176,6 @@ useEffect(() => {
     
     // 處理選擇月份過濾
     if (selectedDateOption === "month_select") {
-      console.log("按選擇的月份過濾消費記錄:", selectedMonth);
       const [year, month] = selectedMonth.split('-').map(Number);
       
       return expenses.filter(expense => {
@@ -2354,7 +2187,6 @@ useEffect(() => {
     
     // 處理本週過濾
     if (selectedDateOption === "this_week") {
-      console.log("按本週過濾消費記錄");
       const today = new Date();
       const currentDay = today.getDay() || 7; // 處理週日為0的情況
       const firstDayOfWeek = new Date(today);
@@ -2365,7 +2197,6 @@ useEffect(() => {
       lastDayOfWeek.setDate(firstDayOfWeek.getDate() + 6);
       lastDayOfWeek.setHours(23, 59, 59, 999);
       
-      console.log("本週範圍:", {
         開始: firstDayOfWeek.toISOString(),
         結束: lastDayOfWeek.toISOString()
       });
@@ -2378,7 +2209,6 @@ useEffect(() => {
     
     // 處理上週過濾
     if (selectedDateOption === "last_week") {
-      console.log("按上週過濾消費記錄");
       const today = new Date();
       const currentDay = today.getDay() || 7; // 處理週日為0的情況
       const firstDayOfLastWeek = new Date(today);
@@ -2389,7 +2219,6 @@ useEffect(() => {
       lastDayOfLastWeek.setDate(firstDayOfLastWeek.getDate() + 6);
       lastDayOfLastWeek.setHours(23, 59, 59, 999);
       
-      console.log("上週範圍:", {
         開始: firstDayOfLastWeek.toISOString(),
         結束: lastDayOfLastWeek.toISOString()
       });
@@ -2407,17 +2236,14 @@ useEffect(() => {
       // 每次都重新獲取今天的日期，不使用緩存
       filterDate = new Date();
       filterDate.setHours(0, 0, 0, 0);
-      console.log("使用今天作為篩選日期:", filterDate.toISOString());
     } else if (selectedDateOption === "yesterday") {
       // 昨天 = 當前日期減去1天
       filterDate = new Date();
       filterDate.setHours(0, 0, 0, 0);
       filterDate.setDate(filterDate.getDate() - 1);
-      console.log("使用昨天作為篩選日期:", filterDate.toISOString());
     } else {
       // 使用用戶選擇的日期
       filterDate = selectedDate;
-      console.log("使用選定日期作為篩選日期:", filterDate.toISOString());
     }
 
     // 提取年月日用於精確比較
@@ -2425,7 +2251,6 @@ useEffect(() => {
     const filterMonth = filterDate.getMonth();
     const filterDay = filterDate.getDate();
 
-    console.log("篩選日期組成部分:", {
       年: filterYear,
       月: filterMonth + 1,
       日: filterDay,
@@ -2446,7 +2271,6 @@ useEffect(() => {
           expenseDay === filterDay;
 
         if (matches) {
-          console.log("匹配的支出:", {
             id: expense.id,
             日期: expense.date.toISOString(),
             年: expenseYear,
@@ -2458,12 +2282,10 @@ useEffect(() => {
 
         return matches;
       } catch (err) {
-        console.error("篩選時出錯:", err, expense);
         return false;
       }
     });
 
-    console.log(`篩選結果: 找到 ${filtered.length} 條記錄`);
     return filtered;
   };
 
@@ -2582,7 +2404,6 @@ useEffect(() => {
           setFriendRequestCount(friendRequests.length);
           setLeaderboardInviteCount(leaderboardInvites.length);
         } catch (error) {
-          console.error("獲取通知失敗:", error);
         }
       };
 
@@ -2607,14 +2428,12 @@ useEffect(() => {
 
   // 顯示排行榜管理面板
   const handleShowLeaderboardManager = () => {
-    console.log("App - 打開排行榜管理面板");
 
     // 檢查是否有全局變量標記
     if (
       typeof window !== "undefined" &&
       (window as any).__shouldShowLeaderboardManager
     ) {
-      console.log("App - 檢測到全局變量__shouldShowLeaderboardManager，清除");
       (window as any).__shouldShowLeaderboardManager = false;
     }
 
@@ -2632,7 +2451,6 @@ useEffect(() => {
   // 監聽返回排行榜管理事件
   useEffect(() => {
     const handleReturnToLeaderboardManager = () => {
-      console.log("App - 收到返回排行榜管理事件");
       handleShowLeaderboardManager();
     };
 
@@ -2688,7 +2506,6 @@ useEffect(() => {
       const currentMonth = today.getMonth(); // 0-11
       const currentYear = today.getFullYear();
       
-      console.log(`類別支出明細 - 過濾當前月份: ${currentYear}年${currentMonth + 1}月`);
       
       // 按當前月份過濾
       filteredByMode = expenses.filter(expense => {
@@ -2707,19 +2524,16 @@ useEffect(() => {
           
           return (expYear === currentYear && expMonth === currentMonth);
         } catch (err) {
-          console.error(`處理支出 ${expense.id} 時出錯:`, err);
           return false;
         }
       });
       
-      console.log(`類別支出明細 - 當月過濾結果: ${filteredByMode.length} 筆記錄`);
     } 
     else if (pieChartMode === 'selected') {
       // 使用用戶選擇的月份
       const [year, month] = pieChartMonth.split('-').map(Number);
       const targetMonth = month - 1; // JavaScript月份從0開始
       
-      console.log(`類別支出明細 - 過濾選定月份: ${year}年${month}月`);
       
       // 按選定月份過濾
       filteredByMode = expenses.filter(expense => {
@@ -2738,12 +2552,10 @@ useEffect(() => {
           
           return (expYear === year && expMonth === targetMonth);
         } catch (err) {
-          console.error(`處理支出 ${expense.id} 時出錯:`, err);
           return false;
         }
       });
       
-      console.log(`類別支出明細 - 選定月份過濾結果: ${filteredByMode.length} 筆記錄`);
     }
     // 'all' 模式使用所有支出數據
 
@@ -2762,24 +2574,20 @@ useEffect(() => {
 
   // 登錄按鈕
   const handleLogin = () => {
-    console.log("點擊登錄按鈕");
     setLoginFormMode("login");
     setShowLoginForm(true);
   };
 
   // 註冊按鈕
   const handleRegister = () => {
-    console.log("點擊註冊按鈕");
     setLoginFormMode("register");
     setShowLoginForm(true);
   };
 
   // 登錄成功回調
   const handleLoginSuccess = () => {
-    console.log("檢測到登錄/註冊成功");
     // 延遲檢查用戶狀態，確保 Firebase Auth 已完成狀態更新
     setTimeout(() => {
-      console.log("延遲檢查用戶狀態:", currentUser ? "已登錄" : "未登錄");
       if (currentUser) {
         // 只有確認用戶已登錄才關閉表單
         setShowLoginForm(false);
@@ -2789,34 +2597,26 @@ useEffect(() => {
 
   // 添加專門用於初始化圖表的useEffect
   useEffect(() => {
-    console.log("圖表初始化useEffect觸發", "expenses長度:", expenses?.length);
 
     // 當數據存在且DOM已經渲染時，初始化圖表
     if (expenses && expenses.length > 0) {
-      console.log("數據已加載，延遲初始化圖表");
 
       // 延遲執行以確保DOM已經完全渲染
       setTimeout(() => {
         try {
-          console.log("開始初始化圓餅圖");
           if (chartRef.current) {
             initPieChart();
       } else {
-            console.warn("圓餅圖容器DOM元素不存在");
           }
 
-          console.log("開始初始化每日趨勢圖");
           if (dailyChartRef.current) {
             initDailyChart();
           } else {
-            console.warn("趨勢圖容器DOM元素不存在");
           }
         } catch (error) {
-          console.error("圖表初始化過程中發生錯誤:", error);
         }
       }, 300);
     } else {
-      console.log("無消費數據，或者DOM未渲染，創建空圖表");
       setTimeout(() => {
         // 即使沒有數據，也創建空的圖表以顯示"暫無數據"
         if (chartRef.current) {
@@ -2915,7 +2715,6 @@ useEffect(() => {
   // 處理顯示預算設置表單的事件
   useEffect(() => {
     const handleShowBudgetSetting = () => {
-      console.log('收到顯示預算設置事件');
       setShowBudgetSetting(true);
     };
     
@@ -2930,21 +2729,16 @@ useEffect(() => {
   
   // 主要 useEffect - 仅在应用加载时运行一次
   useEffect(() => {
-    console.log("App 组件已加载");
 
     // 检测 Firestore 索引错误并提供解决方案
     const handleFirestoreError = (event: ErrorEvent) => {
       if (event.error && typeof event.error.message === 'string' && 
           event.error.message.includes('The query requires an index')) {
         
-        console.error("检测到 Firestore 索引错误:");
-        console.error(event.error.message);
         
         // 提取索引创建链接
         const indexMatch = event.error.message.match(/https:\/\/console\.firebase\.google\.com[\w/.?=&%-]+/);
         if (indexMatch && indexMatch[0]) {
-          console.log("%c点击以下链接创建必要的索引:", "color: green; font-weight: bold; font-size: 16px;");
-          console.log("%c" + indexMatch[0], "color: blue; text-decoration: underline; cursor: pointer; font-size: 14px;");
           
           // 在页面显示提示
           setError("需要创建 Firestore 索引，请检查控制台获取详细信息");
@@ -2982,7 +2776,6 @@ useEffect(() => {
             // 更新總通知計數
             setNotificationCount(prev => prev + 1);
           } catch (error) {
-            console.error("獲取群組邀請失敗:", error);
           }
         };
         
@@ -2992,7 +2785,6 @@ useEffect(() => {
     
     // 監聽顯示群組邀請列表的事件
     const handleShowGroupInvites = () => {
-      console.log("App - 收到顯示群組邀請列表事件");
       setShowGroupInvites(true);
     };
     
@@ -3074,12 +2866,10 @@ useEffect(() => {
   // 在圓餅圖模式或選擇月份變化時重新初始化圖表
   useEffect(() => {
     if (expenses.length > 0 && chartRef.current) {
-      console.log('圓餅圖顯示模式變更為:', pieChartMode, pieChartMode === 'selected' ? pieChartMonth : '');
       initPieChart();
       
       // 重新計算類別支出明細，確保與圓餅圖顯示的數據一致
       const updatedCategoryExpenses = getCategoryExpenses();
-      console.log(`更新類別支出明細: ${updatedCategoryExpenses.length} 筆記錄`);
     }
   }, [pieChartMode, pieChartMonth]);
 
@@ -3396,7 +3186,6 @@ useEffect(() => {
                               inputEl.click();
                             }
                           } catch (err) {
-                            console.log('无法打开月份选择器，使用备用方法', err);
                             // 备用方法
                             inputEl.focus();
                             inputEl.click();
@@ -3820,7 +3609,6 @@ useEffect(() => {
                           onClick={(e) => {
                             e.preventDefault(); // 阻止默認行為
                             e.stopPropagation(); // 阻止事件冒泡
-                              console.log(
                                 "垃圾桶按鈕點擊，ID:",
                                 transaction.id,
                               );
@@ -4117,7 +3905,6 @@ useEffect(() => {
               <ExpenseForm 
                 onSave={async (data) => {
                   try {
-                    console.log("準備保存支出:", data);
                     
                     // 立即關閉表單，提高用戶體驗
                     setShowExpenseForm(false);
@@ -4146,20 +3933,17 @@ useEffect(() => {
                     if (success) {
                       // 顯示成功消息
                       setShowSuccessMessage(true);
-                      console.log("顯示成功消息");
                       // 設置定時器自動隱藏成功消息
                       if (successMessageTimer.current) {
                         window.clearTimeout(successMessageTimer.current);
                       }
                       successMessageTimer.current = window.setTimeout(() => {
                         setShowSuccessMessage(false);
-                        console.log("隱藏成功消息");
                       }, 1000);
                     }
                     
                     return success;
                   } catch (error) {
-                    console.error("保存支出時出錯:", error);
                     return false;
                   }
                 }} 
@@ -4575,7 +4359,6 @@ useEffect(() => {
                               );
                               await updateDoc(notificationRef, { read: true });
                             } catch (error) {
-                              console.error("標記通知已讀失敗:", error);
                             }
                           },
                         );
@@ -4659,7 +4442,6 @@ useEffect(() => {
                                     prev.filter(item => item.id !== notification.id)
                                   );
                                 } catch (error) {
-                                  console.error("標記通知已讀失敗:", error);
                                 }
                               }}
                               className="text-xs bg-white hover:bg-gray-200 text-gray-500 border border-amber-200 py-1 px-2 rounded-full transition-colors"
@@ -4728,7 +4510,6 @@ useEffect(() => {
                                     prev.filter(item => item.id !== notification.id)
                                   );
                                 } catch (error) {
-                                  console.error("標記通知已讀失敗:", error);
                                 }
                               }}
                               className="text-xs bg-white hover:bg-gray-200 text-gray-500 border border-red-200 py-1 px-2 rounded-full transition-colors"

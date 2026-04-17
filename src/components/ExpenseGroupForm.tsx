@@ -72,7 +72,6 @@ const ExpenseGroupForm: React.FC<ExpenseGroupFormProps> = ({
       const friendsList = await getFriends();
       setFriends(friendsList);
     } catch (error) {
-      console.error('加載好友列表失敗:', error);
       setError('無法加載好友列表');
     } finally {
       setLoading(false);
@@ -212,14 +211,12 @@ const ExpenseGroupForm: React.FC<ExpenseGroupFormProps> = ({
       // 清理數據中的所有undefined值
       const cleanedData = cleanUndefinedValues(groupData);
       
-      console.log('準備創建的群組數據:', JSON.stringify(cleanedData, (key, value) => {
         if (value === undefined) return '<<undefined>>';
         return value;
       }));
       
       // 創建群組文檔 - 只包含當前用戶作為成員
       const groupRef = await addDoc(collection(db, 'expenseGroups'), cleanedData);
-      console.log('群組創建成功，ID:', groupRef.id);
       
       // 為選定的好友創建邀請
       await Promise.all(
@@ -250,7 +247,6 @@ const ExpenseGroupForm: React.FC<ExpenseGroupFormProps> = ({
       onSave({ name: groupName, description: description });
       
     } catch (error: any) {
-      console.error('創建分帳群組失敗:', error);
       setError(error.message || '創建分帳群組失敗，請稍後再試');
     } finally {
       setSubmitting(false);

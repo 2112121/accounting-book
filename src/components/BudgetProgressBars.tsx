@@ -173,13 +173,11 @@ const BudgetProgressBars: React.FC = () => {
   
   // 強制修復所有預算顯示中的investment為投資
   const forceFixInvestmentDisplay = () => {
-    console.log('強制修復所有預算顯示...');
     // 修復現有budgetProgress項目
     const fixedProgress = budgetProgress.map(item => {
       if (item.categoryId === 'investment' || 
           item.categoryName === 'investment' || 
           (typeof item.categoryName === 'string' && item.categoryName.includes('investment'))) {
-        console.log('修復預算顯示: ', item.categoryId, item.categoryName, ' -> 投資');
         return {
           ...item,
           categoryName: item.categoryName === 'investment' ? '投資' : item.categoryName.replace('investment', '投資')
@@ -189,7 +187,6 @@ const BudgetProgressBars: React.FC = () => {
     });
     
     if (JSON.stringify(fixedProgress) !== JSON.stringify(budgetProgress)) {
-      console.log('預算顯示已修復');
       setBudgetProgress(fixedProgress);
     }
     
@@ -198,7 +195,6 @@ const BudgetProgressBars: React.FC = () => {
       if (item.categoryId === 'investment' || 
           item.categoryName === 'investment' || 
           (typeof item.categoryName === 'string' && item.categoryName.includes('investment'))) {
-        console.log('修復預算項目: ', item.categoryId, item.categoryName, ' -> 投資');
         return {
           ...item,
           categoryName: item.categoryName === 'investment' ? '投資' : item.categoryName.replace('investment', '投資')
@@ -208,7 +204,6 @@ const BudgetProgressBars: React.FC = () => {
     });
     
     if (JSON.stringify(fixedItems) !== JSON.stringify(budgetItems)) {
-      console.log('預算項目已修復');
       setBudgetItems(fixedItems);
     }
   };
@@ -227,16 +222,13 @@ const BudgetProgressBars: React.FC = () => {
     const loadBudgetAndExpenses = async () => {
       try {
         setLoading(true);
-        console.log('開始載入預算進度數據...');
         // 載入預算設置
         await loadBudgetItems();
         // 載入類別信息
         await loadCategories();
         // 載入支出數據
         await loadExpenses();
-        console.log('預算進度數據加載完成');
       } catch (err) {
-        console.error('加載預算進度數據失敗:', err);
         setError('無法加載預算進度數據，請稍後再試。');
       } finally {
         setLoading(false);
@@ -248,7 +240,6 @@ const BudgetProgressBars: React.FC = () => {
 
     // 添加刷新預算進度的事件監聽器
     const handleRefreshBudgetProgress = () => {
-      console.log('收到刷新預算進度事件，正在重新加載數據...');
       // 使用新的Promise強制刷新數據
       Promise.resolve().then(async () => {
         try {
@@ -261,7 +252,6 @@ const BudgetProgressBars: React.FC = () => {
           // 重新載入所有數據
           await loadBudgetItems();
           await loadExpenses();
-          console.log('預算進度數據刷新完成');
           // 顯示成功訊息
           setSuccess('預算數據已更新！');
           // 3秒後清除成功提示
@@ -269,7 +259,6 @@ const BudgetProgressBars: React.FC = () => {
             setSuccess('');
           }, 3000);
         } catch (err) {
-          console.error('刷新預算進度數據失敗:', err);
           setError('刷新預算數據時出錯，請再試一次。');
           // 5秒後清除錯誤提示
           setTimeout(() => {
@@ -283,17 +272,13 @@ const BudgetProgressBars: React.FC = () => {
 
     // 監聽支出新增事件
     const handleExpenseAdded = () => {
-      console.log('收到支出新增事件，正在更新預算進度...');
       loadExpenses().then(() => {
-        console.log('支出數據已更新，預算進度將自動重新計算');
       }).catch(err => {
-        console.error('更新支出數據失敗:', err);
       });
     };
 
     // 也設置一個定時自動刷新，確保數據始終最新
     const intervalId = setInterval(() => {
-      console.log('定時刷新預算進度數據...');
       loadBudgetAndExpenses();
     }, 60000); // 每分鐘刷新一次
 
@@ -347,17 +332,14 @@ const BudgetProgressBars: React.FC = () => {
   const loadBudgetItems = async () => {
     try {
       if (!currentUser) {
-        console.log('用戶未登入，無法載入預算項目');
         return;
       }
       
-      console.log('正在從Firestore載入預算項目...');
       const budgetRef = doc(db, 'budgets', currentUser.uid);
       const budgetDoc = await getDoc(budgetRef);
       
       if (budgetDoc.exists()) {
         const data = budgetDoc.data();
-        console.log('獲取到預算數據:', { 
           有budgetItems: !!data.budgetItems, 
           有simplifiedItems: !!data.simplifiedItems,
           項目數量: data.budgetItems?.length || data.simplifiedItems?.length || 0,
@@ -369,7 +351,6 @@ const BudgetProgressBars: React.FC = () => {
         
         // 處理新版預算格式
         if (data.budgetItems && Array.isArray(data.budgetItems)) {
-          console.log(`處理新版預算格式，共${data.budgetItems.length}個項目`);
           items = data.budgetItems.map((item: any, index: number) => {
             try {
               // 轉換日期格式
@@ -401,13 +382,11 @@ const BudgetProgressBars: React.FC = () => {
                 categories: item.categories || []
               } as BudgetItem;
             } catch (error) {
-              console.error(`處理預算項目 ${index} 時出錯:`, error, item);
               return null;
             }
           }).filter((item): item is BudgetItem => item !== null);
         } else if (data.simplifiedItems && Array.isArray(data.simplifiedItems)) {
           // 處理簡化格式
-          console.log(`處理簡化預算格式，共${data.simplifiedItems.length}個項目`);
           items = data.simplifiedItems.map((item: any, index: number) => {
             try {
               return {
@@ -420,13 +399,11 @@ const BudgetProgressBars: React.FC = () => {
                 categories: item.categories || []
               } as BudgetItem;
             } catch (error) {
-              console.error(`處理簡化預算項目 ${index} 時出錯:`, error, item);
               return null;
             }
           }).filter((item): item is BudgetItem => item !== null);
         } else {
           // 處理舊版預算格式
-          console.log('處理舊版預算格式', data);
           const periodTypes = ['daily', 'weekly', 'monthly', 'yearly', 'custom'];
           
           if (data.period && periodTypes.includes(data.period) && data.amount) {
@@ -458,17 +435,14 @@ const BudgetProgressBars: React.FC = () => {
                 budgetType: 'overall'
               } as BudgetItem);
             } catch (error) {
-              console.error('處理總體預算時出錯:', error);
             }
           }
           
           // 處理類別預算
           if (data.categoryBudgets && Array.isArray(data.categoryBudgets)) {
-            console.log(`處理舊版類別預算，共${data.categoryBudgets.length}個項目`);
             data.categoryBudgets.forEach((cat: any) => {
               try {
                 if (!cat.categoryId || !cat.amount) {
-                  console.warn('無效的類別預算項目:', cat);
                   return;
                 }
                 
@@ -499,20 +473,16 @@ const BudgetProgressBars: React.FC = () => {
                   budgetType: 'multi'
                 } as BudgetItem);
               } catch (error) {
-                console.error('處理類別預算時出錯:', error, cat);
               }
             });
           }
         }
         
-        console.log(`預算項目載入完成，共處理了${items.length}個項目`);
         setBudgetItems(items);
       } else {
-        console.log('未找到預算設置，清空預算項目');
         setBudgetItems([]);
       }
     } catch (err) {
-      console.error('載入預算項目失敗:', err);
       throw err;
     }
   };
@@ -521,7 +491,6 @@ const BudgetProgressBars: React.FC = () => {
   const loadCategories = async () => {
     try {
       if (!currentUser) {
-        console.log('用戶未登入，無法載入類別數據');
         return;
       }
       
@@ -540,7 +509,6 @@ const BudgetProgressBars: React.FC = () => {
         });
         
         setCategories(categoriesData);
-        console.log('已載入類別數據:', categoriesData.length);
       } else {
         // 如果沒有找到用戶定義的類別，使用默認類別
         const defaultCategories = [
@@ -555,10 +523,8 @@ const BudgetProgressBars: React.FC = () => {
         ];
         
         setCategories(defaultCategories);
-        console.log('未找到用戶類別，使用默認類別');
       }
     } catch (err) {
-      console.error('載入類別數據失敗:', err);
       // 使用默認類別
       const defaultCategories = [
         { id: 'food', name: '餐飲' },
@@ -579,7 +545,6 @@ const BudgetProgressBars: React.FC = () => {
   const loadExpenses = async () => {
     try {
       if (!currentUser) {
-        console.log('用戶未登入，無法載入支出數據');
         return;
       }
       
@@ -594,9 +559,7 @@ const BudgetProgressBars: React.FC = () => {
         where('date', '>=', startOfYear),
       );
       
-      console.log('正在查詢支出數據...');
       const expensesSnapshot = await getDocs(expensesQuery);
-      console.log(`找到 ${expensesSnapshot.docs.length} 筆支出記錄`);
       
       // 用於診斷的類別統計
       const categoryStats = {
@@ -625,11 +588,9 @@ const BudgetProgressBars: React.FC = () => {
           }
           
           if (isNaN(expenseDate.getTime())) {
-            console.error(`支出ID=${doc.id}的日期無效:`, data.date);
             expenseDate = new Date(); // 使用當前日期作為後備
           }
         } catch (error) {
-          console.error(`處理支出日期時出錯:`, error);
           expenseDate = new Date(); // 使用當前日期作為後備
         }
         
@@ -645,19 +606,16 @@ const BudgetProgressBars: React.FC = () => {
           categoryObj = data.category;
           categoryId = data.category.id || '';
           categoryName = data.category.name || '';
-          console.log(`從category對象提取: ID=${categoryId}, 名稱=${categoryName}`);
         } else if (typeof data.category === 'string') {
           // 類別是字符串格式，直接作為ID使用
           categoryStats.byFormat.stringFormat++;
           categoryId = data.category;
           categoryName = data.category;
-          console.log(`從category字符串提取: ID/名稱=${categoryId}`);
         } else if (data.categoryId || data.categoryName) {
           // 類別信息直接作為屬性
           categoryStats.byFormat.directProperties++;
           categoryId = data.categoryId || '';
           categoryName = data.categoryName || categoryId;
-          console.log(`從直接屬性提取: ID=${categoryId}, 名稱=${categoryName}`);
         }
         
         // 確保類別ID和名稱不為空，並嘗試從筆記內容推斷類別
@@ -670,7 +628,6 @@ const BudgetProgressBars: React.FC = () => {
             if (names.some(name => notes.includes(name.toLowerCase()))) {
               categoryId = id;
               categoryName = names[0]; // 使用第一個名稱作為顯示名稱
-              console.log(`從筆記推斷類別: ID=${categoryId}, 名稱=${categoryName}, 筆記=${data.notes}`);
               break;
             }
           }
@@ -680,7 +637,6 @@ const BudgetProgressBars: React.FC = () => {
         if (!categoryId) {
           categoryId = 'other';
           categoryName = '其他';
-          console.log(`無法確定類別，設為: ID=${categoryId}, 名稱=${categoryName}`);
         }
         
         // 更新類別統計
@@ -701,16 +657,13 @@ const BudgetProgressBars: React.FC = () => {
       });
       
       // 輸出類別統計信息
-      console.log('支出數據類別統計:', {
         總處理數量: categoryStats.totalProcessed,
         格式統計: categoryStats.byFormat,
         類別分布: categoryStats.byCategory
       });
       
       setExpenses(expensesData);
-      console.log('已載入支出數據:', expensesData.length);
     } catch (err) {
-      console.error('載入支出數據失敗:', err);
       throw err;
     }
   };
@@ -808,7 +761,6 @@ const BudgetProgressBars: React.FC = () => {
     // 修復所有budgetItems，確保"investment"類別的categoryName顯示為中文"投資"
     const fixedItems = budgetItems.map(item => {
       if (item.categoryId === 'investment' && item.categoryName !== '投資') {
-        console.log('修復類別名稱: ', item.categoryId, item.categoryName, '->', '投資');
         return {
           ...item,
           categoryName: '投資'
@@ -819,7 +771,6 @@ const BudgetProgressBars: React.FC = () => {
     
     // 如果有需要修復的項目，更新budgetItems
     if (JSON.stringify(fixedItems) !== JSON.stringify(budgetItems)) {
-      console.log('已修復預算項目中的investment類別名稱');
       setBudgetItems(fixedItems);
     }
     
@@ -850,15 +801,12 @@ const BudgetProgressBars: React.FC = () => {
     const startOfYear = new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0);
     const endOfYear = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
     
-    console.log('開始計算預算進度，目前時間範圍:', {
       日: `${startOfDay.toLocaleDateString()} 至 ${endOfDay.toLocaleDateString()}`,
       週: `${startOfWeek.toLocaleDateString()} 至 ${endOfWeek.toLocaleDateString()}`,
       月: `${startOfMonth.toLocaleDateString()} 至 ${endOfMonth.toLocaleDateString()}`,
       年: `${startOfYear.toLocaleDateString()} 至 ${endOfYear.toLocaleDateString()}`
     });
     
-    console.log('可用預算項目數量:', budgetItems.length);
-    console.log('可用支出數據數量:', expenses.length);
     
     const progress: BudgetProgress[] = [];
     
@@ -918,7 +866,6 @@ const BudgetProgressBars: React.FC = () => {
       const budgetType = budget.budgetType || 
         (budget.categoryId === 'overall' ? 'overall' : 'multi');
       
-      console.log(`處理預算項目: ID=${budget.id}, 類型=${budgetType}, 類別=${budget.categoryId}/${budget.categoryName}, 金額=${budget.amount}, 週期=${budget.period}(${periodName}), 時間範圍=${periodStartDate.toLocaleDateString()} 至 ${periodEndDate.toLocaleDateString()}`);
       
       // 多類別共享預算時，添加所有類別的顯示
       const categoryDisplay = budgetType === 'multi' && budget.categories && budget.categories.length > 0 
@@ -956,7 +903,6 @@ const BudgetProgressBars: React.FC = () => {
         
         // 如果是多類別預算，輸出更詳細的調試資訊
         if (budgetType === 'multi' && isInTimeRange) {
-          console.log(`多類別預算: 檢查支出 ID=${expense.id}: 金額=${expense.amount}, 類別=${expense.categoryId}/${expense.categoryName}, 日期=${expenseDate.toLocaleDateString()}, 時間匹配=${isInTimeRange}, 類別匹配=${isCategoryMatch}`);
         }
         
         // 添加詳細記錄，特別是對於關鍵類別
@@ -964,11 +910,9 @@ const BudgetProgressBars: React.FC = () => {
             (budget.categoryId === 'food' || budget.categoryName === '餐飲' ||
             budget.categoryId === 'utilities' || budget.categoryName === '住支' ||
             budget.categoryId === 'other' || budget.categoryName === '其他')) {
-          console.log(`檢查支出 ID=${expense.id}: 金額=${expense.amount}, 類別=${expense.categoryId}/${expense.categoryName}, 日期=${expenseDate.toLocaleDateString()}, 時間匹配=${isInTimeRange}, 類別匹配=${isCategoryMatch}`);
           
           // 如果是餐飲或住支類別且不匹配，顯示更多診斷信息
           if (!isCategoryMatch) {
-            console.log('不匹配的支出詳情:', {
               支出ID: expense.id,
               查找的類別ID: budget.categoryId,
               查找的類別名稱: budget.categoryName,
@@ -986,7 +930,6 @@ const BudgetProgressBars: React.FC = () => {
       // 計算總支出 - 嚴格按照公式：已使用 = Σ(該類別、該時間範圍內的所有支出)
       currentAmount = relevantExpenses.reduce((sum, expense) => sum + expense.amount, 0);
       
-      console.log(`預算項目 ${budget.id} (${categoryDisplay}) 的當前支出: ${currentAmount}, 預算金額: ${budget.amount}`);
       
       // 檢查預算金額是否為0，防止除法錯誤
       const budgetAmount = budget.amount > 0 ? budget.amount : 1;
@@ -1050,18 +993,15 @@ const BudgetProgressBars: React.FC = () => {
     // 最終修復所有progress項目，確保investment類別顯示中文'投資'
     progress.forEach(item => {
       if (item.categoryId === 'investment' && item.categoryName !== '投資') {
-        console.log('修復預算進度中的類別名稱:', item.categoryId, item.categoryName, '->', '投資');
         item.categoryName = '投資';
       }
     });
     
     setBudgetProgress(progress);
-    console.log('預算進度計算完成:', progress);
   };
   
   // 獲取類別ID對應的中文名稱
   const getCategoryName = (categoryId: string): string => {
-    console.log('獲取類別名稱:', categoryId);
     const nameMap: {[key: string]: string} = {
       'food': '餐飲',
       'transportation': '交通',
@@ -1200,7 +1140,6 @@ const BudgetProgressBars: React.FC = () => {
           <button
             className="text-sm text-white bg-gradient-to-r from-[#A487C3] to-[#9678B6] hover:from-[#9678B6] hover:to-[#8A5DC8] px-4 py-1.5 rounded-lg flex items-center transition-all duration-300 shadow-sm hover:shadow-md"
             onClick={() => {
-              console.log('手動刷新預算進度...');
               setSuccess('正在刷新預算數據...');
               setLoading(true);
               setBudgetProgress([]);

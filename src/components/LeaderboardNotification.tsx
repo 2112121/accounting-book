@@ -59,7 +59,6 @@ const LeaderboardNotification: React.FC = () => {
             
             if (endDateZero.getTime() === yesterdayZero.getTime() && !hasNotification) {
               // 排行榜昨天結束，且還沒發過通知
-              console.log(`排行榜 ${data.name} 已結束，發送通知`);
               
               // 發送通知
               await addDoc(collection(db, "notifications"), {
@@ -82,7 +81,6 @@ const LeaderboardNotification: React.FC = () => {
           }
         }
       } catch (error) {
-        console.error('檢查排行榜結束時間失敗:', error);
       }
     };
     

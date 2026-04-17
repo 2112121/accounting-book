@@ -75,7 +75,6 @@ const LoanForm: React.FC<LoanFormProps> = ({
       // 提交數據
       await onSave(loanData);
     } catch (err: any) {
-      console.error('保存借貸記錄失敗', err);
       setError(err.message || '操作失敗，請稍後再試');
     } finally {
       setLoading(false);

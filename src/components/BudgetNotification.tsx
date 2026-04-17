@@ -166,7 +166,6 @@ const BudgetNotification: React.FC = () => {
           
           // 如果支出超过80%且未发送通知，创建通知
           if (totalExpenses >= budgetItem.amount * 0.8 && !hasNotification) {
-            console.log(`預算警告 [${budgetItem.period}] [${budgetItem.categoryId === 'overall' ? '總體' : budgetItem.categoryName}]: 已用${(totalExpenses/budgetItem.amount*100).toFixed(1)}%，發送通知`);
             
             // 创建通知数据
             const notificationData: any = {
@@ -223,7 +222,6 @@ const BudgetNotification: React.FC = () => {
           }
         }
       } catch (error) {
-        console.error('檢查預算超支失敗:', error);
       }
     };
     
@@ -283,7 +281,6 @@ const BudgetNotification: React.FC = () => {
             const isOverdue = dueDate < now;
             const type = isOverdue ? 'loan_overdue' : 'loan_due_warning';
             
-            console.log(`借貸${isOverdue ? '已逾期' : '即將到期'}：${loanData.counterpartyName}，發送通知`);
             
             await addDoc(collection(db, 'notifications'), {
               type,
@@ -309,7 +306,6 @@ const BudgetNotification: React.FC = () => {
           }
         }
       } catch (error) {
-        console.error('檢查借貸到期失敗:', error);
       }
     };
     

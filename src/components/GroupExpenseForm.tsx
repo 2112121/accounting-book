@@ -60,36 +60,28 @@ const GroupExpenseForm: React.FC<GroupExpenseFormProps> = ({
   useEffect(() => {
     const loadGroupDetails = async () => {
       try {
-        console.log('開始加載分帳詳情，群組ID:', groupId);
         
         // 嘗試從 expenseGroups 集合中加載
         let groupDoc;
         try {
           const groupRef = doc(db, 'expenseGroups', groupId);
           groupDoc = await getDoc(groupRef);
-          console.log('從 expenseGroups 加載結果:', groupDoc.exists() ? '找到文檔' : '未找到文檔');
         } catch (error) {
-          console.error('從 expenseGroups 加載失敗，嘗試從 splitTransactions 加載:', error);
         }
         
         // 如果 expenseGroups 中找不到，嘗試從 splitTransactions 集合中加載
         if (!groupDoc || !groupDoc.exists()) {
-          console.log('嘗試從 splitTransactions 加載群組');
           const splitRef = doc(db, 'splitTransactions', groupId);
           groupDoc = await getDoc(splitRef);
-          console.log('從 splitTransactions 加載結果:', groupDoc.exists() ? '找到文檔' : '未找到文檔');
         }
         
         if (groupDoc && groupDoc.exists()) {
           const groupData = groupDoc.data();
-          console.log('成功加載群組數據:', groupData);
           
           // 檢查群組成員數據
           const membersData = groupData.members || groupData.participants || [];
-          console.log('群組成員數據:', membersData);
           
           if (membersData.length === 0) {
-            console.warn('警告: 群組沒有成員數據');
             setError('此群組沒有成員，無法記錄支出');
             return;
           }
@@ -101,26 +93,21 @@ const GroupExpenseForm: React.FC<GroupExpenseFormProps> = ({
             photoURL: participant.photoURL
           }));
           
-          console.log('處理後的成員數據:', groupMembers);
           setMembers(groupMembers);
           
           // 找到當前用戶的資訊
           if (currentUser) {
             const userMember = groupMembers.find((member: GroupMember) => member.userId === currentUser.uid);
             if (userMember) {
-              console.log('找到當前用戶成員資訊:', userMember);
               setCurrentUserInfo(userMember);
             } else {
-              console.log('未找到當前用戶在群組中的資訊，使用默認資訊');
             }
           }
           
         } else {
-          console.error('群組數據不存在');
           setError('無法找到群組資訊');
         }
       } catch (error) {
-        console.error('加載分帳詳情失敗:', error);
         setError('無法加載群組資訊');
       }
     };
@@ -135,17 +122,14 @@ const GroupExpenseForm: React.FC<GroupExpenseFormProps> = ({
     try {
       setLoading(true);
       setError('');
-      console.log('開始提交群組支出表單', isEditing ? '(編輯模式)' : '(新增模式)');
       
       // 檢查 groupId 是否有效
       if (!groupId) {
-        console.error('無效的群組ID:', groupId);
         setError('無效的群組ID，無法添加支出');
         setLoading(false);
         return;
       }
       
-      console.log('使用的群組ID:', groupId);
       
       // 驗證表單
       if (!title.trim()) {
@@ -173,7 +157,6 @@ const GroupExpenseForm: React.FC<GroupExpenseFormProps> = ({
         photoURL: currentUser.photoURL || ''
       };
       
-      console.log('支付者資訊:', payerInfo);
       
       // 建立支出記錄
       const expenseData = {
@@ -229,34 +212,27 @@ const GroupExpenseForm: React.FC<GroupExpenseFormProps> = ({
       const cleanedData = cleanUndefinedValues(expenseData);
       
       // 記錄準備保存的數據，檢查是否有 undefined 值
-      console.log('準備保存的支出數據:', JSON.stringify(cleanedData, (key, value) => {
         if (value === undefined) return '<<undefined>>';
         return value;
       }));
       
       try {
         // 檢查資料庫連接狀態
-        console.log('檢查資料庫連接狀態...');
         
         if (isEditing && initialValues.id) {
           // 編輯現有支出
-          console.log('更新現有支出記錄:', initialValues.id);
           const expenseRef = doc(db, 'groupExpenses', initialValues.id);
           await updateDoc(expenseRef, cleanedData);
-          console.log('支出記錄已成功更新');
           setSuccess('支出已成功更新');
         } else {
           // 添加新支出
-          console.log('添加新支出記錄');
           const docRef = await addDoc(collection(db, 'groupExpenses'), cleanedData);
-          console.log('支出記錄已成功添加，文檔ID:', docRef.id);
           setSuccess('支出已成功添加！文檔ID: ' + docRef.id);
         }
         
         setLoading(false);
         
         // 立即關閉表單並返回分帳詳情頁面
-        console.log('調用 onSave 回調函數');
         onSave(); // 調用onSave通知父組件更新
         
         // 清空表單，方便下次使用
@@ -269,13 +245,11 @@ const GroupExpenseForm: React.FC<GroupExpenseFormProps> = ({
         }
         
       } catch (dbError) {
-        console.error('儲存支出記錄到資料庫失敗:', dbError);
         setError('儲存支出記錄失敗，請稍後再試');
         setLoading(false);
       }
       
     } catch (error) {
-      console.error('處理支出失敗:', error);
       setError('無法處理支出，請稍後再試');
       setLoading(false);
     } finally {

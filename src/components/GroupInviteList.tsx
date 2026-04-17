@@ -85,7 +85,6 @@ const GroupInviteList: React.FC<GroupInviteListProps> = ({ onClose }) => {
       
       setInvites(invitesList);
     } catch (err) {
-      console.error('獲取分帳群組邀請失敗:', err);
       setError('獲取邀請時出錯，請稍後再試');
     } finally {
       setLoading(false);
@@ -100,7 +99,6 @@ const GroupInviteList: React.FC<GroupInviteListProps> = ({ onClose }) => {
       setSuccessMessage(null);
       setError(null);
       
-      console.log('開始處理接受邀請:', { inviteId, groupId, groupName });
       
       // 獲取邀請文檔
       const inviteRef = doc(db, 'groupInvites', inviteId);
@@ -111,7 +109,6 @@ const GroupInviteList: React.FC<GroupInviteListProps> = ({ onClose }) => {
       }
       
       const inviteData = inviteDoc.data();
-      console.log('邀請數據:', inviteData);
       
       // 獲取群組文檔
       const groupRef = doc(db, 'expenseGroups', groupId);
@@ -122,7 +119,6 @@ const GroupInviteList: React.FC<GroupInviteListProps> = ({ onClose }) => {
       }
       
       const groupData = groupDoc.data();
-      console.log('群組數據:', groupData);
       
       // 獲取當前用戶資料
       const userRef = doc(db, "users", currentUser.uid);
@@ -133,7 +129,6 @@ const GroupInviteList: React.FC<GroupInviteListProps> = ({ onClose }) => {
       }
       
       const userData = userDoc.data();
-      console.log('用戶數據:', userData);
       
       // 創建新成員對象
       const newMember = {
@@ -144,7 +139,6 @@ const GroupInviteList: React.FC<GroupInviteListProps> = ({ onClose }) => {
         joinedAt: Timestamp.now()
       };
       
-      console.log('新成員對象:', newMember);
       
       // 檢查用戶是否已經是群組成員
       if (groupData.memberIds && groupData.memberIds.includes(currentUser.uid)) {
@@ -158,7 +152,6 @@ const GroupInviteList: React.FC<GroupInviteListProps> = ({ onClose }) => {
         updatedAt: serverTimestamp()
       };
       
-      console.log('更新群組數據:', updateData);
       await updateDoc(groupRef, updateData);
       
       // 更新邀請狀態
@@ -170,9 +163,7 @@ const GroupInviteList: React.FC<GroupInviteListProps> = ({ onClose }) => {
       setInvites(prev => prev.filter(invite => invite.id !== inviteId));
       setSuccessMessage(`已成功加入「${groupName}」分帳群組`);
       
-      console.log('成功接受邀請');
     } catch (err: any) {
-      console.error('接受分帳群組邀請失敗:', err);
       setError(err.message || '接受邀請時出錯，請稍後再試');
     } finally {
       setProcessingInvites(prev => {
@@ -209,7 +200,6 @@ const GroupInviteList: React.FC<GroupInviteListProps> = ({ onClose }) => {
       setInvites(prev => prev.filter(invite => invite.id !== inviteId));
       setSuccessMessage(`已拒絕加入「${groupName}」分帳群組`);
     } catch (err) {
-      console.error('拒絕分帳群組邀請失敗:', err);
       setError('拒絕邀請時出錯，請稍後再試');
     } finally {
       // 移除處理中標記

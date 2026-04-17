@@ -19,7 +19,6 @@ const GroupInviteNotification: React.FC = () => {
     // 如果用戶未登錄，不需要監聽
     if (!currentUser) return;
 
-    console.log('啟動分帳群組邀請監聽');
 
     // 監聽分帳群組邀請
     const invitesRef = collection(db, 'groupInvites');
@@ -35,7 +34,6 @@ const GroupInviteNotification: React.FC = () => {
       const newInvites = snapshot.docChanges().filter(change => change.type === 'added');
       
       if (newInvites.length > 0) {
-        console.log(`檢測到 ${newInvites.length} 個新的分帳群組邀請`);
         
         // 為每個新邀請顯示通知
         newInvites.forEach(change => {
@@ -76,12 +74,10 @@ const GroupInviteNotification: React.FC = () => {
         });
       }
     }, (error) => {
-      console.error('監聽分帳群組邀請出錯:', error);
     });
 
     // 在組件卸載時取消監聽
     return () => {
-      console.log('停止分帳群組邀請監聽');
       unsubscribe();
     };
   }, [currentUser]);
@@ -90,7 +86,6 @@ const GroupInviteNotification: React.FC = () => {
   useEffect(() => {
     // 處理顯示分帳群組邀請列表
     const handleShowGroupInvites = () => {
-      console.log('觸發顯示分帳群組邀請列表事件');
       
       // 觸發自定義事件，通知App組件顯示邀請列表
       if (typeof window !== 'undefined') {

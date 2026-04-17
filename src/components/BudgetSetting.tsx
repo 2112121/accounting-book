@@ -91,21 +91,18 @@ const BudgetSetting: React.FC<BudgetSettingProps> = ({ onClose }) => {
     
     try {
       setLoading(true);
-      console.log('開始加載預算設置...');
       
       const budgetRef = doc(db, 'budgets', currentUser.uid);
       const budgetDoc = await getDoc(budgetRef);
       
       if (budgetDoc.exists()) {
         const data = budgetDoc.data();
-        console.log('已獲取預算數據:', data);
         
         // 处理现有数据格式，兼容旧版预算格式
         const budgetItems: BudgetItem[] = [];
         
         // 首先處理新版預算格式
         if (data.budgetItems && Array.isArray(data.budgetItems)) {
-          console.log('處理新版預算格式，項目數量:', data.budgetItems.length);
           
           data.budgetItems.forEach((item: any, index: number) => {
             try {
@@ -142,12 +139,10 @@ const BudgetSetting: React.FC<BudgetSettingProps> = ({ onClose }) => {
                 endDate
               });
             } catch (error) {
-              console.error(`處理預算項目 ${index} 時出錯:`, error, item);
             }
           });
         } else if (data.simplifiedItems && Array.isArray(data.simplifiedItems)) {
           // 處理簡化格式（備份方法4保存的格式）
-          console.log('處理簡化備份格式，項目數量:', data.simplifiedItems.length);
           
           data.simplifiedItems.forEach((item: any, index: number) => {
             try {
@@ -161,12 +156,10 @@ const BudgetSetting: React.FC<BudgetSettingProps> = ({ onClose }) => {
                 ...(item.categories ? { categories: item.categories } : {})
               });
             } catch (error) {
-              console.error(`處理簡化預算項目 ${index} 時出錯:`, error, item);
             }
           });
         } else {
           // 處理舊版預算格式
-          console.log('處理舊版預算格式');
           const periodTypes = ['daily', 'weekly', 'monthly', 'yearly', 'custom'];
           
           if (data.period && periodTypes.includes(data.period) && data.amount) {
@@ -198,18 +191,15 @@ const BudgetSetting: React.FC<BudgetSettingProps> = ({ onClose }) => {
                 endDate
               });
             } catch (error) {
-              console.error('處理總體預算時出錯:', error);
             }
           }
           
           // 处理类别预算
           if (data.categoryBudgets && Array.isArray(data.categoryBudgets)) {
-            console.log('處理舊版類別預算，項目數量:', data.categoryBudgets.length);
             
             data.categoryBudgets.forEach((cat: any, index: number) => {
               try {
                 if (!cat.categoryId || !cat.amount) {
-                  console.warn('無效的類別預算項目:', cat);
                   return;
                 }
                 
@@ -240,30 +230,25 @@ const BudgetSetting: React.FC<BudgetSettingProps> = ({ onClose }) => {
                   endDate
                 });
               } catch (error) {
-                console.error(`處理類別預算 ${index} 時出錯:`, error, cat);
               }
             });
           }
         }
         
-        console.log('預算設置加載完成，共有項目:', budgetItems.length);
         setBudget({
           budgetItems,
           notificationEnabled: data.notificationEnabled !== undefined ? data.notificationEnabled : true
         });
       } else {
-        console.log('未找到預算設置');
         setBudget({
           budgetItems: [],
           notificationEnabled: true
         });
       }
     } catch (error) {
-      console.error('加載預算設置失敗:', error);
       
       // 記錄詳細錯誤信息
       if (error instanceof Error) {
-        console.error('錯誤詳情:', {
           名稱: error.name,
           訊息: error.message,
           堆疊: error.stack
@@ -307,7 +292,6 @@ const BudgetSetting: React.FC<BudgetSettingProps> = ({ onClose }) => {
       
       setCategories(categoriesList);
     } catch (error) {
-      console.error('加載類別失敗:', error);
       // 發生錯誤時也添加默認類別
       const defaultCategories = [
         { id: 'food', name: '餐飲' },
@@ -328,13 +312,11 @@ const BudgetSetting: React.FC<BudgetSettingProps> = ({ onClose }) => {
   const saveBudget = async (updatedBudget: Budget) => {
     try {
     if (!currentUser) {
-        console.error('未登入，無法保存預算');
         throw new Error('未登入，無法保存預算');
       }
       
       setLoading(true);
       
-      console.log('準備保存預算:', updatedBudget);
       
       // 準備保存的數據 - 只保存必要字段
       const budgetItemsData = updatedBudget.budgetItems.map(item => {
@@ -350,7 +332,6 @@ const BudgetSetting: React.FC<BudgetSettingProps> = ({ onClose }) => {
                 startDateField = Timestamp.fromDate(date);
               }
             } catch (e) {
-              console.warn('處理開始日期失敗:', e);
             }
           }
           
@@ -361,7 +342,6 @@ const BudgetSetting: React.FC<BudgetSettingProps> = ({ onClose }) => {
                 endDateField = Timestamp.fromDate(date);
               }
             } catch (e) {
-              console.warn('處理結束日期失敗:', e);
             }
           }
           
@@ -371,7 +351,6 @@ const BudgetSetting: React.FC<BudgetSettingProps> = ({ onClose }) => {
             if (Array.isArray(item.categories)) {
               categoriesField = [...item.categories]; // 複製陣列以避免引用問題
             } else {
-              console.warn('categories不是陣列，忽略此字段');
             }
           }
           
@@ -394,7 +373,6 @@ const BudgetSetting: React.FC<BudgetSettingProps> = ({ onClose }) => {
             ...(categoriesField ? { categories: categoriesField } : {})
           };
         } catch (itemError) {
-          console.error('處理預算項目時出錯:', itemError, item);
           // 返回一個最基本的有效項目，以確保保存不會因單個項目問題而失敗
           return {
             id: item.id || `fallback-${Date.now()}`,
@@ -414,15 +392,12 @@ const BudgetSetting: React.FC<BudgetSettingProps> = ({ onClose }) => {
         lastUpdated: serverTimestamp()
       };
       
-      console.log('準備保存以下數據到Firestore:', budgetData);
       
       // 嘗試保存，使用更穩健的錯誤處理
       try {
         const budgetRef = doc(db, 'budgets', currentUser.uid);
         await setDoc(budgetRef, budgetData);
-        console.log('預算保存成功');
       } catch (saveError) {
-        console.error('使用setDoc保存失敗，嘗試使用原始方法', saveError);
         
         // 如果setDoc失敗，嘗試使用原始方法（備用方案）
         // 這是為了處理可能的Firebase限制或問題
@@ -450,7 +425,6 @@ const BudgetSetting: React.FC<BudgetSettingProps> = ({ onClose }) => {
         setSuccess('');
       }, 3000);
     } catch (error) {
-      console.error('保存預算失敗:', error);
       // 拋出錯誤而不是設置錯誤狀態，這樣調用方可以處理錯誤
       throw error;
     } finally {
@@ -495,7 +469,6 @@ const BudgetSetting: React.FC<BudgetSettingProps> = ({ onClose }) => {
     }
     
     setError('');
-    console.log('正在添加預算項目...');
     
     // 获取类别名称
     let categoryName = '总体';
@@ -533,7 +506,6 @@ const BudgetSetting: React.FC<BudgetSettingProps> = ({ onClose }) => {
       newBudgetItem.endDate = new Date(endDate);
     }
     
-    console.log('新增預算項目:', newBudgetItem);
     
     // 检查是否已存在相同条件的预算
     const existingItemIndex = budget.budgetItems.findIndex(item => 
@@ -549,7 +521,6 @@ const BudgetSetting: React.FC<BudgetSettingProps> = ({ onClose }) => {
     
     if (existingItemIndex !== -1) {
       // 更新现有项目
-      console.log('更新現有預算項目:', existingItemIndex);
       updatedItems[existingItemIndex] = {
         ...updatedItems[existingItemIndex],
         amount: newBudgetItem.amount
@@ -571,12 +542,10 @@ const BudgetSetting: React.FC<BudgetSettingProps> = ({ onClose }) => {
           resetForm();
         })
         .catch((error) => {
-          console.error('保存預算失敗:', error);
           setError('已新增至預算列表，請點擊底部的"保存所有設置"按鈕完成保存');
         });
     } else {
       // 添加新项目
-      console.log('添加新預算項目:', newBudgetItem);
       const updatedBudget = {
         ...budget,
         budgetItems: [...budget.budgetItems, newBudgetItem]
@@ -593,7 +562,6 @@ const BudgetSetting: React.FC<BudgetSettingProps> = ({ onClose }) => {
           resetForm();
         })
         .catch((error) => {
-          console.error('保存預算失敗:', error);
           setError('已新增至預算列表，請點擊底部的"保存所有設置"按鈕完成保存');
         });
     }
@@ -629,11 +597,9 @@ const BudgetSetting: React.FC<BudgetSettingProps> = ({ onClose }) => {
         await saveBudget(updatedBudget);
         setSuccess('預算項目已刪除');
       } catch (finalError) {
-        console.error('備用保存方法也失敗:', finalError);
         setError('已從列表中移除，請點擊底部的"保存所有設置"按鈕完成保存');
       }
     } catch (error) {
-      console.error('刪除預算項目失敗:', error);
       // 即使保存失敗，我們仍然保持本地刪除狀態，但提示用戶保存失敗
       setError('已從列表中移除，請點擊底部的"保存所有設置"按鈕完成保存');
     } finally {
@@ -657,16 +623,12 @@ const BudgetSetting: React.FC<BudgetSettingProps> = ({ onClose }) => {
     try {
       setLoading(true);
       setError('');
-      console.log('開始保存預算設置...', '用戶ID:', currentUser.uid);
       
       // 首先嘗試使用簡單的saveBudget方式保存
       try {
-        console.log('嘗試使用saveBudget函數保存...');
         await saveBudget(budget);
-        console.log('使用saveBudget函數保存成功');
         return; // 如果成功，直接返回
       } catch (e) {
-        console.error('使用saveBudget函數保存失敗，嘗試備用保存方法:', e);
         // 繼續執行後續備用保存方法
       }
       
@@ -680,7 +642,6 @@ const BudgetSetting: React.FC<BudgetSettingProps> = ({ onClose }) => {
         try {
           // 確保必要欄位存在
           if (!item.id || !item.period || !item.amount || !item.categoryId) {
-            console.warn('發現不完整的預算項目，自動補充數據', item);
             item.id = item.id || `item-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
             item.period = item.period || 'monthly';
             item.amount = item.amount || 0;
@@ -703,7 +664,6 @@ const BudgetSetting: React.FC<BudgetSettingProps> = ({ onClose }) => {
                 delete item.startDate;
               }
             } catch (e) {
-              console.warn('處理開始日期失敗', e);
               delete item.startDate;
             }
           }
@@ -717,7 +677,6 @@ const BudgetSetting: React.FC<BudgetSettingProps> = ({ onClose }) => {
                 delete item.endDate;
               }
             } catch (e) {
-              console.warn('處理結束日期失敗', e);
               delete item.endDate;
             }
           }
@@ -725,12 +684,10 @@ const BudgetSetting: React.FC<BudgetSettingProps> = ({ onClose }) => {
           validItems++;
           return item;
         } catch (itemError) {
-          console.error('處理預算項目時出錯', itemError, item);
           return null;
         }
       }).filter((item: any): item is Partial<BudgetItem> => item !== null);
       
-      console.log(`已處理 ${validItems} 個有效預算項目`);
       
       // 将预算格式转换为存储格式
       const saveData: any = {
@@ -756,14 +713,12 @@ const BudgetSetting: React.FC<BudgetSettingProps> = ({ onClose }) => {
             try {
               saveData.startDate = Timestamp.fromDate(new Date(firstItem.startDate));
             } catch (e) {
-              console.warn('處理相容性開始日期失敗', e);
             }
           }
           if (firstItem.endDate) {
             try {
               saveData.endDate = Timestamp.fromDate(new Date(firstItem.endDate));
             } catch (e) {
-              console.warn('處理相容性結束日期失敗', e);
             }
           }
         }
@@ -782,7 +737,6 @@ const BudgetSetting: React.FC<BudgetSettingProps> = ({ onClose }) => {
         saveData.categoryBudgets = categoryBudgets;
       }
       
-      console.log('正在保存到 Firestore...', '數據大小約:', JSON.stringify(saveData).length, '字節');
       
       let savedSuccessfully = false;
 
@@ -790,24 +744,18 @@ const BudgetSetting: React.FC<BudgetSettingProps> = ({ onClose }) => {
       try {
       const budgetRef = doc(db, 'budgets', currentUser.uid);
         await setDoc(budgetRef, saveData, { merge: true });
-        console.log('方法1保存成功: setDoc with merge');
         savedSuccessfully = true;
       } catch (error1) {
-        console.error('方法1失敗: setDoc with merge', error1);
         
         // 嘗試方法2: 不使用 merge 參數，完全替換文檔
         try {
-          console.log('嘗試方法2: setDoc without merge');
           const budgetRef = doc(db, 'budgets', currentUser.uid);
           await setDoc(budgetRef, saveData);
-          console.log('方法2保存成功: setDoc without merge');
           savedSuccessfully = true;
         } catch (error2) {
-          console.error('方法2失敗: setDoc without merge', error2);
           
           // 嘗試方法3: 分步驟保存，先保存基本設置，再保存項目數據
           try {
-            console.log('嘗試方法3: 分步驟保存');
             const budgetRef = doc(db, 'budgets', currentUser.uid);
             
             // 先保存基本設置
@@ -816,7 +764,6 @@ const BudgetSetting: React.FC<BudgetSettingProps> = ({ onClose }) => {
               lastUpdated: Timestamp.now()
             };
             await setDoc(budgetRef, basicSettings, { merge: true });
-            console.log('基本設置保存成功');
             
             // 若有項目，嘗試保存項目數據
             if (processedItems.length > 0) {
@@ -829,18 +776,14 @@ const BudgetSetting: React.FC<BudgetSettingProps> = ({ onClose }) => {
                   partial: true,
                   batchIndex: Math.floor(i / batchSize)
                 }, { merge: true });
-                console.log(`批次 ${Math.floor(i / batchSize) + 1} 保存成功，項目: ${i} 到 ${Math.min(i + batchSize, processedItems.length)}`);
               }
             }
             
-            console.log('方法3保存成功: 分步驟保存');
             savedSuccessfully = true;
           } catch (error3) {
-            console.error('方法3失敗: 分步驟保存', error3);
             
             // 嘗試方法4: 最小化數據
             try {
-              console.log('嘗試方法4: 最小化數據');
               const budgetRef = doc(db, 'budgets', currentUser.uid);
               
               // 僅保存最重要的數據，不包含自定義日期等複雜欄位
@@ -859,17 +802,14 @@ const BudgetSetting: React.FC<BudgetSettingProps> = ({ onClose }) => {
               };
               
               await setDoc(budgetRef, minimalData);
-              console.log('方法4保存成功: 最小化數據');
               savedSuccessfully = true;
             } catch (error4) {
-              console.error('方法4失敗: 最小化數據', error4);
             }
           }
         }
       }
       
       if (savedSuccessfully) {
-        console.log('預算設置保存成功');
       setSuccess('所有預算設置已保存');
       
       setTimeout(() => {
@@ -879,11 +819,9 @@ const BudgetSetting: React.FC<BudgetSettingProps> = ({ onClose }) => {
         // 自動更新預算進度視圖
         try {
           // 觸發更新預算進度條的事件
-          console.log('觸發預算進度條更新...');
           const event = new CustomEvent('refreshBudgetProgress');
           window.dispatchEvent(event);
         } catch (e) {
-          console.warn('觸發預算進度條更新事件失敗', e);
         }
       } else {
         setError('保存預算設置失敗，請稍後再試');
@@ -896,11 +834,9 @@ const BudgetSetting: React.FC<BudgetSettingProps> = ({ onClose }) => {
       }
       
     } catch (error) {
-      console.error('保存預算設置失敗:', error);
       
       // 詳細記錄錯誤信息
       if (error instanceof Error) {
-        console.error('錯誤詳情:', {
           名稱: error.name,
           訊息: error.message,
           堆疊: error.stack
@@ -943,7 +879,6 @@ const BudgetSetting: React.FC<BudgetSettingProps> = ({ onClose }) => {
       // 如果是網絡問題，嘗試重試
       if (errorMessage.includes('網絡連接問題') || errorMessage.includes('操作超時')) {
         setTimeout(() => {
-          console.log('正在嘗試重新保存預算設置...');
           saveAllSettings();
         }, 3000);
       }

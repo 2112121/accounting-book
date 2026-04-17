@@ -98,7 +98,6 @@ const ProfileForm: React.FC<ProfileFormProps> = ({ onClose }) => {
       setSuccess('個人資料已更新');
       setTimeout(() => setSuccess(''), 3000);
     } catch (err: any) {
-      console.error('更新失敗:', err);
       if (err.code === 'auth/wrong-password') {
         setError('當前密碼不正確');
       } else {

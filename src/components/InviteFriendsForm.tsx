@@ -63,7 +63,6 @@ const InviteFriendsForm: React.FC<InviteFriendsFormProps> = ({
         setExistingMembers(memberIds);
       }
     } catch (error) {
-      console.error('加載群組成員失敗:', error);
     } finally {
       setLoading(false);
     }
@@ -76,7 +75,6 @@ const InviteFriendsForm: React.FC<InviteFriendsFormProps> = ({
       const friendsList = await getFriends();
       setFriends(friendsList);
     } catch (error) {
-      console.error('加載好友列表失敗:', error);
       setError('無法加載好友列表');
     } finally {
       setLoading(false);
@@ -129,7 +127,6 @@ const InviteFriendsForm: React.FC<InviteFriendsFormProps> = ({
       // 調用保存函數，傳遞選中的好友
       onSave(selectedFriends);
     } catch (error: any) {
-      console.error('邀請好友失敗:', error);
       setError(error.message || '邀請好友失敗，請稍後再試');
     } finally {
       setSubmitting(false);

@@ -58,7 +58,6 @@ const RepaymentForm: React.FC<RepaymentFormProps> = ({
       // 提交數據
       await onSave(repaymentData);
     } catch (err: any) {
-      console.error('保存還款記錄失敗', err);
       setError(err.message || '操作失敗，請稍後再試');
     } finally {
       setLoading(false);

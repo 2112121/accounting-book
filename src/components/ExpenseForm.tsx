@@ -108,7 +108,6 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
     // 初始化加載時設置日期
     if (!expense) {
       const currentDate = getTodayDate();
-      console.log("設置初始日期為:", currentDate);
       setDate(currentDate);
     }
   }, []); // 僅在組件掛載時執行一次
@@ -138,7 +137,6 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
       setCategory("餐飲");
       // 重置日期為今天
       const todayDate = getTodayDate();
-      console.log("重置日期為今天:", todayDate);
       setDate(todayDate);
       setNotes("");
       // 重置貨幣相關值
@@ -168,14 +166,12 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
 
       if (data && data.rates && data.rates[to]) {
         const rate = data.rates[to];
-        console.log(`匯率: 1 ${from} = ${rate} ${to}`);
         setExchangeRate(rate);
         return rate;
       } else {
         throw new Error("無法獲取匯率數據");
       }
     } catch (error) {
-      console.error("獲取匯率失敗:", error);
       setError("獲取匯率失敗，請稍後再試");
       return null;
     } finally {
@@ -240,7 +236,6 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
     try {
       // 防止重複提交
       if (isSubmitting) {
-        console.log("表單正在提交中，阻止重複提交");
         return;
       }
 
@@ -281,7 +276,6 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
           ? additionalNote
           : "";
 
-      console.log("提交支出表單:", {
         amount: finalAmount,
         category,
         date,
@@ -301,7 +295,6 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
         recurringPeriod: isRecurring ? recurringPeriod : undefined,
       });
 
-      console.log("提交結果:", result);
 
       // 重置表單
       if (!expense) {
@@ -319,7 +312,6 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
       // 重置提交狀態
       setIsSubmitting(false);
     } catch (err) {
-      console.error("表單提交錯誤:", err);
       setError("提交表單時出現錯誤，請稍後再試");
       setIsSubmitting(false);
     }

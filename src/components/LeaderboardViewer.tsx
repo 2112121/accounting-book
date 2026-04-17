@@ -79,7 +79,6 @@ const LeaderboardViewer: React.FC<LeaderboardViewerProps> = ({ onClose }) => {
   // 監聽來自排行榜管理頁面的顯示事件
   useEffect(() => {
     const handleShowLeaderboardViewer = () => {
-      console.log("排行榜瀏覽頁面顯示事件被觸發");
       // 重新加載排行榜數據
       if (currentUser) {
         // 重置狀態，觸發重新加載
@@ -115,7 +114,6 @@ const LeaderboardViewer: React.FC<LeaderboardViewerProps> = ({ onClose }) => {
         const invites = await getLeaderboardInvites();
         setInviteCount(invites.length);
       } catch (error) {
-        console.error("獲取排行榜邀請失敗:", error);
       }
     };
 
@@ -190,7 +188,6 @@ const LeaderboardViewer: React.FC<LeaderboardViewerProps> = ({ onClose }) => {
         if (cachedData && cacheTimestamp) {
           const cacheAge = Date.now() - parseInt(cacheTimestamp);
           if (cacheAge < CACHE_TTL) {
-            console.log(`使用緩存的排行榜數據，緩存時間: ${new Date(parseInt(cacheTimestamp)).toLocaleString()}`);
             const parsedData = JSON.parse(cachedData);
             
             // 恢復日期對象
@@ -230,7 +227,6 @@ const LeaderboardViewer: React.FC<LeaderboardViewerProps> = ({ onClose }) => {
         await fetchLeaderboardsData(true);
         
       } catch (error) {
-        console.error("加載排行榜失敗:", error);
         setError("加載排行榜時出錯，請稍後再試");
         setLoading(false);
       }
@@ -259,7 +255,6 @@ const LeaderboardViewer: React.FC<LeaderboardViewerProps> = ({ onClose }) => {
           return;
         }
 
-        console.log(`開始加載用戶 ${currentUser.uid} (${userData.nickname || '未知用戶'}) 的 ${userLeaderboardIds.length} 個排行榜`);
 
         // 優化4: 批量加載 - 將排行榜分批加載以提高性能
         const batchSize = 5; // 每批加載5個排行榜
@@ -269,14 +264,12 @@ const LeaderboardViewer: React.FC<LeaderboardViewerProps> = ({ onClose }) => {
           batches.push(userLeaderboardIds.slice(i, i + batchSize));
         }
         
-        console.log(`排行榜將分${batches.length}批加載`);
         
         let allLeaderboards: Leaderboard[] = [];
         
         // 批次順序加載排行榜
         for (let i = 0; i < batches.length; i++) {
           const batch = batches[i];
-          console.log(`加載第${i+1}批排行榜（${batch.length}個）`);
           
           // 批次中的排行榜並行加載
           const batchPromises = batch.map((leaderboardId: string) => 
@@ -301,16 +294,13 @@ const LeaderboardViewer: React.FC<LeaderboardViewerProps> = ({ onClose }) => {
           const serializedData = JSON.stringify(allLeaderboards);
           sessionStorage.setItem(`leaderboards_${currentUser.uid}`, serializedData);
           sessionStorage.setItem(`leaderboards_${currentUser.uid}_timestamp`, Date.now().toString());
-          console.log(`排行榜數據已緩存，時間: ${new Date().toLocaleString()}`);
         } catch (e) {
-          console.warn("無法緩存排行榜數據:", e);
         }
         
         if (updateLoadingState) {
           setLoading(false);
         }
       } catch (error) {
-        console.error("加載排行榜失敗:", error);
         if (updateLoadingState) {
           setError("加載排行榜時出錯，請稍後再試");
           setLoading(false);
@@ -320,12 +310,10 @@ const LeaderboardViewer: React.FC<LeaderboardViewerProps> = ({ onClose }) => {
     
     // 優化7: 提取單個排行榜加載邏輯以便重用
     const fetchSingleLeaderboard = async (leaderboardId: string, prioritySyncEnabled: boolean): Promise<Leaderboard | null> => {
-      console.log(`加載排行榜 ${leaderboardId} 的詳情`);
       try {
         const leaderboardDoc = await getDoc(doc(db, "leaderboards", leaderboardId));
         
         if (!leaderboardDoc.exists()) {
-          console.warn(`未找到排行榜 ${leaderboardId} 的詳情`);
           return null;
         }
         
@@ -365,18 +353,14 @@ const LeaderboardViewer: React.FC<LeaderboardViewerProps> = ({ onClose }) => {
           
           setTimeout(async () => {
             try {
-              console.log(`開始同步排行榜: ${leaderboard.name} (優先級: ${prioritySyncEnabled ? '高' : '低'})`);
               await updateLeaderboardMemberExpenses(leaderboard);
-              console.log(`排行榜 ${leaderboard.name} 數據同步完成`);
             } catch (error) {
-              console.error(`同步排行榜 ${leaderboard.name} 數據失敗:`, error);
             }
           }, syncDelay);
         }
         
         return leaderboard;
       } catch (error) {
-        console.error(`加載排行榜 ${leaderboardId} 失敗:`, error);
         return null;
       }
     };
@@ -392,7 +376,6 @@ const LeaderboardViewer: React.FC<LeaderboardViewerProps> = ({ onClose }) => {
       completed.sort((a: Leaderboard, b: Leaderboard) => new Date(b.endDate).getTime() - new Date(a.endDate).getTime());
       active.sort((a: Leaderboard, b: Leaderboard) => new Date(a.endDate).getTime() - new Date(b.endDate).getTime());
 
-      console.log(`排行榜更新: ${active.length} 個進行中, ${completed.length} 個已結束`);
       
       setCompletedLeaderboards(completed);
       setActiveLeaderboards(active);
@@ -405,22 +388,18 @@ const LeaderboardViewer: React.FC<LeaderboardViewerProps> = ({ onClose }) => {
   // 強制重新同步當前排行榜數據
   useEffect(() => {
     if (selectedLeaderboard && isLeaderboardCompleted(selectedLeaderboard)) {
-      console.log("檢測到已結束排行榜，強制同步數據:", selectedLeaderboard.name);
       // 立即同步數據，但需要防止無限循環
       const shouldSync = !selectedLeaderboard.members.some(
         (member) => member.totalExpense > 0 && member.expenseIds && member.expenseIds.length > 0
       );
       
       if (shouldSync) {
-        console.log("需要同步數據:", selectedLeaderboard.name);
         if (typeof updateLeaderboardMemberExpenses === "function") {
           (async () => {
             try {
               setLoading(true);
               await updateLeaderboardMemberExpenses(selectedLeaderboard);
-              console.log("已結束排行榜數據同步完成");
             } catch (error) {
-              console.error("同步排行榜數據失敗:", error);
             } finally {
               setLoading(false);
             }
@@ -437,7 +416,6 @@ const LeaderboardViewer: React.FC<LeaderboardViewerProps> = ({ onClose }) => {
     startDate: Date,
     endDate: Date,
   ) => {
-    console.log(`開始加載用戶 ${userId} 的支出詳情, 允許查看詳情: ${allowViewDetail}`);
     
     if (!allowViewDetail) {
       return [];
@@ -445,7 +423,6 @@ const LeaderboardViewer: React.FC<LeaderboardViewerProps> = ({ onClose }) => {
 
     // 使用缓存，避免重复加载
     if (memberExpenses[userId]?.length > 0) {
-      console.log(`使用缓存的支出数据，共 ${memberExpenses[userId].length} 条记录`);
       return memberExpenses[userId];
     }
 
@@ -455,7 +432,6 @@ const LeaderboardViewer: React.FC<LeaderboardViewerProps> = ({ onClose }) => {
     if (member && member.totalExpense > 0) {
       // 策略1: 使用已缓存的expenseIds
       if (member.expenseIds && member.expenseIds.length > 0) {
-        console.log(`從排行榜成員數據中找到 ${member.expenseIds.length} 條支出記錄ID`);
 
         // 使用批量获取提高性能
         try {
@@ -485,20 +461,17 @@ const LeaderboardViewer: React.FC<LeaderboardViewerProps> = ({ onClose }) => {
           });
 
           if (expenses.length > 0) {
-            console.log(`成功獲取 ${expenses.length} 條支出記錄`);
             // 按日期降序排序，最新的支出排在前面
             return expenses.sort(
               (a, b) => b.date.getTime() - a.date.getTime()
             );
           }
         } catch (err) {
-          console.warn(`批量獲取支出記錄失敗:`, err);
         }
       } 
       
       // 策略2: 使用摘要数据
       else if (member.expenseSummaries && member.expenseSummaries.length > 0) {
-        console.log(`使用支出摘要數據, 共 ${member.expenseSummaries.length} 條`);
         
         const expenses: Expense[] = member.expenseSummaries.map(summary => {
           const expenseDate = summary.date instanceof Timestamp
@@ -525,7 +498,6 @@ const LeaderboardViewer: React.FC<LeaderboardViewerProps> = ({ onClose }) => {
 
     // 策略3: 直接从数据库查询（作为最后手段）
     try {
-      console.log(`從數據庫直接查詢用戶 ${userId} 的支出`);
       
       const expensesRef = collection(db, "expenses");
       
@@ -561,10 +533,8 @@ const LeaderboardViewer: React.FC<LeaderboardViewerProps> = ({ onClose }) => {
         });
       });
       
-      console.log(`直接查詢獲取到 ${expenses.length} 條支出記錄`);
       return expenses.sort((a, b) => b.date.getTime() - a.date.getTime());
     } catch (error) {
-      console.error(`查詢支出失敗:`, error);
       return [];
     }
   };
@@ -628,7 +598,6 @@ const LeaderboardViewer: React.FC<LeaderboardViewerProps> = ({ onClose }) => {
           setTimeout(() => setError(""), 3000);
         }
       } catch (error) {
-        console.error(`获取用户 ${member.userId} 的支出详情失败:`, error);
         setError("獲取支出詳情失敗，請稍後再試");
         setTimeout(() => setError(""), 3000);
         setMemberExpenses(prev => ({
@@ -640,7 +609,6 @@ const LeaderboardViewer: React.FC<LeaderboardViewerProps> = ({ onClose }) => {
         setLoadingMemberIds(prev => prev.filter(id => id !== member.userId));
       }
     } catch (error) {
-      console.error("處理查看成員詳情失敗:", error);
       setError("處理請求失敗，請稍後再試");
       setTimeout(() => setError(""), 3000);
       setLoadingMemberIds(prev => prev.filter(id => id !== member.userId));
@@ -685,7 +653,6 @@ const LeaderboardViewer: React.FC<LeaderboardViewerProps> = ({ onClose }) => {
                 });
               }
             } catch (error) {
-              console.error(`后台同步排行榜数据失败:`, error);
             }
           }, 100);
         }
@@ -731,12 +698,10 @@ const LeaderboardViewer: React.FC<LeaderboardViewerProps> = ({ onClose }) => {
               });
             }
           } catch (error) {
-            console.error("同步排行榜数据失败:", error);
           }
         }
       }
     } catch (error) {
-      console.error("查看排行榜詳情失敗:", error);
       setError("載入排行榜數據失敗，請稍後再試");
       setTimeout(() => setError(""), 3000);
     } finally {
@@ -858,7 +823,6 @@ const LeaderboardViewer: React.FC<LeaderboardViewerProps> = ({ onClose }) => {
       setSuccessMessage(successMsg);
       setTimeout(() => setSuccessMessage(""), 5000);
     } catch (error) {
-      console.error("刷新排行榜數據失敗:", error);
       setError("刷新數據失敗，請稍後再試");
       setTimeout(() => setError(""), 3000);
     } finally {

@@ -44,13 +44,11 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess, initialMode = 'login' 
 
   // 添加調試日誌
   useEffect(() => {
-    console.log("%c表單狀態變更為", "color:blue;font-weight:bold", isRegistering ? "註冊模式" : "登入模式");
   }, [isRegistering]);
   
   // 只有在成功操作後才觸發 onSuccess
   useEffect(() => {
     if (successfulOperation) {
-      console.log("%c操作成功，觸發 onSuccess 回調", "color:green;font-weight:bold");
       onSuccess();
       // 重置成功標記，防止重複觸發
       setSuccessfulOperation(false);
@@ -62,7 +60,6 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess, initialMode = 'login' 
     
     // 防止重複提交
     if (isSubmittingRef.current) {
-      console.log("表單正在提交中，阻止重複提交");
       return;
     }
     
@@ -84,16 +81,13 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess, initialMode = 'login' 
     isSubmittingRef.current = true;
     
     try {
-      console.log(`%c開始${isRegistering ? '註冊' : '登入'}處理`, "color:blue", `電子郵件: ${email}`);
       
       if (isRegistering) {
         // 註冊新用戶
         try {
-          console.log("%c嘗試註冊新用戶...", "color:blue");
           // 將所有可能的錯誤細節記錄下來
           try {
             const result = await register(email, password, nickname);
-            console.log("%c註冊成功！", "color:green;font-weight:bold", "結果:", result);
             
             // 註冊成功才清空表單並設置成功標記
             setEmail('');
@@ -101,11 +95,9 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess, initialMode = 'login' 
             setNickname('');
             setSuccessfulOperation(true); // 設置成功標記而不是直接調用 onSuccess
           } catch (regErrorInner: any) {
-            console.error("%c註冊失敗（內部捕獲）", "color:red;font-weight:bold", regErrorInner);
             // 特別檢查是否是郵件已被使用的錯誤
             if (regErrorInner.code === 'auth/email-already-in-use' || 
                 (regErrorInner.message && regErrorInner.message.includes('已被註冊'))) {
-              console.warn("%c電子郵件已被註冊", "color:orange;font-weight:bold");
               throw {
                 code: 'auth/email-already-in-use',
                 message: '此電子郵件已被註冊，請使用其他電子郵件註冊',
@@ -115,7 +107,6 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess, initialMode = 'login' 
             throw regErrorInner; // 其他錯誤直接重新拋出
           }
         } catch (regError: any) {
-          console.error("%c註冊失敗（外部捕獲）", "color:red;font-weight:bold", {
             code: regError.code,
             message: regError.message,
             isEmailInUseError: regError.isEmailInUseError,
@@ -128,7 +119,6 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess, initialMode = 'login' 
                                (regError.message && regError.message.includes('已被註冊'));
           
           if (isEmailInUse) {
-            console.log("%c檢測到電子郵件已存在，保持在註冊頁面", "color:orange;font-weight:bold");
             setError('此電子郵件已被註冊，請使用其他電子郵件註冊');
             // 強制保持在註冊狀態，非常重要！
             setIsRegistering(true);
@@ -141,16 +131,13 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess, initialMode = 'login' 
       } else {
         // 登入現有用戶
         try {
-          console.log("%c嘗試登入...", "color:blue");
           await login(email, password);
-          console.log("%c登入成功！", "color:green;font-weight:bold");
           
           // 登入成功清空表單並設置成功標記
           setEmail('');
           setPassword('');
           setSuccessfulOperation(true); // 設置成功標記而不是直接調用 onSuccess
         } catch (loginError: any) {
-          console.error("%c登入失敗", "color:red;font-weight:bold", {
             code: loginError.code,
             message: loginError.message,
             stack: loginError.stack,
@@ -162,14 +149,12 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess, initialMode = 'login' 
       }
     } catch (err: any) {
       // 這裡處理未在上面捕獲的其他錯誤
-      console.error("%c處理過程中發生未預期錯誤", "color:red;font-weight:bold", err);
       
       // 檢查是否是郵件已被使用的錯誤
       const isEmailInUse = err.code === 'auth/email-already-in-use' || 
                            (err.message && err.message.includes('已被註冊'));
       
       if (isEmailInUse) {
-        console.log("%c檢測到電子郵件已存在，保持在註冊頁面", "color:orange;font-weight:bold");
         setError('此電子郵件已被註冊，請使用其他電子郵件註冊');
         // 強制保持在註冊狀態
         setIsRegistering(true);
@@ -193,12 +178,9 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess, initialMode = 'login' 
       setLoading(true);
       isSubmittingRef.current = true;
       
-      console.log("%c嘗試使用Google登入...", "color:blue");
       await loginWithGoogle();
-      console.log("%c Google登入成功！", "color:green;font-weight:bold");
       setSuccessfulOperation(true); // 設置成功標記而不是直接調用 onSuccess
     } catch (err: any) {
-      console.error("%cGoogle登入失敗", "color:red;font-weight:bold", err);
       
       // 特別處理用戶關閉彈窗的情況
       if (err.code === 'auth/popup-closed-by-user') {

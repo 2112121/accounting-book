@@ -87,7 +87,6 @@ const ConfirmExpenseForm: React.FC<ConfirmExpenseFormProps> = ({
       // 如果總金額已計算且有成員，則自動計算分帳金額
       if (totalAmount > 0 && members.length > 0) {
         updateSplitAmounts(splitMethod);
-        console.log('多選模式 - 已更新分帳金額:', { splitMethod, totalAmount, memberCount: members.length });
       }
     } 
     // 單選一個支出
@@ -127,7 +126,6 @@ const ConfirmExpenseForm: React.FC<ConfirmExpenseFormProps> = ({
         // 如果有成員，立即計算分帳金額
         if (members.length > 0) {
           updateSplitAmounts(splitMethod);
-          console.log('單選模式 - 已更新分帳金額:', { splitMethod, amount: expense.amount, memberCount: members.length });
         }
       }
     }
@@ -157,7 +155,6 @@ const ConfirmExpenseForm: React.FC<ConfirmExpenseFormProps> = ({
       // 在確保成員載入後，確保計算分帳金額
       setTimeout(() => {
         updateSplitAmounts(splitMethod);
-        console.log('全部支出模式 - 已更新分帳金額，標記為批量處理');
       }, 100);
     } else {
       // 選擇單個支出
@@ -187,10 +184,8 @@ const ConfirmExpenseForm: React.FC<ConfirmExpenseFormProps> = ({
   // 新增：從群組ID直接加載成員的函數
   const loadGroupMembers = async (groupId: string) => {
     try {
-      console.log('嘗試從群組直接加載成員，群組ID:', groupId);
       
       if (!groupId) {
-        console.error('無效的群組ID');
         setError('無法載入分帳群組成員：無效的群組ID');
         return;
       }
@@ -201,10 +196,8 @@ const ConfirmExpenseForm: React.FC<ConfirmExpenseFormProps> = ({
       
       if (groupSnapshot.exists()) {
         const groupData = groupSnapshot.data();
-        console.log('從expenseGroups文檔加載成員數據:', groupData);
         
         if (groupData.members && groupData.members.length > 0) {
-          console.log('從群組文檔加載成員:', groupData.members.length);
           
           // 保存現有成員的金額信息
           const currentMemberAmounts = new Map();
@@ -230,7 +223,6 @@ const ConfirmExpenseForm: React.FC<ConfirmExpenseFormProps> = ({
           return;
         }
       } else {
-        console.log('expenseGroups中沒有找到群組文檔，嘗試其他方式');
       }
       
       // 如果在expenseGroups找不到，嘗試從splitTransactions集合中查找
@@ -239,10 +231,8 @@ const ConfirmExpenseForm: React.FC<ConfirmExpenseFormProps> = ({
       
       if (splitSnapshot.exists()) {
         const splitData = splitSnapshot.data();
-        console.log('從splitTransactions文檔加載數據:', splitData);
         
         if (splitData.participants && splitData.participants.length > 0) {
-          console.log('從splitTransactions加載成員:', splitData.participants.length);
           
           // 保存現有成員的金額信息
           const currentMemberAmounts = new Map();
@@ -268,24 +258,19 @@ const ConfirmExpenseForm: React.FC<ConfirmExpenseFormProps> = ({
           return;
         }
       } else {
-        console.log('splitTransactions中沒有找到群組文檔，嘗試其他方式');
       }
       
       // 如果從群組文檔無法獲取，嘗試從群組支出集合中推斷
-      console.log('嘗試從已有支出中推斷群組成員');
       const expensesRef = collection(db, 'groupExpenses');
       const q = query(expensesRef, where('groupId', '==', groupId), limit(5));
       const expensesSnapshot = await getDocs(q);
       
       if (!expensesSnapshot.empty) {
-        console.log('找到相關支出數量:', expensesSnapshot.docs.length);
         // 從第一筆支出中獲取成員信息
         for (const expDoc of expensesSnapshot.docs) {
           const expData = expDoc.data();
-          console.log('檢查支出數據:', expData.id, expData.title);
           
           if (expData.participants && expData.participants.length > 0) {
-            console.log('從相關支出中加載成員:', expData.participants.length);
             
             // 保存現有成員的金額信息
             const currentMemberAmounts = new Map();
@@ -310,7 +295,6 @@ const ConfirmExpenseForm: React.FC<ConfirmExpenseFormProps> = ({
             
             return;
           } else if (expData.groupMembers && expData.groupMembers.length > 0) {
-            console.log('從相關支出中加載成員:', expData.groupMembers.length);
             
             // 保存現有成員的金額信息
             const currentMemberAmounts = new Map();
@@ -337,12 +321,10 @@ const ConfirmExpenseForm: React.FC<ConfirmExpenseFormProps> = ({
           }
         }
       } else {
-        console.log('在groupExpenses中沒有找到相關支出數據');
       }
       
       // 如果還是無法獲取成員，嘗試用當前用戶作為第一個成員
       if (currentUser) {
-        console.log('使用當前用戶作為默認成員');
         setMembers([{
           userId: currentUser.uid,
           nickname: currentUser.displayName || '我',
@@ -355,11 +337,9 @@ const ConfirmExpenseForm: React.FC<ConfirmExpenseFormProps> = ({
         setError('找不到分帳群組成員數據，僅顯示您本人。請確保群組設置正確，或添加更多成員到群組。');
       } else {
         // 最後的後備方案
-        console.log('無法獲取任何成員信息');
         setError('無法載入分帳群組成員。請檢查群組設置或重新登入。');
       }
     } catch (err) {
-      console.error('加載分帳群組成員出錯:', err);
       setError('加載分帳群組成員時發生錯誤，請稍後再試。');
     }
   };
@@ -368,7 +348,6 @@ const ConfirmExpenseForm: React.FC<ConfirmExpenseFormProps> = ({
   useEffect(() => {
     // 如果沒有找到成員，但有選定的支出，嘗試重新加載成員
     if (members.length === 0 && groupId && ((selectedExpenseId && !multipleSelection) || (multipleSelection && selectedExpenseIds.length > 0))) {
-      console.log('未檢測到成員，嘗試重新加載...');
       loadGroupMembers(groupId);
     }
   }, [selectedExpenseId, selectedExpenseIds, multipleSelection]);
@@ -376,7 +355,6 @@ const ConfirmExpenseForm: React.FC<ConfirmExpenseFormProps> = ({
   // 添加：組件掛載時先加載群組成員
   useEffect(() => {
     if (groupId) {
-      console.log('組件掛載時初始加載群組成員');
       loadGroupMembers(groupId);
     }
   }, [groupId]);
@@ -498,13 +476,9 @@ const ConfirmExpenseForm: React.FC<ConfirmExpenseFormProps> = ({
     if (!totalAmount || isNaN(totalAmount) || totalAmount <= 0) return;
     
     if (members.length === 0) {
-      console.warn('沒有成員可以分配金額');
       return;
     }
     
-    console.log('當前分帳方式:', method);
-    console.log('當前總金額:', totalAmount);
-    console.log('成員數量:', members.length);
     
     // 根據選擇的分帳方式計算每人金額
     switch (method) {
@@ -529,7 +503,6 @@ const ConfirmExpenseForm: React.FC<ConfirmExpenseFormProps> = ({
           remainderDistributed++;
         }
 
-        console.log('更新後的成員數據 (平分):', updatedMembers);
         setMembers(updatedMembers);
         break;
       }
@@ -567,7 +540,6 @@ const ConfirmExpenseForm: React.FC<ConfirmExpenseFormProps> = ({
           }
         }
 
-        console.log('更新後的成員數據 (百分比):', initialPercentageMembers);
         setMembers(initialPercentageMembers);
         break;
       }
@@ -583,7 +555,6 @@ const ConfirmExpenseForm: React.FC<ConfirmExpenseFormProps> = ({
           };
         });
 
-        console.log('更新後的成員數據 (自訂-初始化為0):', customMembers);
         setMembers(customMembers);
         break;
       }
@@ -694,7 +665,6 @@ const ConfirmExpenseForm: React.FC<ConfirmExpenseFormProps> = ({
         setValidSplitAmount(isPercentageValid && isAmountValid);
       
         // 診斷日誌
-        console.log('分帳驗證 (百分比模式):', { 
           totalPercentage, 
           totalSplitAmount, 
           targetAmount, 
@@ -708,7 +678,6 @@ const ConfirmExpenseForm: React.FC<ConfirmExpenseFormProps> = ({
       setValidSplitAmount(isAmountValid);
       
       // 診斷日誌
-      console.log('分帳驗證:', { totalSplitAmount, targetAmount, remaining, isAmountValid });
     }
   }, [members, multipleSelection, totalAmount, selectedExpense, splitMethod, error]);
   
@@ -821,7 +790,6 @@ const ConfirmExpenseForm: React.FC<ConfirmExpenseFormProps> = ({
       // 呼叫父組件提供的保存方法
       await onSave(formData);
     } catch (error: any) {
-      console.error('確認分帳失敗:', error);
       setError(error.message || '確認分帳時出錯');
     } finally {
       setLoading(false);

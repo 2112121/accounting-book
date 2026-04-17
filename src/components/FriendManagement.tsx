@@ -70,7 +70,6 @@ const FriendManagement: React.FC<FriendManagementProps> = ({ onClose }) => {
       setFriends(friendsList);
     } catch (error) {
       setError('載入好友列表失敗');
-      console.error(error);
     } finally {
       setLoading(false);
     }
@@ -83,7 +82,6 @@ const FriendManagement: React.FC<FriendManagementProps> = ({ onClose }) => {
       const requests = await getFriendRequests();
       setFriendRequests(requests);
     } catch (error) {
-      console.error('載入好友請求失敗', error);
     }
   };
 
@@ -99,7 +97,6 @@ const FriendManagement: React.FC<FriendManagementProps> = ({ onClose }) => {
         getRecipientInfo(request.to);
       }
     } catch (error) {
-      console.error('載入已發送的好友請求失敗', error);
     }
   };
 
@@ -125,7 +122,6 @@ const FriendManagement: React.FC<FriendManagementProps> = ({ onClose }) => {
         }));
       }
     } catch (error) {
-      console.error('獲取收件人信息失敗:', error);
     }
   };
 
@@ -145,7 +141,6 @@ const FriendManagement: React.FC<FriendManagementProps> = ({ onClose }) => {
       setIsSearching(true);
       setError('');
       setSuccess('');
-      console.log("開始搜索好友碼:", friendCodeQuery);
       
       // 檢查是否搜尋自己的好友碼
       if (friendCodeQuery.toUpperCase() === myFriendCode) {
@@ -156,7 +151,6 @@ const FriendManagement: React.FC<FriendManagementProps> = ({ onClose }) => {
       
       // 透過好友碼查詢
       const results = await searchUsers(friendCodeQuery);
-      console.log("好友碼搜索結果:", results);
       setSearchResults(results);
       
       if (results.length === 0) {
@@ -167,7 +161,6 @@ const FriendManagement: React.FC<FriendManagementProps> = ({ onClose }) => {
         setTimeout(() => setSuccess(''), 3000);
       }
     } catch (error: any) {
-      console.error('搜索失敗:', error);
       // 更友好地顯示錯誤信息
       if (error.message && error.message.includes("未找到好友碼")) {
         setError(error.message);
@@ -226,7 +219,6 @@ const FriendManagement: React.FC<FriendManagementProps> = ({ onClose }) => {
       setTimeout(() => setSuccess(''), 3000);
     } catch (error) {
       setError('接受好友請求失敗');
-      console.error(error);
     } finally {
       setLoading(false);
     }
@@ -245,7 +237,6 @@ const FriendManagement: React.FC<FriendManagementProps> = ({ onClose }) => {
       setTimeout(() => setSuccess(''), 3000);
     } catch (error) {
       setError('拒絕好友請求失敗');
-      console.error(error);
     } finally {
       setLoading(false);
     }
@@ -265,7 +256,6 @@ const FriendManagement: React.FC<FriendManagementProps> = ({ onClose }) => {
         setTimeout(() => setSuccess(''), 3000);
       } catch (error) {
         setError('移除好友失敗');
-        console.error(error);
       } finally {
         setLoading(false);
       }
@@ -279,7 +269,6 @@ const FriendManagement: React.FC<FriendManagementProps> = ({ onClose }) => {
       setTimeout(() => setSuccess(''), 3000);
     }, (err) => {
       setError('複製失敗，請手動複製');
-      console.error('複製失敗:', err);
     });
   };
 

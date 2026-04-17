@@ -27,7 +27,6 @@ const LeaderboardInviteList: React.FC<LeaderboardInviteListProps> = ({ onClose }
       const invitesList = await getLeaderboardInvites();
       setInvites(invitesList);
     } catch (err) {
-      console.error('獲取排行榜邀請失敗:', err);
       setError('獲取排行榜邀請時出錯，請稍後再試');
     } finally {
       setLoading(false);
@@ -50,7 +49,6 @@ const LeaderboardInviteList: React.FC<LeaderboardInviteListProps> = ({ onClose }
       setInvites(prev => prev.filter(invite => invite.id !== inviteId));
       setSuccessMessage(`已成功接受加入"${leaderboardName}"排行榜`);
     } catch (err) {
-      console.error('接受排行榜邀請失敗:', err);
       setError('接受邀請時出錯，請稍後再試');
     } finally {
       // 移除處理中標記
@@ -78,7 +76,6 @@ const LeaderboardInviteList: React.FC<LeaderboardInviteListProps> = ({ onClose }
       setInvites(prev => prev.filter(invite => invite.id !== inviteId));
       setSuccessMessage(`已拒絕加入"${leaderboardName}"排行榜`);
     } catch (err) {
-      console.error('拒絕排行榜邀請失敗:', err);
       setError('拒絕邀請時出錯，請稍後再試');
     } finally {
       // 移除處理中標記
@@ -113,23 +110,19 @@ const LeaderboardInviteList: React.FC<LeaderboardInviteListProps> = ({ onClose }
   // 處理返回排行榜管理的事件
   const handleReturnToLeaderboardManager = () => {
     try {
-      console.log("排行榜邀請頁面 - 返回排行榜管理");
       
       // 通知應用需要顯示排行榜管理
       if (typeof window !== 'undefined') {
         // 嘗試使用全局變量保存狀態
-        console.log("設置全局變量 window.__shouldShowLeaderboardManager = true");
         (window as any).__shouldShowLeaderboardManager = true;
         
         // 觸發自定義事件 - 確保使用明確的名稱
-        console.log("觸發 returnToLeaderboardManager 事件");
         const returnEvent = new CustomEvent('returnToLeaderboardManager', {
           detail: { timestamp: new Date().getTime() }
         });
         window.dispatchEvent(returnEvent);
         
         // 觸發原來的事件保持兼容
-        console.log("觸發 openLeaderboardManager 事件");
         const openEvent = new CustomEvent('openLeaderboardManager', {
           detail: { timestamp: new Date().getTime() }
         });
@@ -140,7 +133,6 @@ const LeaderboardInviteList: React.FC<LeaderboardInviteListProps> = ({ onClose }
       if (typeof window !== 'undefined' && 
           (window as any).openLeaderboardManagerCallback && 
           typeof (window as any).openLeaderboardManagerCallback === 'function') {
-        console.log("直接調用全局回調函數 openLeaderboardManagerCallback");
         (window as any).openLeaderboardManagerCallback();
       }
       
@@ -149,7 +141,6 @@ const LeaderboardInviteList: React.FC<LeaderboardInviteListProps> = ({ onClose }
         onClose();
       }, 100);
     } catch (error) {
-      console.error("返回排行榜管理時出錯:", error);
       onClose();
     }
   };

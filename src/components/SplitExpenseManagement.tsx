@@ -72,12 +72,10 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
   // 當顯示分帳詳情時自動加載群組支出
   useEffect(() => {
     if (showTransactionDetails && selectedTransaction) {
-      console.log('分帳詳情顯示，自動加載群組支出，群組ID:', selectedTransaction.id);
       // 確保 selectedTransaction.id 是有效的
       if (selectedTransaction.id && selectedTransaction.id.trim() !== '') {
         loadGroupExpenses(selectedTransaction.id);
       } else {
-        console.error('無效的群組ID，無法加載支出');
       }
     }
   }, [showTransactionDetails, selectedTransaction, showGroupExpenseForm]);
@@ -86,12 +84,10 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
   useEffect(() => {
     // 當從添加支出表單返回到分帳詳情時，重新加載支出
     if (!showGroupExpenseForm && selectedTransaction) {
-      console.log('從添加支出表單返回，重新加載群組支出');
       loadGroupExpenses(selectedTransaction.id);
       
       // 確保分帳詳情頁面是可見的
       if (!showTransactionDetails) {
-        console.log('顯示分帳詳情頁面');
         setShowTransactionDetails(true);
       }
     }
@@ -130,7 +126,6 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
       // 如果所有方法都失敗，返回當前日期
       return new Date();
     } catch (err) {
-      console.error('解析Firestore時間戳出錯:', err);
       return new Date();
     }
   };
@@ -143,7 +138,6 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
       
       if (!currentUser) return;
       
-      console.log('加載分帳記錄，當前標籤:', activeTab);
       
       // 用於去重的集合
       const uniqueTransactionIds = new Set();
@@ -163,16 +157,13 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
           orderBy('createdAt', 'desc')
         );
         
-        console.log('查詢用戶創建的群組...');
         // 獲取用戶創建的群組
         const createdGroupsSnapshot = await getDocs(createdGroupsQuery);
-        console.log('已創建的群組數量:', createdGroupsSnapshot.size);
         
         // 處理為分帳記錄格式
         createdGroupsSnapshot.forEach((doc) => {
           try {
             const data = doc.data();
-            console.log('群組數據:', doc.id, data);
             
             // 使用輔助函數解析日期
             const date = parseFirestoreTimestamp(data.createdAt);
@@ -203,7 +194,6 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
             transactionsList.push(transaction);
             uniqueTransactionIds.add(doc.id);
           } catch (err) {
-            console.error('處理群組數據時出錯:', err);
           }
         });
         
@@ -216,9 +206,7 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
             orderBy('createdAt', 'desc')
           );
           
-          console.log('查詢用戶參與的分帳群組(通過memberIds)...');
           const participantGroupsSnapshot = await getDocs(participantGroupsQuery);
-          console.log('參與的分帳群組數量(通過memberIds):', participantGroupsSnapshot.size);
           
           // 處理為分帳記錄格式
           participantGroupsSnapshot.forEach((doc) => {
@@ -255,15 +243,12 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
               uniqueTransactionIds.add(doc.id);
               transactionsList.push(transaction);
             } catch (err) {
-              console.error('處理參與群組數據時出錯:', err);
             }
           });
         } catch (memberIdsError) {
-          console.error('通過memberIds查詢參與的分帳群組失敗:', memberIdsError);
           
           // 如果memberIds查詢失敗，嘗試使用成員數組查詢
           try {
-            console.log('嘗試備用方法查詢參與的分帳群組...');
             // 獲取所有群組
             const allGroupsQuery = query(groupsRef, orderBy('createdAt', 'desc'));
             const allGroupsSnapshot = await getDocs(allGroupsQuery);
@@ -308,17 +293,13 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
                   transactionsList.push(transaction);
                 }
               } catch (err) {
-                console.error('手動處理群組數據時出錯:', err);
               }
             });
             
-            console.log('手動查詢到的參與分帳群組數量:', participantGroups);
           } catch (allGroupsError) {
-            console.error('手動查詢參與的分帳群組失敗:', allGroupsError);
           }
         }
       } catch (error) {
-        console.error('查詢群組數據時出錯:', error);
       }
       
       // 查詢其他分帳記錄
@@ -330,7 +311,6 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
       setSplitTransactions(transactionsList);
       
     } catch (error) {
-      console.error('加載分帳記錄失敗:', error);
       setError('無法加載分帳記錄，請稍後再試');
     } finally {
       setLoading(false);
@@ -357,7 +337,6 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
       
       return docRef.id;
     } catch (error) {
-      console.error('創建分帳記錄失敗:', error);
       setError('創建分帳記錄失敗，請稍後再試');
       throw error; // 重新拋出錯誤以便調用者可以處理
     } finally {
@@ -455,7 +434,6 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
       });
       
     } catch (error: any) {
-      console.error('更新分帳群組失敗:', error);
       const errorMessage = error.message || '更新分帳群組失敗，請稍後再試';
       setError(errorMessage);
       
@@ -521,7 +499,6 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
         isGroupMember = groupData.memberIds.includes(currentUser.uid);
       }
       
-      console.log('刪除群組權限檢查:', {
         isCreator,
         isGroupMember,
         currentUserId: currentUser.uid,
@@ -560,7 +537,6 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
         
         // 如果有支出記錄，則刪除它們
         if (!expensesSnapshot.empty) {
-          console.log(`刪除群組 ${groupId} 的 ${expensesSnapshot.size} 筆支出記錄`);
           
           const deleteExpensePromises = expensesSnapshot.docs.map(doc => 
             deleteDoc(doc.ref)
@@ -569,7 +545,6 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
           await Promise.all(deleteExpensePromises);
         }
       } catch (expensesError) {
-        console.error('刪除群組支出記錄時出錯:', expensesError);
         // 即使刪除支出記錄失敗，我們仍然繼續刪除群組本身
       }
       
@@ -595,7 +570,6 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
       });
       
     } catch (error: any) {
-      console.error('刪除分帳群組失敗:', error);
       const errorMessage = error.message || '刪除分帳群組失敗，請稍後再試';
       setError(errorMessage);
       
@@ -737,11 +711,9 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
       setError(''); // 清除之前的錯誤
       setGroupExpenses([]); // 清空之前的支出數據
       
-      console.log('開始加載群組支出，群組ID:', groupId, '類型:', typeof groupId);
       
       // 檢查 groupId 是否有效
       if (!groupId || groupId.trim() === '') {
-        console.error('無效的群組ID，無法加載支出');
         setError('無效的群組ID，無法加載支出');
         setLoading(false);
         return;
@@ -772,14 +744,11 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
         const groupRef = doc(db, 'expenseGroups', groupId);
         const groupDoc = await getDoc(groupRef);
         if (!groupDoc.exists()) {
-          console.error('群組不存在:', groupId);
           setError('群組不存在，無法加載支出');
           setLoading(false);
           return;
         }
-        console.log('檢查群組是否存在:', groupId, '群組存在');
       } catch (err) {
-        console.warn('檢查群組存在性時出錯:', err);
       }
 
       const expensesQuery = query(
@@ -788,7 +757,6 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
       );
       
       // 打印完整的查詢條件用於調試
-      console.log('查詢條件:', JSON.stringify({
         collection: 'groupExpenses',
         where: {
           field: 'groupId',
@@ -798,24 +766,17 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
       }));
       
       const expensesSnapshot = await getDocs(expensesQuery);
-      console.log('查詢結果數量:', expensesSnapshot.size, 'empty:', expensesSnapshot.empty);
       
       // 檢查文檔數據
       expensesSnapshot.forEach(doc => {
         const data = doc.data();
-        console.log('文檔ID:', doc.id);
-        console.log('文檔數據:', JSON.stringify(data, null, 2));
-        console.log('文檔中的 groupId:', data.groupId, '類型:', typeof data.groupId);
         
         // 檢查 groupId 是否匹配
         if (data.groupId !== groupId) {
-          console.warn('警告: 文檔中的 groupId 與查詢條件不匹配');
-          console.warn(`期望: "${groupId}", 實際: "${data.groupId}"`);
         }
       });
       
       if (expensesSnapshot.empty) {
-        console.log('未找到支出記錄');
         setGroupExpenses([]);
         setLoading(false);
         return;
@@ -823,7 +784,6 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
       
       const expensesData = expensesSnapshot.docs.map(doc => {
         const data = doc.data();
-        console.log('處理支出文檔數據:', doc.id);
         
         // 使用默認值確保沒有undefined
         const defaultValues = {
@@ -882,11 +842,9 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
           }
           // 失敗時使用當前日期
           else {
-            console.warn('無法解析日期，使用當前日期:', processedData.date);
             expenseDate = new Date();
           }
         } catch (err) {
-          console.error('處理日期出錯:', err);
           expenseDate = new Date();
         }
         
@@ -903,7 +861,6 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
             createdAtDate = new Date();
           }
         } catch (err) {
-          console.error('處理創建時間出錯:', err);
           createdAtDate = new Date();
         }
         
@@ -929,16 +886,13 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
         };
       });
       
-      console.log('處理後的群組支出數據:', expensesData.length, '條記錄');
       // 打印第一條記錄的完整數據用於調試
       if (expensesData.length > 0) {
-        console.log('第一條記錄:', JSON.stringify(expensesData[0], null, 2));
       }
       
       setGroupExpenses(expensesData);
       
     } catch (error) {
-      console.error('加載群組支出失敗:', error);
       setError('加載群組支出失敗，請稍後再試');
     } finally {
       setLoading(false);
@@ -1012,7 +966,6 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
             batchSettlementId: isBatchSettlement ? Date.now().toString() : null // 批量結算ID
           });
           
-          console.log(`更新支出 ${expenseId}: ${
             isBatchSettlement 
               ? `批量結算 (${formData.expenseIds.indexOf(expenseId) + 1}/${formData.expenseIds.length})` 
               : '單筆結算'
@@ -1035,7 +988,6 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
       setShowTransactionDetails(true); // 返回分帳詳情頁面
       
     } catch (error: any) {
-      console.error('確認帳單失敗:', error);
       setError(error.message || '確認帳單失敗，請稍後再試');
     } finally {
       setLoading(false);
@@ -1189,7 +1141,6 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
                   onClick={() => {
                     // 確保有選中的交易
                     if (selectedTransaction) {
-                      console.log('打開添加支出表單，群組ID:', selectedTransaction.id);
                       // 先保存當前的交易信息，再顯示表單
                       const currentTransaction = {...selectedTransaction};
                       setShowTransactionDetails(false);
@@ -1199,7 +1150,6 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
                         setSelectedTransaction(currentTransaction);
                       }
                     } else {
-                      console.error('沒有選中的交易，無法添加支出');
                       toast.error('無法添加支出，請重新選擇群組', {
                         position: "top-center",
                         autoClose: 3000,
@@ -1452,7 +1402,6 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
     // 保存當前選中的交易，因為我們會關閉表單
     const currentTransaction = selectedTransaction;
     
-    console.log('處理群組支出保存，當前選中的交易:', currentTransaction?.id);
     
     // 關閉表單
     setShowGroupExpenseForm(false);
@@ -1474,21 +1423,16 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
       // 短暫延遲以確保數據已經保存到資料庫後再重新加載數據
       setTimeout(() => {
         try {
-          console.log('延遲結束，開始重新加載群組支出，群組ID:', currentTransaction.id);
           
           // 確保我們仍然選中相同的交易
           if (selectedTransaction?.id !== currentTransaction.id) {
-            console.log('更新選中的交易，從:', selectedTransaction?.id, '到:', currentTransaction.id);
             setSelectedTransaction(currentTransaction);
           } else {
-            console.log('選中的交易未變化，仍為:', selectedTransaction?.id);
           }
           
           // 重新加載支出數據
-          console.log('調用 loadGroupExpenses 加載群組支出');
           loadGroupExpenses(currentTransaction.id);
         } catch (error) {
-          console.error('重新加載群組支出失敗:', error);
           toast.error('加載支出記錄失敗，請手動刷新頁面', {
             position: "top-center",
             autoClose: 5000,
@@ -1496,7 +1440,6 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
         }
       }, 1000); // 减少到1秒以提高响应速度
     } else {
-      console.warn('沒有選中的交易，無法重新加載群組支出');
       
       // 如果沒有選中的交易，僅顯示成功訊息
       toast.success('分帳群組支出已成功添加！', {
@@ -1521,7 +1464,6 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
       // 使用 toLocaleDateString 格式化日期
       return parsedDate.toLocaleDateString('zh-TW');
     } catch (err) {
-      console.error('格式化日期時出錯:', err, 'Date:', date);
       return '日期處理錯誤';
     }
   };
@@ -1561,7 +1503,6 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
       setLoading(true);
       setError('');
       
-      console.log('開始邀請好友:', {
         targetGroup,
         selectedFriends,
         currentUser: {
@@ -1580,7 +1521,6 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
       }
       
       const groupData = groupDoc.data();
-      console.log('群組數據:', groupData);
       
       // 檢查用戶是否已經是群組成員
       const existingMembers = groupData.memberIds || [];
@@ -1607,7 +1547,6 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
           const existingInvitesSnapshot = await getDocs(existingInvitesQuery);
           
           if (!existingInvitesSnapshot.empty) {
-            console.log(`用戶 ${friend.nickname} 已有待處理的邀請`);
             return;
           }
           
@@ -1623,7 +1562,6 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
             createdAt: serverTimestamp()
           };
           
-          console.log('創建邀請:', inviteData);
           await addDoc(collection(db, 'groupInvites'), inviteData);
         })
       );
@@ -1643,7 +1581,6 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
       });
       
     } catch (error: any) {
-      console.error('邀請好友失敗:', error);
       setError(error.message || '邀請好友失敗，請稍後再試');
       
       // 顯示錯誤提示
@@ -1691,7 +1628,6 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
       }
       
     } catch (error) {
-      console.error('刪除支出記錄失敗:', error);
       toast.error('刪除支出記錄失敗，請稍後再試', {
         position: "top-center",
         autoClose: 3000,
@@ -1733,7 +1669,6 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
     }
 
     // 增加詳細日誌輸出，列出所有已分帳的支出
-    console.log('所有已分帳的支出:', confirmedExpenses.map(exp => ({
       id: exp.id,
       title: exp.title,
       amount: exp.amount,
@@ -1781,7 +1716,6 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
     confirmedExpenses.forEach(expense => {
       // 如果此支出已被處理過，則跳過
       if (processedExpenseIds.has(expense.id)) {
-        console.log(`跳過重複支出: ${expense.id} - ${expense.title}`);
         return;
       }
       
@@ -1794,7 +1728,6 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
       // 增加付款人的已付款金額
       if (balances[payerId]) {
         balances[payerId].paid += payerAmount;
-        console.log(`付款人 ${balances[payerId].nickname} 支付金額: ${payerAmount}`);
       }
 
       // 計算每位成員的個人應付金額
@@ -1807,7 +1740,6 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
           // 更新成員的個人應付金額
           if (balances[userId]) {
             balances[userId].owed += participantAmount;
-            console.log(`成員 ${balances[userId].nickname} 個人應付金額: ${participantAmount} (支出ID: ${expense.id})`);
           }
         });
       }
@@ -1816,7 +1748,6 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
     // 第二步：計算每位成員的淨餘額 (已付 - 應付)
     Object.values(balances).forEach(member => {
       member.balance = member.paid - member.owed;
-      console.log(`成員 ${member.nickname} 餘額計算: 已付=${member.paid.toFixed(0)}, 應付=${member.owed.toFixed(0)}, 淨餘額=${member.balance.toFixed(0)}`);
       // 淨餘額 > 0 表示應收(已付超過應付)
       // 淨餘額 < 0 表示應付(已付少於應付)
       // 淨餘額 = 0 表示已平衡(已付等於應付)
@@ -1824,7 +1755,6 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
       // 額外檢查浮點數誤差
       if (Math.abs(member.balance) < 0.001) {
         member.balance = 0;
-        console.log(`成員 ${member.nickname} 餘額接近零，設為0（已平衡）`);
       }
     });
     
@@ -1847,14 +1777,11 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
     // 債務人是那些已付金額 < 應付金額的人
     const debtors = members.filter(m => m.balance < 0).sort((a, b) => a.balance - b.balance);
     
-    console.log('債權人:', creditors.map(c => `${c.nickname} (${c.balance.toFixed(0)})`));
-    console.log('債務人:', debtors.map(d => `${d.nickname} (${d.balance.toFixed(0)})`));
     
     // 分配債務 - 債務人向債權人支付
     // 採用優先還款策略：債務最多的人優先還給債權最多的人
     for (const debtor of debtors) {
       let remainingDebt = Math.abs(debtor.balance);
-      console.log(`處理債務人 ${debtor.nickname}，總債務: ${remainingDebt.toFixed(0)}`);
       
       for (const creditor of creditors) {
         if (remainingDebt <= 0) break; // 已還清債務，退出循環
@@ -1875,22 +1802,16 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
         remainingDebt -= transactionAmount;
         creditor.balance -= transactionAmount;
         
-        console.log(`分配債務: ${debtor.nickname} 支付 ${transactionAmount.toFixed(0)} 給 ${creditor.nickname}`);
-        console.log(`債務人 ${debtor.nickname} 剩餘債務: ${remainingDebt.toFixed(0)}`);
-        console.log(`債權人 ${creditor.nickname} 剩餘債權: ${creditor.balance.toFixed(0)}`);
       }
     }
     
     // 記錄最終交易明細
     members.forEach(member => {
-      console.log(`成員 ${member.nickname} 的交易記錄 (最終):`);
       Object.entries(member.transactions).forEach(([targetId, amount]) => {
         if (Math.abs(amount) > 0) {
           const targetName = balances[targetId]?.nickname || '未知用戶';
           if (amount > 0) {
-            console.log(`- 應付給 ${targetName}: ${amount.toFixed(0)} 元`);
           } else {
-            console.log(`- 應收自 ${targetName}: ${Math.abs(amount).toFixed(0)} 元`);
           }
         }
       });
@@ -2131,12 +2052,10 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
                                           dateParam = `&date=${format(dateObj, 'yyyy-MM-dd')}`;
                                         }
                                       } catch (err) {
-                                        console.error('轉換Timestamp失敗:', err);
                                       }
                                     }
                                   }
                                 } catch (error) {
-                                  console.error('處理日期時出錯:', error);
                                 }
                               }
                               window.location.href = `/?action=add-lend&amount=${Math.abs(amount).toFixed(0)}&person=${encodeURIComponent(targetMember.nickname)}&description=${encodeURIComponent(`分帳：${selectedTransaction?.title || '群組支出'}`)}${dateParam}`;
@@ -2167,12 +2086,10 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
                                           dateParam = `&date=${format(dateObj, 'yyyy-MM-dd')}`;
                                         }
                                       } catch (err) {
-                                        console.error('轉換Timestamp失敗:', err);
                                       }
                                     }
                                   }
                                 } catch (error) {
-                                  console.error('處理日期時出錯:', error);
                                 }
                               }
                               window.location.href = `/?action=add-borrow&amount=${Math.abs(amount).toFixed(0)}&person=${encodeURIComponent(targetMember.nickname)}&description=${encodeURIComponent(`分帳：${selectedTransaction?.title || '群組支出'}`)}${dateParam}`;
@@ -2265,12 +2182,10 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
                                       dateParam = `&date=${format(dateObj, 'yyyy-MM-dd')}`;
                                     }
                                   } catch (err) {
-                                    console.error('轉換Timestamp失敗:', err);
                                   }
                                 }
                               }
                             } catch (error) {
-                              console.error('處理日期時出錯:', error);
                             }
                           }
                           window.location.href = `/?action=add-expense&amount=${totalOwed.toFixed(0)}&category=其他&notes=${encodeURIComponent(`分帳應付款：${selectedTransaction?.title || '群組支出'}`)}${dateParam}`;

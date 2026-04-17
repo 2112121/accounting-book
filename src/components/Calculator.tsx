@@ -99,7 +99,6 @@ const Calculator: React.FC<CalculatorProps> = ({
       // 格式化結果（最多顯示6位小數）
       return parseFloat(calculatedResult.toFixed(6)).toString();
     } catch (error) {
-      console.error('計算錯誤:', error);
       return '錯誤';
     }
   };
@@ -210,7 +209,6 @@ const Calculator: React.FC<CalculatorProps> = ({
           setTimeout(() => setCopySuccess(false), 2000);
         })
         .catch(err => {
-          console.error('複製失敗:', err);
         });
     }
   };

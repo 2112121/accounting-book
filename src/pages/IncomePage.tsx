@@ -102,10 +102,8 @@ const IncomePage: React.FC = () => {
   
   // 建立空圓餅圖
   const createEmptyPieChart = () => {
-    console.log("創建空圓餅圖 - 不顯示暫無數據提示");
 
     if (!chartRef.current) {
-      console.warn("圓餅圖DOM元素不存在，等待渲染");
       return;
     }
 
@@ -115,7 +113,6 @@ const IncomePage: React.FC = () => {
         try {
           chartInstance.dispose();
         } catch (e) {
-          console.error("清除圓餅圖實例時出錯:", e);
         }
       }
 
@@ -167,21 +164,17 @@ const IncomePage: React.FC = () => {
       
       // 添加點擊事件處理，空圖表點擊無操作
       chart.on('click', function (_params: any) {
-        console.log('空圖表被點擊，不執行任何操作');
       });
       
       setChartInstance(chart);
     } catch (e) {
-      console.error("創建空圓餅圖出錯:", e);
     }
   };
 
   // 初始化收入分析圓餅圖
   const initPieChart = () => {
-    console.log("初始化收入分析圓餅圖");
 
     if (!chartRef.current) {
-      console.warn("圓餅圖DOM元素不存在，等待渲染");
       return;
     }
 
@@ -210,7 +203,6 @@ const IncomePage: React.FC = () => {
 
     // 如果數據為空，顯示空圖表
     if (!dataToUse || dataToUse.length === 0) {
-      console.log("沒有收入數據，顯示空收入分析圓餅圖");
       createEmptyPieChart();
       return;
     }
@@ -220,13 +212,11 @@ const IncomePage: React.FC = () => {
       try {
         chartInstance.dispose();
       } catch (e) {
-        console.error("清除圓餅圖實例時出錯:", e);
       }
     }
 
     // 創建新實例
     try {
-      console.log("開始初始化圓餅圖，數據筆數:", dataToUse.length);
       const chart = echarts.init(chartRef.current);
 
       // 計算分類收入
@@ -253,14 +243,12 @@ const IncomePage: React.FC = () => {
         }
       });
 
-      console.log("計算的分類收入:", categorySum, "總金額:", totalAmount);
 
       // 確認是否有數據 - 只要有分類數據就顯示圖表
       const hasData = Object.keys(categorySum).length > 0;
 
       // 如果沒有數據，顯示空圖表
       if (!hasData) {
-        console.log("圓餅圖沒有有效數據，顯示空圖表");
         createEmptyPieChart();
         return;
       }
@@ -271,7 +259,6 @@ const IncomePage: React.FC = () => {
         value: categorySum[category],
       }));
 
-      console.log("準備的圓餅圖數據:", pieData);
 
       // 設置圖表選項
       const isMobile = window.innerWidth < 768; // 檢測是否為移動設備
@@ -376,12 +363,10 @@ const IncomePage: React.FC = () => {
       };
 
       // 明確移除graphic屬性，確保不會顯示"暫無數據"
-      console.log("設置圓餅圖選項，數據項數量:", pieData.length);
       chart.setOption(option);
 
       // 添加圖例選擇變化事件
       chart.on("legendselectchanged", function (params: any) {
-        console.log("圖例選擇變更:", params);
         // 更新React狀態中的圖例選擇
         setLegendSelectedMap(params.selected);
       });
@@ -389,7 +374,6 @@ const IncomePage: React.FC = () => {
       // 添加點擊事件處理，點擊切換到該類別明細
       chart.on('click', function (params: any) {
         if (params.seriesType === 'pie') {
-          console.log('點擊了收入類別:', params.name);
           setSelectedCategory(params.name);
         }
       });
@@ -397,7 +381,6 @@ const IncomePage: React.FC = () => {
       // 設置實例後保存
       setChartInstance(chart);
     } catch (e) {
-      console.error("創建收入圓餅圖出錯:", e);
       createEmptyPieChart();
     }
   };
@@ -405,7 +388,6 @@ const IncomePage: React.FC = () => {
   // 創建空每日趨勢圖
   const createEmptyDailyChart = () => {
     if (!dailyChartRef.current) {
-      console.warn("每日趨勢圖DOM元素不存在，等待渲染");
       return;
     }
 
@@ -414,13 +396,11 @@ const IncomePage: React.FC = () => {
       try {
         dailyChartInstance.dispose();
       } catch (e) {
-        console.error("清除每日趨勢圖實例時出錯:", e);
       }
     }
 
     // 創建新實例
     try {
-      console.log("創建空每日趨勢圖 - 不顯示暫無數據提示");
       const chart = echarts.init(dailyChartRef.current);
 
       // 設置空狀態 - 改為顯示空白圖表而非"暫無數據"文字
@@ -473,22 +453,18 @@ const IncomePage: React.FC = () => {
       // 設置實例後再保存
       setDailyChartInstance(chart);
     } catch (e) {
-      console.error("創建空每日趨勢圖時出錯:", e);
     }
   };
 
   // 每日趨勢圖初始化函數
   const initDailyChart = () => {
-    console.log("初始化每日趨勢圖 - 開始檢查數據");
 
     if (!dailyChartRef.current) {
-      console.warn("每日趨勢圖DOM元素不存在，等待渲染");
       return;
     }
 
     // 檢查是否有數據
     if (!incomes || incomes.length === 0) {
-      console.log("沒有收入數據，顯示空每日趨勢圖");
       createEmptyDailyChart();
       return;
     }
@@ -498,20 +474,17 @@ const IncomePage: React.FC = () => {
       try {
         dailyChartInstance.dispose();
       } catch (e) {
-        console.error("清除每日趨勢圖實例時出錯:", e);
       }
     }
 
     // 創建新實例
     try {
-      console.log("開始初始化每日趨勢圖，數據筆數:", incomes.length);
       const chart = echarts.init(dailyChartRef.current);
 
       // 獲取真正的今天日期（不使用緩存的日期）
       const rightNow = new Date();
       // 重置時間為0點0分0秒
       rightNow.setHours(0, 0, 0, 0);
-      console.log("趨勢圖使用的今天日期:", rightNow.toISOString());
 
       // 計算每日收入
       const dailySum: Record<string, number> = {};
@@ -531,7 +504,6 @@ const IncomePage: React.FC = () => {
         dailySum[dateKey] = 0;
       }
 
-      console.log("趨勢圖日期範圍:", dates);
 
       // 計算每天收入總和
       let hasData = false;
@@ -548,16 +520,13 @@ const IncomePage: React.FC = () => {
 
           if (dailySum[incomeKey] !== undefined) {
             dailySum[incomeKey] += income.amount;
-            console.log(`找到日期 ${incomeKey} 的收入:`, income.amount);
             hasData = true;
           }
         } catch (err) {
-          console.error("處理income日期出錯:", err, income);
         }
       });
 
       // 輸出日期和收入記錄，用於調試
-      console.log("每日收入統計:", dailySum);
 
       // 檢查是否所有日期都沒有收入
       if (!hasData) {
@@ -573,7 +542,6 @@ const IncomePage: React.FC = () => {
 
       const seriesData = dates.map((date) => dailySum[date]);
 
-      console.log("每日趨勢圖數據:", { 日期: xAxisData, 金額: seriesData });
 
       // 設置圖表選項
       const isMobile = window.innerWidth < 768;
@@ -627,9 +595,7 @@ const IncomePage: React.FC = () => {
 
       // 設置實例後再保存
       setDailyChartInstance(chart);
-      console.log("每日趨勢圖初始化完成");
     } catch (e) {
-      console.error("創建每日趨勢圖出錯:", e);
       // 出錯時顯示空圖表
       createEmptyDailyChart();
     }
@@ -678,7 +644,6 @@ const IncomePage: React.FC = () => {
               } else if (typeof data.date === "string") {
                 incomeDate = new Date(data.date);
               } else {
-                console.warn(`無效的日期格式: ${JSON.stringify(data.date)}`);
                 incomeDate = new Date();
               }
               
@@ -695,7 +660,6 @@ const IncomePage: React.FC = () => {
                 userId: data.userId,
               });
             } catch (e) {
-              console.error(`處理收入記錄 ${doc.id} 時出錯:`, e);
             }
           }
         });
@@ -712,7 +676,6 @@ const IncomePage: React.FC = () => {
         
         setIncomes(fetchedIncomes);
       } catch (err) {
-        console.error("獲取收入記錄失敗:", err);
         setError("獲取收入記錄失敗，請稍後再試");
       } finally {
         setLoading(false);
@@ -725,7 +688,6 @@ const IncomePage: React.FC = () => {
   // 更新圖表
   useEffect(() => {
     if (!loading && incomes.length > 0) {
-      console.log("數據加載完成，初始化圖表");
       // 初始化圓餅圖
       initPieChart();
       // 初始化每日趨勢圖
@@ -797,7 +759,6 @@ const IncomePage: React.FC = () => {
       
       return true;
     } catch (error) {
-      console.error("添加收入記錄失敗:", error);
       setError("添加收入記錄失敗，請稍後再試");
       setTimeout(() => setError(null), 3000);
       return false;
@@ -853,18 +814,14 @@ const IncomePage: React.FC = () => {
   
   // 篩選收入記錄
   const getFilteredIncomes = () => {
-    console.log("===開始篩選收入記錄===");
-    console.log("當前選擇的日期選項:", selectedDateOption);
 
     // 全部記錄直接返回
     if (selectedDateOption === "all") {
-      console.log("顯示全部收入記錄");
       return incomes;
     }
 
     // 處理按月過濾
     if (selectedDateOption === "month") {
-      console.log("按本月過濾收入記錄");
       const today = new Date();
       const currentMonth = today.getMonth();
       const currentYear = today.getFullYear();
@@ -878,7 +835,6 @@ const IncomePage: React.FC = () => {
     
     // 處理選擇月份過濾
     if (selectedDateOption === "month_select") {
-      console.log("按選擇的月份過濾收入記錄:", selectedMonth);
       const [year, month] = selectedMonth.split('-').map(Number);
       
       return incomes.filter(income => {
@@ -890,7 +846,6 @@ const IncomePage: React.FC = () => {
     
     // 處理本週過濾
     if (selectedDateOption === "this_week") {
-      console.log("按本週過濾收入記錄");
       const today = new Date();
       const currentDay = today.getDay() || 7; // 處理週日為0的情況
       const firstDayOfWeek = new Date(today);
@@ -901,7 +856,6 @@ const IncomePage: React.FC = () => {
       lastDayOfWeek.setDate(firstDayOfWeek.getDate() + 6);
       lastDayOfWeek.setHours(23, 59, 59, 999);
       
-      console.log("本週範圍:", {
         開始: firstDayOfWeek.toISOString(),
         結束: lastDayOfWeek.toISOString()
       });
@@ -914,7 +868,6 @@ const IncomePage: React.FC = () => {
     
     // 處理上週過濾
     if (selectedDateOption === "last_week") {
-      console.log("按上週過濾收入記錄");
       const today = new Date();
       const currentDay = today.getDay() || 7; // 處理週日為0的情況
       const firstDayOfLastWeek = new Date(today);
@@ -925,7 +878,6 @@ const IncomePage: React.FC = () => {
       lastDayOfLastWeek.setDate(firstDayOfLastWeek.getDate() + 6);
       lastDayOfLastWeek.setHours(23, 59, 59, 999);
       
-      console.log("上週範圍:", {
         開始: firstDayOfLastWeek.toISOString(),
         結束: lastDayOfLastWeek.toISOString()
       });
@@ -943,17 +895,14 @@ const IncomePage: React.FC = () => {
       // 每次都重新獲取今天的日期，不使用緩存
       filterDate = new Date();
       filterDate.setHours(0, 0, 0, 0);
-      console.log("使用今天作為篩選日期:", filterDate.toISOString());
     } else if (selectedDateOption === "yesterday") {
       // 昨天 = 當前日期減去1天
       filterDate = new Date();
       filterDate.setHours(0, 0, 0, 0);
       filterDate.setDate(filterDate.getDate() - 1);
-      console.log("使用昨天作為篩選日期:", filterDate.toISOString());
     } else {
       // 使用用戶選擇的日期
       filterDate = selectedDate;
-      console.log("使用選定日期作為篩選日期:", filterDate.toISOString());
     }
 
     // 提取年月日用於精確比較
@@ -961,7 +910,6 @@ const IncomePage: React.FC = () => {
     const filterMonth = filterDate.getMonth();
     const filterDay = filterDate.getDate();
 
-    console.log("篩選日期組成部分:", {
       年: filterYear,
       月: filterMonth + 1,
       日: filterDay,
@@ -982,7 +930,6 @@ const IncomePage: React.FC = () => {
           incomeDay === filterDay;
 
         if (matches) {
-          console.log("匹配的收入:", {
             id: income.id,
             日期: income.date.toISOString(),
             年: incomeYear,
@@ -994,12 +941,10 @@ const IncomePage: React.FC = () => {
 
         return matches;
       } catch (err) {
-        console.error("篩選時出錯:", err, income);
         return false;
       }
     });
 
-    console.log(`篩選結果: ${filtered.length} 筆記錄`);
     return filtered;
   };
   
@@ -1031,7 +976,6 @@ const IncomePage: React.FC = () => {
       });
     }
     
-    console.log(`類別收入明細 - 過濾模式: ${chartFilterMode}`);
     
     // 再按類別過濾
     return filteredByMode.filter(income => {
@@ -1103,7 +1047,6 @@ const IncomePage: React.FC = () => {
       
       return true;
     } catch (error) {
-      console.error("更新收入记录失败:", error);
       setError("更新收入记录失败，请稍后再试");
       setTimeout(() => setError(null), 3000);
       return false;
@@ -1130,7 +1073,6 @@ const IncomePage: React.FC = () => {
       setShowSuccessMessage(true);
       setTimeout(() => setShowSuccessMessage(false), 1500);
     } catch (error) {
-      console.error("删除收入记录失败:", error);
       setError("删除收入记录失败，请稍后再试");
       setTimeout(() => setError(null), 3000);
     }

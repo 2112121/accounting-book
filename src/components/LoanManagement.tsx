@@ -126,7 +126,6 @@ const LoanManagement: React.FC<LoanManagementProps> = ({ onClose, initialParams 
         window.dispatchEvent(new CustomEvent('updateOverdueLoansCount', { detail: { count } }));
       }
     } catch (error) {
-      console.error('更新逾期借貸數時出錯:', error);
     }
   };
   
@@ -179,7 +178,6 @@ const LoanManagement: React.FC<LoanManagementProps> = ({ onClose, initialParams 
       
       setLoans(loansList);
     } catch (error) {
-      console.error('加載借貸記錄時出錯:', error);
     } finally {
       setLoading(false);
     }
@@ -220,7 +218,6 @@ const LoanManagement: React.FC<LoanManagementProps> = ({ onClose, initialParams 
       setInitialFormValues(null); // 清除初始值
       loadLoans();
     } catch (error) {
-      console.error('添加借貸記錄時出錯:', error);
       throw error;
     }
   };
@@ -285,7 +282,6 @@ const LoanManagement: React.FC<LoanManagementProps> = ({ onClose, initialParams 
       // 如果還款後狀態變為已還清，更新逾期借貸數
       updateOverdueLoansCount();
     } catch (error) {
-      console.error('記錄還款時出錯:', error);
       throw error;
     }
   };
@@ -309,7 +305,6 @@ const LoanManagement: React.FC<LoanManagementProps> = ({ onClose, initialParams 
       // 更新逾期借貸數
       updateOverdueLoansCount();
     } catch (error) {
-      console.error('刪除借貸記錄時出錯:', error);
       alert('刪除失敗，請稍後再試');
     }
   };
@@ -680,7 +675,6 @@ const LoanManagement: React.FC<LoanManagementProps> = ({ onClose, initialParams 
         );
       }
     } catch (error) {
-      console.error('加載通知設置時出錯:', error);
     }
   };
   
@@ -695,7 +689,6 @@ const LoanManagement: React.FC<LoanManagementProps> = ({ onClose, initialParams 
       const budgetRef = doc(db, 'budgets', currentUser.uid);
       await setDoc(budgetRef, { loanDueNotificationEnabled: newValue }, { merge: true });
     } catch (error) {
-      console.error('保存通知設置時出錯:', error);
       // 如果保存失敗，恢復狀態
       setLoanDueNotificationEnabled(!loanDueNotificationEnabled);
     }

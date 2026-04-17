@@ -24,20 +24,17 @@ import '@fontsource/quicksand'
 
 // 處理未捕獲的錯誤
 window.addEventListener('error', (event) => {
-  console.error('全局錯誤:', event.error);
   
   // 儲存當前狀態
   try {
     localStorage.setItem('app_crashed', 'true');
     localStorage.setItem('crash_time', new Date().toISOString());
   } catch (e) {
-    console.error("無法存儲崩潰標記:", e);
   }
 });
 
 // 處理未處理的Promise錯誤
 window.addEventListener('unhandledrejection', (event) => {
-  console.error('未處理的Promise錯誤:', event.reason);
 });
 
 // 增強數據備份與恢復邏輯
@@ -49,15 +46,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // 首次加載
     sessionStorage.setItem('app_loaded', 'true');
     sessionStorage.setItem('was_refresh', 'false');
-    console.log('應用程序初次加載');
   } else {
     // 頁面刷新
-    console.log('檢測到頁面刷新');
     sessionStorage.setItem('was_refresh', 'true');
     
     // 在頁面渲染後觸發數據恢復機制
     setTimeout(() => {
-      console.log('觸發數據恢復機制');
       window.dispatchEvent(new Event('force_data_recovery'));
     }, 500);
   }
@@ -81,17 +75,14 @@ window.addEventListener('beforeunload', () => {
       if (currentExpenses) {
         // 創建一個應急備份
         localStorage.setItem(`last_userState_${userId}`, currentExpenses);
-        console.log('已創建緊急數據備份');
       }
     } catch (error) {
-      console.error('數據備份失敗:', error);
     }
   }
 });
 
 // 應用崩潰防護機制
 window.addEventListener('error', (event) => {
-  console.error('應用崩潰:', event);
   
   // 獲取當前用戶ID
   const auth = getAuth();
@@ -109,11 +100,9 @@ window.addEventListener('error', (event) => {
       if (currentExpenses) {
         // 創建額外的崩潰備份
         localStorage.setItem(`crash_backup_${userId}`, currentExpenses);
-        console.log('已創建崩潰時數據備份');
       }
     } catch (error) {
       // 即使這裡出錯也不要阻止應用繼續運行
-      console.error('崩潰備份失敗:', error);
     }
   }
 });
@@ -125,7 +114,6 @@ function createRoot() {
   
   // 如果不存在，則創建一個
   if (!rootElement) {
-    console.warn('Root元素不存在，創建新的根元素');
     rootElement = document.createElement('div');
     rootElement.id = 'root';
     document.body.appendChild(rootElement);
@@ -151,14 +139,12 @@ setTimeout(() => {
   // 檢查是否是從刷新頁面而來
   const isPageRefresh = localStorage.getItem('page_refreshing') === 'true';
   if (isPageRefresh) {
-    console.log('檢測到頁面通過瀏覽器刷新重新加載');
     // 刪除刷新標記
     localStorage.removeItem('page_refreshing');
     
     // 檢查root元素是否有子節點
     const rootElement = document.getElementById('root');
     if (rootElement && (!rootElement.childNodes || rootElement.childNodes.length === 0)) {
-      console.error('頁面刷新後根元素沒有子節點，可能渲染失敗');
       
       // 觸發強制數據恢復
       const event = new CustomEvent('force_data_recovery');
@@ -168,7 +154,6 @@ setTimeout(() => {
       setTimeout(() => {
         const rootElement = document.getElementById('root');
         if (rootElement && (!rootElement.childNodes || rootElement.childNodes.length === 0)) {
-          console.error('強制數據恢復後仍然無法渲染，重新加載頁面');
           window.location.reload();
         }
       }, 2000);

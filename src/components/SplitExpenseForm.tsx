@@ -91,7 +91,6 @@ const SplitExpenseForm: React.FC<SplitExpenseFormProps> = ({ onSave, onCancel, e
       const friendsList = await getFriends();
       setFriends(friendsList);
     } catch (error) {
-      console.error('加載好友列表失敗:', error);
       setError('無法加載好友列表');
     } finally {
       setLoading(false);
@@ -133,7 +132,6 @@ const SplitExpenseForm: React.FC<SplitExpenseFormProps> = ({ onSave, onCancel, e
         setError('此支出已經創建過分帳記錄');
       }
     } catch (error) {
-      console.error('加載支出記錄失敗:', error);
       setError('無法加載支出記錄');
     } finally {
       setLoading(false);
@@ -177,7 +175,6 @@ const SplitExpenseForm: React.FC<SplitExpenseFormProps> = ({ onSave, onCancel, e
       // 只保留最近20筆
       setExpenses(expensesList.slice(0, 20));
     } catch (error) {
-      console.error('加載支出記錄失敗:', error);
       setError('無法加載支出記錄');
     } finally {
       setLoading(false);
@@ -390,7 +387,6 @@ const SplitExpenseForm: React.FC<SplitExpenseFormProps> = ({ onSave, onCancel, e
       // 提交數據
       await onSave(data);
     } catch (error) {
-      console.error('創建分帳記錄失敗:', error);
       setError('創建分帳記錄失敗');
     }
   };

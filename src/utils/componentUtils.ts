@@ -10,7 +10,6 @@ const openComponents: OpenComponents = {};
 
 // 提供全局紧急重置函数
 (window as any).resetAllComponents = () => {
-  console.log('紧急重置所有组件状态');
   Object.keys(openComponents).forEach(key => {
     openComponents[key] = false;
   });
@@ -27,7 +26,6 @@ const openComponents: OpenComponents = {};
  */
 export const isComponentOpen = (componentKey: string): boolean => {
   // 添加调试日志
-  console.log(`检查组件状态: ${componentKey}, 当前状态: ${!!openComponents[componentKey]}`);
   return !!openComponents[componentKey];
 };
 
@@ -38,7 +36,6 @@ export const isComponentOpen = (componentKey: string): boolean => {
 export const isFriendManagementOpen = (): boolean => {
   const isOpen = isComponentOpen('friendManagement');
   if (isOpen) {
-    console.log('好友管理组件已经打开，请勿重复打开');
   }
   return isOpen;
 };
@@ -48,7 +45,6 @@ export const isFriendManagementOpen = (): boolean => {
  * @param componentKey 组件的唯一标识
  */
 export const markComponentAsOpen = (componentKey: string): void => {
-  console.log(`标记组件为已打开: ${componentKey}`);
   openComponents[componentKey] = true;
 };
 
@@ -57,7 +53,6 @@ export const markComponentAsOpen = (componentKey: string): void => {
  * @param componentKey 组件的唯一标识
  */
 export const markComponentAsClosed = (componentKey: string): void => {
-  console.log(`标记组件为已关闭: ${componentKey}`);
   openComponents[componentKey] = false;
 };
 
@@ -65,7 +60,6 @@ export const markComponentAsClosed = (componentKey: string): void => {
  * 重置所有组件状态
  */
 export const resetAllComponentsState = (): void => {
-  console.log('重置所有组件状态');
   // 清空对象
   Object.keys(openComponents).forEach(key => {
     openComponents[key] = false;
