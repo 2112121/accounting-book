@@ -447,7 +447,6 @@ const chartRef = useRef<HTMLDivElement>(null);
         legend: {
           // 當選中類別時，隱藏圖例
           show: true,
-          selectedMode: false,
           orient: "horizontal",
           left: "center",
           bottom: 0,
