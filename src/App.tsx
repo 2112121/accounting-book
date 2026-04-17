@@ -614,11 +614,19 @@ const chartRef = useRef<HTMLDivElement>(null);
         return;
       }
 
-      // 準備圖表數據
-      const pieData = Object.keys(categorySum).map((category) => ({
-        name: category,
-        value: categorySum[category],
-      }));
+      // 準備圖表數據，小於 3% 的切片隱藏 label 和 labelLine
+      const total = Object.values(categorySum).reduce((a, b) => a + b, 0);
+      const pieData = Object.keys(categorySum).map((category) => {
+        const value = categorySum[category];
+        const pct = total > 0 ? (value / total) * 100 : 0;
+        const showLabel = pct >= 3;
+        return {
+          name: category,
+          value,
+          label: { show: showLabel },
+          labelLine: { show: showLabel },
+        };
+      });
 
 
       // 標準圓餅圖配置
@@ -693,14 +701,9 @@ const chartRef = useRef<HTMLDivElement>(null);
             },
             label: {
               show: true,
-              formatter: (params: any) => {
-                if (params.percent < 3) return "";
-                return `{b|${params.name}}\n{d|${params.percent.toFixed(1)}%}`;
-              },
-              rich: {
-                b: { fontSize: 10, lineHeight: 14 },
-                d: { fontSize: 10, color: "#666" },
-              },
+              formatter: "{b}\n{d}%",
+              fontSize: 10,
+              lineHeight: 14,
             },
             labelLayout: {
               moveOverlap: "shiftY",
@@ -3369,7 +3372,7 @@ const chartRef = useRef<HTMLDivElement>(null);
 
                     <div className="mt-4 pt-2 sticky bottom-0">
                       <div className="bg-[#F8FBFE] rounded-lg p-3 shadow-sm border border-gray-100">
-                        <div className="flex justify-between items-center">
+                        <div className="flex justify-between items-center pr-20 sm:pr-0">
                           <div>
                             <span className="text-xs text-gray-500">類別總計</span>
                             <h4 className="font-medium text-gray-700">{selectedCategory}</h4>
