@@ -53,6 +53,15 @@ interface Expense {
 }
 
 const App: React.FC = () => {
+  const formatDateKey = (date: Date) => {
+    const normalized = new Date(date);
+    normalized.setHours(0, 0, 0, 0);
+    return `${normalized.getFullYear()}-${String(normalized.getMonth() + 1).padStart(2, "0")}-${String(normalized.getDate()).padStart(2, "0")}`;
+  };
+
+  const buildRecurringExpenseDocId = (recurringRuleId: string, date: Date) =>
+    `recurring_${recurringRuleId}_${formatDateKey(date)}`;
+
   const [showExpenseForm, setShowExpenseForm] = useState(false);
   const [showLoginForm, setShowLoginForm] = useState(false);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
@@ -127,6 +136,105 @@ const chartRef = useRef<HTMLDivElement>(null);
   const [loginFormMode, setLoginFormMode] = useState<"login" | "register">(
     "login",
   );
+
+  const findRecurringRulesForExpense = async ({
+    sourceExpenseId,
+    userId,
+    category,
+    amount,
+  }: {
+    sourceExpenseId?: string;
+    userId: string;
+    category: string;
+    amount: number;
+  }) => {
+    if (sourceExpenseId) {
+      const sourceSnap = await getDocs(
+        query(
+          collection(db, "recurringExpenses"),
+          where("sourceExpenseId", "==", sourceExpenseId),
+        ),
+      );
+
+      if (!sourceSnap.empty) {
+        return sourceSnap.docs;
+      }
+    }
+
+    const legacySnap = await getDocs(
+      query(
+        collection(db, "recurringExpenses"),
+        where("userId", "==", userId),
+        where("isActive", "==", true),
+      ),
+    );
+
+    return legacySnap.docs.filter((ruleDoc) => {
+      const data = ruleDoc.data();
+      return data.category === category && data.amount === amount;
+    });
+  };
+
+  const upsertRecurringRule = async ({
+    sourceExpenseId,
+    userId,
+    amount,
+    category,
+    notes,
+    period,
+    startDate,
+  }: {
+    sourceExpenseId: string;
+    userId: string;
+    amount: number;
+    category: string;
+    notes: string;
+    period: "weekly" | "monthly" | "yearly";
+    startDate: string;
+  }) => {
+    const existingRules = await findRecurringRulesForExpense({
+      sourceExpenseId,
+      userId,
+      category,
+      amount,
+    });
+
+    if (existingRules.length > 0) {
+      await Promise.all(
+        existingRules.map((ruleDoc) =>
+          updateDoc(doc(db, "recurringExpenses", ruleDoc.id), {
+            userId,
+            sourceExpenseId,
+            amount,
+            category,
+            notes,
+            period,
+            startDate,
+            lastGeneratedDate: startDate,
+            isActive: true,
+            updatedAt: Timestamp.now(),
+          }),
+        ),
+      );
+      return existingRules[0].id;
+    }
+
+    const recurringRef = await addDoc(collection(db, "recurringExpenses"), {
+      userId,
+      sourceExpenseId,
+      amount,
+      category,
+      notes,
+      period,
+      startDate,
+      lastGeneratedDate: startDate,
+      isActive: true,
+      createdAt: Timestamp.now(),
+      updatedAt: Timestamp.now(),
+    });
+
+    return recurringRef.id;
+  };
 
   // 用 useRef 儲存圖表實例，避免 stale closure 問題
   const chartInstanceRef = useRef<echarts.ECharts | null>(null);
@@ -1211,22 +1319,41 @@ const chartRef = useRef<HTMLDivElement>(null);
 
           // 補產所有到期但未記的帳目
           while (nextDate <= today) {
-            await addDoc(collection(db, "expenses"), {
-              amount: rec.amount,
-              category: rec.category,
-              notes: rec.notes || '',
-              date: Timestamp.fromDate(nextDate),
-              userId: currentUser.uid,
-              createdAt: Timestamp.now(),
-              recurringPeriod: rec.period,
+            const recurringInstanceDate = formatDateKey(nextDate);
+            const recurringExpenseRef = doc(
+              db,
+              "expenses",
+              buildRecurringExpenseDocId(docSnap.id, nextDate),
+            );
+
+            await runTransaction(db, async (transaction) => {
+              const existingExpense = await transaction.get(recurringExpenseRef);
+
+              if (existingExpense.exists()) {
+                return;
+              }
+
+              transaction.set(recurringExpenseRef, {
+                amount: rec.amount,
+                category: rec.category,
+                notes: rec.notes || "",
+                date: Timestamp.fromDate(nextDate),
+                userId: currentUser.uid,
+                createdAt: Timestamp.now(),
+                recurringPeriod: rec.period,
+                recurringRuleId: docSnap.id,
+                recurringSourceExpenseId: rec.sourceExpenseId || null,
+                recurringInstanceDate,
+              });
             });
+
             latestGenerated = new Date(nextDate);
             nextDate = getNextDate(nextDate);
           }
 
           // 更新 lastGeneratedDate
           if (latestGenerated > lastDate) {
-            const latestStr = `${latestGenerated.getFullYear()}-${String(latestGenerated.getMonth() + 1).padStart(2, '0')}-${String(latestGenerated.getDate()).padStart(2, '0')}`;
+            const latestStr = formatDateKey(latestGenerated);
             await updateDoc(doc(db, "recurringExpenses", docSnap.id), {
               lastGeneratedDate: latestStr,
             });
@@ -1310,6 +1437,7 @@ const chartRef = useRef<HTMLDivElement>(null);
       );
 
       // 使用 Firestore 事務同步更新消費記錄和排行榜數據
+      let savedExpenseId: string | null = null;
       try {
         const expenseData: Record<string, any> = {
           amount: expense.amount,
@@ -1327,6 +1455,7 @@ const chartRef = useRef<HTMLDivElement>(null);
         try {
           // 嘗試使用事務確保一致性
           const { docId } = await addExpenseWithTransaction(expenseData, expense.isShared, expense.sharedWith);
+          savedExpenseId = docId;
   
           // 更新真實ID
           setExpenses((prevExpenses) =>
@@ -1337,7 +1466,9 @@ const chartRef = useRef<HTMLDivElement>(null);
         } catch (_txError) { /* noop */ }
 
         // 後備方案：直接添加支出記錄
+        if (!savedExpenseId) {
           const docRef = await addDoc(collection(db, "expenses"), expenseData);
+          savedExpenseId = docRef.id;
           
           // 更新真實ID
           setExpenses((prevExpenses) =>
@@ -1426,6 +1557,7 @@ const chartRef = useRef<HTMLDivElement>(null);
           successMessageTimer.current = window.setTimeout(() => {
             setShowSuccessMessage(false);
           }, 3000);
+        }
       } catch (_error) {
         // 更新錯誤提示
         setError("數據保存失敗，請稍後重試。支出記錄仍顯示在界面上。");
@@ -1433,18 +1565,16 @@ const chartRef = useRef<HTMLDivElement>(null);
       }
 
       // 若啟用定期重複，儲存定期設定
-      if (expense.isRecurring && expense.recurringPeriod) {
+      if (expense.isRecurring && expense.recurringPeriod && savedExpenseId) {
         try {
-          await addDoc(collection(db, "recurringExpenses"), {
+          await upsertRecurringRule({
+            sourceExpenseId: savedExpenseId,
             userId: currentUser.uid,
             amount: expense.amount,
             category: expense.category,
             notes: expense.notes || "",
             period: expense.recurringPeriod,
             startDate: expense.date,
-            lastGeneratedDate: expense.date,
-            isActive: true,
-            createdAt: Timestamp.now(),
           });
         } catch (_recErr) { /* noop */ }
       }
@@ -1792,47 +1922,67 @@ const chartRef = useRef<HTMLDivElement>(null);
       // 處理定期設定變更
       const wasRecurring = !!editingExpense.recurringPeriod;
       const isNowRecurring = !!updatedData.isRecurring && !!updatedData.recurringPeriod;
+      const nextRecurringPeriod = updatedData.recurringPeriod;
 
-      if (!wasRecurring && isNowRecurring) {
+      if (!wasRecurring && isNowRecurring && nextRecurringPeriod) {
         // 新增定期設定
-        await addDoc(collection(db, "recurringExpenses"), {
+        await upsertRecurringRule({
+          sourceExpenseId: editingExpense.id,
           userId: currentUser.uid,
           amount: updatedData.amount,
           category: updatedData.category,
           notes: updatedData.notes || "",
-          period: updatedData.recurringPeriod,
+          period: nextRecurringPeriod,
           startDate: updatedData.date,
-          lastGeneratedDate: updatedData.date,
-          isActive: true,
-          createdAt: Timestamp.now(),
         });
       } else if (wasRecurring && !isNowRecurring) {
         // 關閉定期：停用對應的 recurringExpenses 文件
-        const rq = query(
-          collection(db, "recurringExpenses"),
-          where("userId", "==", currentUser.uid),
-          where("isActive", "==", true),
-        );
-        const rSnap = await getDocs(rq);
-        for (const rDoc of rSnap.docs) {
-          const d = rDoc.data();
-          if (d.category === editingExpense.category?.name && d.amount === editingExpense.amount) {
-            await updateDoc(doc(db, "recurringExpenses", rDoc.id), { isActive: false });
-          }
+        const matchingRules = await findRecurringRulesForExpense({
+          sourceExpenseId: editingExpense.id,
+          userId: currentUser.uid,
+          category: editingExpense.category?.name,
+          amount: editingExpense.amount,
+        });
+
+        for (const rDoc of matchingRules) {
+          await updateDoc(doc(db, "recurringExpenses", rDoc.id), {
+            isActive: false,
+            updatedAt: Timestamp.now(),
+          });
         }
-      } else if (wasRecurring && isNowRecurring && updatedData.recurringPeriod !== editingExpense.recurringPeriod) {
-        // 週期改變：更新 recurringExpenses 文件
-        const rq = query(
-          collection(db, "recurringExpenses"),
-          where("userId", "==", currentUser.uid),
-          where("isActive", "==", true),
-        );
-        const rSnap = await getDocs(rq);
-        for (const rDoc of rSnap.docs) {
-          const d = rDoc.data();
-          if (d.category === editingExpense.category?.name && d.amount === editingExpense.amount) {
-            await updateDoc(doc(db, "recurringExpenses", rDoc.id), { period: updatedData.recurringPeriod });
+      } else if (wasRecurring && isNowRecurring && nextRecurringPeriod) {
+        const matchingRules = await findRecurringRulesForExpense({
+          sourceExpenseId: editingExpense.id,
+          userId: currentUser.uid,
+          category: editingExpense.category?.name,
+          amount: editingExpense.amount,
+        });
+
+        if (matchingRules.length > 0) {
+          for (const rDoc of matchingRules) {
+            await updateDoc(doc(db, "recurringExpenses", rDoc.id), {
+              userId: currentUser.uid,
+              sourceExpenseId: editingExpense.id,
+              amount: updatedData.amount,
+              category: updatedData.category,
+              notes: updatedData.notes || "",
+              period: nextRecurringPeriod,
+              startDate: updatedData.date,
+              lastGeneratedDate: updatedData.date,
+              isActive: true,
+              updatedAt: Timestamp.now(),
+            });
           }
+        } else {
+          await upsertRecurringRule({
+            sourceExpenseId: editingExpense.id,
+            userId: currentUser.uid,
+            amount: updatedData.amount,
+            category: updatedData.category,
+            notes: updatedData.notes || "",
+            period: nextRecurringPeriod,
+            startDate: updatedData.date,
+          });
         }
       }
 
@@ -3369,9 +3519,7 @@ const chartRef = useRef<HTMLDivElement>(null);
                               {{ weekly: '每週', monthly: '每月', yearly: '每年' }[transaction.recurringPeriod] || transaction.recurringPeriod}
                             </span>
                           )}
-                          {transaction.notes && <p className="text-sm mt-1">{transaction.notes.length > 30
-                                  ? `${transaction.notes.substring(0, 30)}...`
-                                  : transaction.notes}</p>}
+                          {transaction.notes && <p className="text-sm mt-1 truncate max-w-[200px]">{transaction.notes}</p>}
 </div>
 </div>
                       <div className="flex flex-col items-end">
