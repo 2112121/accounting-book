@@ -323,9 +323,9 @@ const FriendManagement: React.FC<FriendManagementProps> = ({ onClose }) => {
   ];
 
   return (
-    <div className="p-6">
-      <div className="sticky top-0 z-20 -mx-6 mb-6 flex justify-between items-center bg-white px-6 pb-4 pt-1">
-        <h2 className="text-2xl font-bold text-[#A487C3]">好友管理</h2>
+    <div className="p-4">
+      <div className="sticky top-0 z-20 -mx-4 mb-4 flex justify-between items-center bg-white px-4 pb-3 pt-1">
+        <h2 className="text-xl font-bold text-[#A487C3]">好友管理</h2>
         <button 
           onClick={onClose}
           className="text-white hover:text-white bg-[#A487C3] hover:bg-[#8A5DC8] w-8 h-8 flex items-center justify-center border border-[#F5F5F5] rounded-full shadow-sm hover:shadow-md transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-white"
@@ -357,35 +357,35 @@ const FriendManagement: React.FC<FriendManagementProps> = ({ onClose }) => {
       )}
       
       {/* 我的好友碼顯示區域 */}
-      <div className="bg-white border border-[#E8DFFC] rounded-xl p-6 mb-6 relative overflow-hidden shadow-sm">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between relative z-10">
-          <div className="mb-4 sm:mb-0">
-            <h3 className="font-bold text-[#A487C3] text-lg mb-1 flex items-center">
-              <i className="fas fa-id-card text-xl mr-2"></i>
+      <div className="bg-white border border-[#E8DFFC] rounded-xl p-4 mb-4 relative overflow-hidden shadow-sm">
+        <div className="flex items-center justify-between relative z-10">
+          <div>
+            <h3 className="font-bold text-[#A487C3] text-base mb-0.5 flex items-center">
+              <i className="fas fa-id-card mr-2"></i>
               我的好友碼
             </h3>
-            <p className="text-sm text-gray-600">分享此代碼給朋友，他們可以更快地添加你</p>
+            <p className="text-xs text-gray-500">分享此代碼給朋友，他們可以更快地添加你</p>
           </div>
-          <div className="flex items-center gap-3 w-full sm:w-auto">
-            <div className="bg-white p-3 rounded-lg border border-[#E8DFFC] shadow-sm">
-              <span className="font-mono font-bold text-2xl text-[#A487C3] tracking-wider letter-spacing-2">
+          <div className="flex items-center gap-2">
+            <div className="bg-white px-3 py-2 rounded-lg border border-[#E8DFFC] shadow-sm">
+              <span className="font-mono font-bold text-xl text-[#A487C3] tracking-wider">
                 {myFriendCode}
               </span>
             </div>
-            <button 
+            <button
               onClick={copyFriendCode}
-              className="p-3 bg-[#A487C3] hover:bg-[#8A5DC8] text-white rounded-lg w-12 h-12 flex items-center justify-center shadow-sm hover:shadow-md transition-all duration-300"
+              className="p-2 bg-[#A487C3] hover:bg-[#8A5DC8] text-white rounded-lg w-9 h-9 flex items-center justify-center shadow-sm hover:shadow-md transition-all duration-300"
               title="複製好友碼"
             >
-              <i className="fas fa-copy text-lg"></i>
+              <i className="fas fa-copy"></i>
             </button>
           </div>
         </div>
       </div>
       
       {/* Tab 按鈕 */}
-      <div className="mb-6 mt-2">
-        <div className="flex gap-3 overflow-x-auto pb-4 px-1 no-scrollbar">
+      <div className="mb-4 mt-1">
+        <div className="flex gap-2 overflow-x-auto pb-2 px-1 no-scrollbar">
           {tabs.map((tab) => (
             <button
               key={tab.id}
@@ -395,7 +395,7 @@ const FriendManagement: React.FC<FriendManagementProps> = ({ onClose }) => {
                 setFriendCodeQuery('');
                 setSearchResults([]);
               }}
-              className={`min-w-[120px] px-4 py-3 rounded-lg text-sm whitespace-nowrap transition-all duration-200 flex items-center justify-center ${
+              className={`min-w-[100px] px-3 py-2 rounded-lg text-sm whitespace-nowrap transition-all duration-200 flex items-center justify-center ${
                 activeTab === tab.id
                   ? 'bg-[#A487C3] text-white'
                   : 'text-[#A487C3] bg-white'
