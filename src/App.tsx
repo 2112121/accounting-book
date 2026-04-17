@@ -1414,6 +1414,10 @@ const chartRef = useRef<HTMLDivElement>(null);
         date: new Date(expense.date),
         notes: expense.notes || "",
         userId: currentUser.uid,
+        recurringPeriod:
+          expense.isRecurring && expense.recurringPeriod
+            ? expense.recurringPeriod
+            : undefined,
       };
 
       // 立即更新UI以提高反應速度
