@@ -542,10 +542,8 @@ const RecurringExpenseManagement: React.FC<RecurringExpenseManagementProps> = ({
                       <span className="text-sm font-semibold text-gray-800">{rule.category}</span>
                       <span className="text-sm text-[#E07A8D] font-semibold">NT$ {rule.amount}</span>
                     </div>
-                    <p className="mt-2 text-sm text-gray-600">
-                      開始日：{rule.startDate}
-                      {rule.endDate ? ` 結束日：${rule.endDate}` : " 無結束日"}
-                    </p>
+                    <p className="mt-2 text-sm text-gray-600">開始日：{rule.startDate}{!rule.endDate && " 無結束日"}</p>
+                    {rule.endDate && <p className="text-sm text-gray-600">結束日：{rule.endDate}</p>}
                     <p className="mt-1 text-sm text-gray-600">
                       下次將產生：{renderNextDueDate(rule)}
                     </p>
