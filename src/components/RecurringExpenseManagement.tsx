@@ -156,13 +156,18 @@ const RecurringExpenseManagement: React.FC<RecurringExpenseManagementProps> = ({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string>("");
   const [success, setSuccess] = useState<string>("");
-  const [editingRuleId, setEditingRuleId] = useState<string | null>(null);
   const [amount, setAmount] = useState("");
   const [category, setCategory] = useState("其他");
   const [notes, setNotes] = useState("");
   const [period, setPeriod] = useState<RecurringPeriod>("monthly");
   const [startDate, setStartDate] = useState(() => formatDateKey(new Date()));
   const [endDate, setEndDate] = useState("");
+
+  const [editingRuleId, setEditingRuleId] = useState<string | null>(null);
+  const [editValues, setEditValues] = useState<{
+    amount: string; category: string; notes: string;
+    period: RecurringPeriod; startDate: string; endDate: string;
+  } | null>(null);
 
   const loadRules = async () => {
     if (!currentUser) return;
@@ -218,7 +223,6 @@ const RecurringExpenseManagement: React.FC<RecurringExpenseManagementProps> = ({
   }, [currentUser]);
 
   const resetForm = () => {
-    setEditingRuleId(null);
     setAmount("");
     setCategory("其他");
     setNotes("");
@@ -227,31 +231,37 @@ const RecurringExpenseManagement: React.FC<RecurringExpenseManagementProps> = ({
     setEndDate("");
   };
 
-  const handleEditRule = (rule: RecurringRule) => {
+  const openInlineEdit = (rule: RecurringRule) => {
     setEditingRuleId(rule.id);
-    setAmount(String(rule.amount));
-    setCategory(rule.category);
-    setNotes(rule.notes);
-    setPeriod(rule.period);
-    setStartDate(rule.startDate);
-    setEndDate(rule.endDate || "");
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    setEditValues({
+      amount: String(rule.amount),
+      category: rule.category,
+      notes: rule.notes,
+      period: rule.period,
+      startDate: rule.startDate,
+      endDate: rule.endDate || "",
+    });
   };
 
-  const handleUpdateRule = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!currentUser || !editingRuleId) return;
+  const cancelInlineEdit = () => {
+    setEditingRuleId(null);
+    setEditValues(null);
+  };
 
-    const numericAmount = Number(amount);
+  const handleUpdateRule = async (e: React.FormEvent, ruleId: string) => {
+    e.preventDefault();
+    if (!currentUser || !editValues) return;
+
+    const numericAmount = Number(editValues.amount);
     if (!Number.isFinite(numericAmount) || numericAmount <= 0) {
       setError("請輸入正確金額");
       return;
     }
-    if (!startDate) {
+    if (!editValues.startDate) {
       setError("請選擇開始日期");
       return;
     }
-    if (endDate && endDate < startDate) {
+    if (editValues.endDate && editValues.endDate < editValues.startDate) {
       setError("結束日期不能早於開始日期");
       return;
     }
@@ -261,20 +271,20 @@ const RecurringExpenseManagement: React.FC<RecurringExpenseManagementProps> = ({
     setSuccess("");
 
     try {
-      const previousOccurrence = getPreviousRecurringDate(startDate, period);
-      await updateDoc(doc(db, "recurringExpenses", editingRuleId), {
+      const previousOccurrence = getPreviousRecurringDate(editValues.startDate, editValues.period);
+      await updateDoc(doc(db, "recurringExpenses", ruleId), {
         amount: numericAmount,
-        category,
-        notes: notes.trim(),
-        period,
-        startDate,
-        endDate: endDate || null,
+        category: editValues.category,
+        notes: editValues.notes.trim(),
+        period: editValues.period,
+        startDate: editValues.startDate,
+        endDate: editValues.endDate || null,
         lastGeneratedDate: formatDateKey(previousOccurrence),
         updatedAt: Timestamp.now(),
       });
 
       setSuccess("定期費用規則已更新");
-      resetForm();
+      cancelInlineEdit();
       await loadRules();
     } catch (_error) {
       setError("更新定期費用規則失敗，請稍後再試");
@@ -402,13 +412,7 @@ const RecurringExpenseManagement: React.FC<RecurringExpenseManagementProps> = ({
         </div>
       )}
 
-      <form onSubmit={editingRuleId ? handleUpdateRule : handleCreateRule} className="space-y-4 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
-        {editingRuleId && (
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-[#A487C3]">編輯規則</span>
-            <button type="button" onClick={resetForm} className="text-xs text-gray-400 hover:text-gray-600">取消編輯</button>
-          </div>
-        )}
+      <form onSubmit={handleCreateRule} className="space-y-4 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
         <div className="grid grid-cols-2 gap-3">
           <div className="col-span-2">
             <label className="block text-sm font-medium text-gray-700 mb-1">金額</label>
@@ -498,7 +502,7 @@ const RecurringExpenseManagement: React.FC<RecurringExpenseManagementProps> = ({
           disabled={saving}
           className="w-full rounded-xl bg-[#A487C3] px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-[#9576B7] disabled:cursor-not-allowed disabled:opacity-70"
         >
-          {saving ? (editingRuleId ? "更新中..." : "建立中...") : (editingRuleId ? "儲存變更" : "新增定期費用規則")}
+          {saving ? "建立中..." : "新增定期費用規則"}
         </button>
       </form>
 
@@ -527,8 +531,9 @@ const RecurringExpenseManagement: React.FC<RecurringExpenseManagementProps> = ({
         ) : (
           <div className="space-y-3">
             {rules.map((rule) => (
-              <div key={rule.id} className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
-                <div className="flex items-start justify-between gap-3">
+              <div key={rule.id} className={`rounded-2xl border bg-white shadow-sm transition-all ${editingRuleId === rule.id ? "border-[#A487C3]" : "border-gray-100"}`}>
+                {/* 顯示模式 */}
+                <div className="flex items-start justify-between gap-3 p-4">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="rounded-full bg-[#F1E8FB] px-2.5 py-1 text-xs font-medium text-[#A487C3]">
@@ -550,20 +555,102 @@ const RecurringExpenseManagement: React.FC<RecurringExpenseManagementProps> = ({
                   <div className="flex flex-col gap-1.5 shrink-0">
                     <button
                       type="button"
-                      onClick={() => handleEditRule(rule)}
-                      className="rounded-lg bg-[#F1E8FB] px-3 py-2 text-sm font-medium text-[#A487C3] transition-colors hover:bg-[#E6DDF3]"
+                      onClick={() => editingRuleId === rule.id ? cancelInlineEdit() : openInlineEdit(rule)}
+                      className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${editingRuleId === rule.id ? "bg-gray-100 text-gray-500 hover:bg-gray-200" : "bg-[#F1E8FB] text-[#A487C3] hover:bg-[#E6DDF3]"}`}
                     >
-                      編輯
+                      {editingRuleId === rule.id ? "取消" : "編輯"}
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteRule(rule.id)}
-                      className="rounded-lg bg-red-50 px-3 py-2 text-sm font-medium text-red-500 transition-colors hover:bg-red-100"
-                    >
-                      刪除
-                    </button>
+                    {editingRuleId !== rule.id && (
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteRule(rule.id)}
+                        className="rounded-lg bg-red-50 px-3 py-2 text-sm font-medium text-red-500 transition-colors hover:bg-red-100"
+                      >
+                        刪除
+                      </button>
+                    )}
                   </div>
                 </div>
+
+                {/* 展開的 inline 編輯表單 */}
+                {editingRuleId === rule.id && editValues && (
+                  <form
+                    onSubmit={(e) => handleUpdateRule(e, rule.id)}
+                    className="border-t border-[#E6DDF3] px-4 pb-4 pt-3 space-y-3"
+                  >
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-gray-600 mb-1">金額</label>
+                        <input
+                          type="number" min="1" step="1" required
+                          value={editValues.amount}
+                          onChange={(e) => setEditValues({ ...editValues, amount: e.target.value })}
+                          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#A487C3] focus:outline-none focus:ring-2 focus:ring-[#E6DDF3]"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-gray-600 mb-1">類別</label>
+                        <select
+                          value={editValues.category}
+                          onChange={(e) => setEditValues({ ...editValues, category: e.target.value })}
+                          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#A487C3] focus:outline-none focus:ring-2 focus:ring-[#E6DDF3]"
+                        >
+                          {categories.map((item) => <option key={item} value={item}>{item}</option>)}
+                        </select>
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-gray-600 mb-1">規則</label>
+                        <div className="grid grid-cols-4 gap-1.5">
+                          {(["daily", "weekly", "monthly", "yearly"] as RecurringPeriod[]).map((item) => (
+                            <button
+                              key={item} type="button"
+                              onClick={() => setEditValues({ ...editValues, period: item })}
+                              className={`rounded-lg border px-2 py-2 text-xs font-medium transition-colors ${editValues.period === item ? "border-[#A487C3] bg-[#A487C3] text-white" : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50"}`}
+                            >
+                              {periodLabels[item]}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">開始日期</label>
+                        <input
+                          type="date" required
+                          value={editValues.startDate}
+                          onChange={(e) => setEditValues({ ...editValues, startDate: e.target.value })}
+                          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#A487C3] focus:outline-none focus:ring-2 focus:ring-[#E6DDF3]"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">結束日期</label>
+                        <input
+                          type="date"
+                          min={editValues.startDate}
+                          value={editValues.endDate}
+                          onChange={(e) => setEditValues({ ...editValues, endDate: e.target.value })}
+                          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#A487C3] focus:outline-none focus:ring-2 focus:ring-[#E6DDF3]"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-gray-600 mb-1">備註</label>
+                        <input
+                          type="text"
+                          value={editValues.notes}
+                          onChange={(e) => setEditValues({ ...editValues, notes: e.target.value })}
+                          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#A487C3] focus:outline-none focus:ring-2 focus:ring-[#E6DDF3]"
+                          placeholder="例如房租、訂閱費、保險"
+                        />
+                      </div>
+                    </div>
+                    <button
+                      type="submit"
+                      disabled={saving}
+                      className="w-full rounded-xl bg-[#A487C3] px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#9576B7] disabled:opacity-70"
+                    >
+                      {saving ? "儲存中..." : "儲存變更"}
+                    </button>
+                  </form>
+                )}
               </div>
             ))}
           </div>
