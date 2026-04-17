@@ -156,6 +156,7 @@ const RecurringExpenseManagement: React.FC<RecurringExpenseManagementProps> = ({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string>("");
   const [success, setSuccess] = useState<string>("");
+  const [editingRuleId, setEditingRuleId] = useState<string | null>(null);
   const [amount, setAmount] = useState("");
   const [category, setCategory] = useState("其他");
   const [notes, setNotes] = useState("");
@@ -217,12 +218,69 @@ const RecurringExpenseManagement: React.FC<RecurringExpenseManagementProps> = ({
   }, [currentUser]);
 
   const resetForm = () => {
+    setEditingRuleId(null);
     setAmount("");
     setCategory("其他");
     setNotes("");
     setPeriod("monthly");
     setStartDate(formatDateKey(new Date()));
     setEndDate("");
+  };
+
+  const handleEditRule = (rule: RecurringRule) => {
+    setEditingRuleId(rule.id);
+    setAmount(String(rule.amount));
+    setCategory(rule.category);
+    setNotes(rule.notes);
+    setPeriod(rule.period);
+    setStartDate(rule.startDate);
+    setEndDate(rule.endDate || "");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleUpdateRule = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentUser || !editingRuleId) return;
+
+    const numericAmount = Number(amount);
+    if (!Number.isFinite(numericAmount) || numericAmount <= 0) {
+      setError("請輸入正確金額");
+      return;
+    }
+    if (!startDate) {
+      setError("請選擇開始日期");
+      return;
+    }
+    if (endDate && endDate < startDate) {
+      setError("結束日期不能早於開始日期");
+      return;
+    }
+
+    setSaving(true);
+    setError("");
+    setSuccess("");
+
+    try {
+      const previousOccurrence = getPreviousRecurringDate(startDate, period);
+      await updateDoc(doc(db, "recurringExpenses", editingRuleId), {
+        amount: numericAmount,
+        category,
+        notes: notes.trim(),
+        period,
+        startDate,
+        endDate: endDate || null,
+        lastGeneratedDate: formatDateKey(previousOccurrence),
+        updatedAt: Timestamp.now(),
+      });
+
+      setSuccess("定期費用規則已更新");
+      resetForm();
+      await loadRules();
+    } catch (_error) {
+      setError("更新定期費用規則失敗，請稍後再試");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleCreateRule = async (e: React.FormEvent) => {
@@ -344,7 +402,13 @@ const RecurringExpenseManagement: React.FC<RecurringExpenseManagementProps> = ({
         </div>
       )}
 
-      <form onSubmit={handleCreateRule} className="space-y-4 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+      <form onSubmit={editingRuleId ? handleUpdateRule : handleCreateRule} className="space-y-4 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+        {editingRuleId && (
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium text-[#A487C3]">編輯規則</span>
+            <button type="button" onClick={resetForm} className="text-xs text-gray-400 hover:text-gray-600">取消編輯</button>
+          </div>
+        )}
         <div className="grid grid-cols-2 gap-3">
           <div className="col-span-2">
             <label className="block text-sm font-medium text-gray-700 mb-1">金額</label>
@@ -434,7 +498,7 @@ const RecurringExpenseManagement: React.FC<RecurringExpenseManagementProps> = ({
           disabled={saving}
           className="w-full rounded-xl bg-[#A487C3] px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-[#9576B7] disabled:cursor-not-allowed disabled:opacity-70"
         >
-          {saving ? "建立中..." : "新增定期費用規則"}
+          {saving ? (editingRuleId ? "更新中..." : "建立中...") : (editingRuleId ? "儲存變更" : "新增定期費用規則")}
         </button>
       </form>
 
@@ -483,13 +547,22 @@ const RecurringExpenseManagement: React.FC<RecurringExpenseManagementProps> = ({
                     {rule.notes && <p className="mt-2 text-sm text-gray-500">{rule.notes}</p>}
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => handleDeleteRule(rule.id)}
-                    className="rounded-lg bg-red-50 px-3 py-2 text-sm font-medium text-red-500 transition-colors hover:bg-red-100"
-                  >
-                    刪除
-                  </button>
+                  <div className="flex flex-col gap-1.5 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => handleEditRule(rule)}
+                      className="rounded-lg bg-[#F1E8FB] px-3 py-2 text-sm font-medium text-[#A487C3] transition-colors hover:bg-[#E6DDF3]"
+                    >
+                      編輯
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteRule(rule.id)}
+                      className="rounded-lg bg-red-50 px-3 py-2 text-sm font-medium text-red-500 transition-colors hover:bg-red-100"
+                    >
+                      刪除
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
