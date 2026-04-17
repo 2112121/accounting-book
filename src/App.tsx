@@ -3326,30 +3326,24 @@ const chartRef = useRef<HTMLDivElement>(null);
                         {categoryExpenses.map((expense, index) => (
                           <div
                             key={expense.id}
-                            className="bg-gray-50 p-3 rounded-lg hover:bg-gray-100 transition-all duration-200 border-l-3"
+                            className="bg-gray-50 p-2 rounded-lg hover:bg-gray-100 transition-all duration-200 border-l-2"
                             style={{
                               borderLeftColor: getCategoryColor(selectedCategory),
                               animation: `fadeSlideIn 0.3s ease-out ${index * 0.05}s both`,
                             }}
                           >
-                            <div className="flex justify-between items-start">
-                              <div className="flex flex-col">
-                                <span className="font-medium text-gray-800 text-md">
-                                  {formatAmount(expense.amount)}
+                            <div className="flex justify-between items-center gap-2">
+                              <div className="min-w-0 flex-1">
+                                <span className="text-xs text-gray-500">
+                                  {expense.date.toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric' })}
                                 </span>
                                 {expense.notes && (
-                                  <span className="text-xs text-gray-500 mt-1">
-                                    {expense.notes.length > 20
-                                      ? `${expense.notes.substring(0, 20)}...`
-                                      : expense.notes}
-                                  </span>
+                                  <p className="text-xs text-gray-600 truncate">{expense.notes}</p>
                                 )}
                               </div>
-                              <div className="text-right">
-                                <span className="text-xs font-medium bg-white px-2 py-1 rounded-md text-gray-600 inline-block">
-                                  {expense.date.toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric' })}
+                              <span className="shrink-0 font-bold text-sm text-[#E07A8D] whitespace-nowrap">
+                                NT$ {expense.amount.toLocaleString('zh-TW')}
                               </span>
-                              </div>
                             </div>
                           </div>
                         ))}
@@ -3371,12 +3365,7 @@ const chartRef = useRef<HTMLDivElement>(null);
                           </div>
                           <div className="text-right">
                             <span className="font-bold text-xl text-[#3AA6B9]">
-                        {formatAmount(
-                          categoryExpenses.reduce(
-                            (total, exp) => total + exp.amount,
-                            0,
-                          ),
-                        )}
+                              NT$ {categoryExpenses.reduce((total, exp) => total + exp.amount, 0).toLocaleString('zh-TW')}
                             </span>
                           </div>
                         </div>
