@@ -3,8 +3,6 @@ import { collection, addDoc, Timestamp, doc, getDoc, updateDoc } from 'firebase/
 import { db } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
 import './ExpenseGroupForm.css';
-import { format } from 'date-fns';
-import { toast } from 'react-hot-toast';
 
 interface GroupExpenseFormProps {
   groupId: string;
@@ -31,7 +29,7 @@ const GroupExpenseForm: React.FC<GroupExpenseFormProps> = ({
   const { currentUser } = useAuth();
   const [title, setTitle] = useState(initialValues?.title || '');
   const [amount, setAmount] = useState(initialValues?.amount ? initialValues.amount.toString() : '');
-  const [currency, setCurrency] = useState(initialValues?.currency || 'NTD'); // 保留但不提供選擇
+  const [currency] = useState(initialValues?.currency || 'NTD'); // 保留但不提供選擇
   const [date, setDate] = useState(initialValues?.date ? 
     (initialValues.date instanceof Date ? initialValues.date : initialValues.date.toDate()) : 
     new Date());
@@ -56,11 +54,6 @@ const GroupExpenseForm: React.FC<GroupExpenseFormProps> = ({
     { id: '交通', name: '交通', icon: 'fas fa-taxi' },
     { id: '住宿', name: '住宿', icon: 'fas fa-hotel' },
     { id: '其他', name: '其他', icon: 'fas fa-shopping-bag' }
-  ];
-  
-  // 貨幣選項 (保留此變數以供其他地方使用)
-  const currencies = [
-    { code: 'NTD', symbol: 'NT$', name: '新台幣' }
   ];
   
   // 加載群組資訊和成員

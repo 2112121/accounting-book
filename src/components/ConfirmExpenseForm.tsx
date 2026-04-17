@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { collection, addDoc, updateDoc, doc, Timestamp, arrayUnion, writeBatch, getDoc, getDocs, query, where, limit } from 'firebase/firestore';
+import { collection, doc, Timestamp, getDoc, getDocs, query, where, limit } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
-import { v4 as uuidv4 } from 'uuid';
 import './ExpenseGroupForm.css';
 import { toast } from 'react-toastify';
 
@@ -56,7 +55,6 @@ const ConfirmExpenseForm: React.FC<ConfirmExpenseFormProps> = ({
   const [selectedExpenseIds, setSelectedExpenseIds] = useState<string[]>([]);
   const [totalAmount, setTotalAmount] = useState<number>(0);
   const [currency, setCurrency] = useState<string>('NTD');
-  const [validSplitAmount, setValidSplitAmount] = useState<boolean>(true);
   const [remainingAmount, setRemainingAmount] = useState<number>(0);
   // 添加計算機相關狀態
   const [showCalculator, setShowCalculator] = useState<boolean>(false);
@@ -70,10 +68,6 @@ const ConfirmExpenseForm: React.FC<ConfirmExpenseFormProps> = ({
     { id: 'custom' as SplitMethodType, name: '指定金額', icon: 'fas fa-sliders-h', description: '手動指定每位成員的分攤金額' }
   ];
   
-  // 貨幣選項
-  const currencies = [
-    { code: 'NTD', symbol: 'NT$', name: '新台幣' }
-  ];
   
   // 計算多選模式下的總金額
   const calculateTotalAmount = () => {
@@ -447,9 +441,8 @@ const ConfirmExpenseForm: React.FC<ConfirmExpenseFormProps> = ({
   // 修改 setMemberAmount 函數
   const setMemberAmount = (userId: string, newAmount: string) => {
     // 允許空字符串，方便用戶清空後重新輸入
-    const amount = multipleSelection ? totalAmount : selectedExpense?.amount;
-    
-    setMembers(prev => 
+
+    setMembers(prev =>
       prev.map(member => {
         if (member.userId === userId) {
           // 如果是空字符串，暫時設置為0
@@ -514,10 +507,10 @@ const ConfirmExpenseForm: React.FC<ConfirmExpenseFormProps> = ({
     
     // 根據選擇的分帳方式計算每人金額
     switch (method) {
-      case 'equal':
+      case 'equal': {
         // 平均分配
         const equalShare = Math.floor(totalAmount / members.length);
-        
+
         // 先給每個人分配整數金額
         const updatedMembers = members.map(member => ({
           ...member,
@@ -525,7 +518,7 @@ const ConfirmExpenseForm: React.FC<ConfirmExpenseFormProps> = ({
           amountInput: equalShare.toString(),
           percentage: parseFloat((100 / members.length).toFixed(2))
         }));
-        
+
         // 處理餘數，將餘數分配給前幾名成員
         const remainder = totalAmount - (equalShare * members.length);
         let remainderDistributed = 0;
@@ -534,12 +527,13 @@ const ConfirmExpenseForm: React.FC<ConfirmExpenseFormProps> = ({
           updatedMembers[i].amountInput = updatedMembers[i].amount.toString();
           remainderDistributed++;
         }
-        
+
         console.log('更新後的成員數據 (平分):', updatedMembers);
         setMembers(updatedMembers);
         break;
-        
-      case 'percentage':
+      }
+
+      case 'percentage': {
         // 按比例分配 - 平均百分比初始化
         const equalPercentage = 100 / members.length;
         const initialPercentageMembers = members.map(member => {
@@ -552,31 +546,32 @@ const ConfirmExpenseForm: React.FC<ConfirmExpenseFormProps> = ({
             amountInput: calculatedAmount.toString()
           };
         });
-        
+
         // 檢查總金額是否匹配，調整差額
-        let totalCalculated = initialPercentageMembers.reduce((sum, m) => sum + m.amount, 0);
+        const totalCalculated = initialPercentageMembers.reduce((sum, m) => sum + m.amount, 0);
         const diff = totalAmount - totalCalculated;
-        
+
         // 分配差額
         if (diff !== 0 && initialPercentageMembers.length > 0) {
           const increment = diff > 0 ? 1 : -1;
           let remainingDiff = Math.abs(diff);
           let index = 0;
-          
+
           while (remainingDiff > 0) {
             initialPercentageMembers[index % initialPercentageMembers.length].amount += increment;
-            initialPercentageMembers[index % initialPercentageMembers.length].amountInput = 
+            initialPercentageMembers[index % initialPercentageMembers.length].amountInput =
               initialPercentageMembers[index % initialPercentageMembers.length].amount.toString();
             remainingDiff--;
             index++;
           }
         }
-        
+
         console.log('更新後的成員數據 (百分比):', initialPercentageMembers);
         setMembers(initialPercentageMembers);
         break;
-        
-      case 'custom':
+      }
+
+      case 'custom': {
         // 自訂金額模式 - 初始化所有成員的金額為0
         const customMembers = members.map(member => {
           return {
@@ -586,10 +581,11 @@ const ConfirmExpenseForm: React.FC<ConfirmExpenseFormProps> = ({
             percentage: 0
           };
         });
-        
+
         console.log('更新後的成員數據 (自訂-初始化為0):', customMembers);
         setMembers(customMembers);
         break;
+      }
     }
   };
   
@@ -628,7 +624,7 @@ const ConfirmExpenseForm: React.FC<ConfirmExpenseFormProps> = ({
       const expression = calculatorInput.replace(/×/g, '*').replace(/÷/g, '/');
       const result = eval(expression);
       setCalculatorResult(Number.isInteger(result) ? result.toString() : result.toFixed(2));
-    } catch (error) {
+    } catch (_error) {
       setCalculatorResult('錯誤');
     }
   };
@@ -859,7 +855,7 @@ const ConfirmExpenseForm: React.FC<ConfirmExpenseFormProps> = ({
         </div>
       ) : (
         <>
-          {members.map((member, index) => (
+          {members.map((member, _index) => (
             <div key={member.userId} className="flex items-center justify-between p-2 bg-gray-50 rounded">
               <div className="flex items-center gap-2">
                 {member.photoURL ? (

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import LoanForm from './LoanForm';
 import RepaymentForm from './RepaymentForm';
-import { collection, query, where, getDocs, addDoc, updateDoc, doc, serverTimestamp, Timestamp, runTransaction, deleteDoc, getDoc, setDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, addDoc, doc, serverTimestamp, Timestamp, runTransaction, deleteDoc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { format } from 'date-fns';
 

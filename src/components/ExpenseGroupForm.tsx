@@ -39,8 +39,6 @@ const ExpenseGroupForm: React.FC<ExpenseGroupFormProps> = ({
   // 表單狀態
   const [groupName, setGroupName] = useState(initialValues?.name || '');
   const [description, setDescription] = useState(initialValues?.description || '');
-  const [splitMethod, setSplitMethod] = useState<'equal' | 'percentage' | 'custom'>('equal');
-  const [currency, setCurrency] = useState<CurrencyType>('TWD');
   const [members, setMembers] = useState<GroupMember[]>([]);
   const [selectedFriends, setSelectedFriends] = useState<Friend[]>([]);
   const [searchQuery, setSearchQuery] = useState('');

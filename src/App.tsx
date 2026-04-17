@@ -1,5 +1,5 @@
 // The exported code uses Tailwind CSS. Install Tailwind CSS in your dev environment to ensure all styles work.
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import * as echarts from "echarts";
 import ExpenseForm from "./components/ExpenseForm";
 import LoginForm from "./components/LoginForm";
@@ -15,12 +15,8 @@ import {
   deleteDoc,
   updateDoc,
   orderBy,
-  setDoc,
-  limit,
-  serverTimestamp,
   Timestamp,
   getDoc,
-  onSnapshot,
   runTransaction,
 } from "firebase/firestore";
 import { db } from "./firebase";
@@ -28,9 +24,8 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import LeaderboardForm from "./components/LeaderboardForm";
 import FriendManagement from "./components/FriendManagement";
-import { format, isSameDay, subDays, startOfMonth, endOfMonth } from 'date-fns';
+import { format } from 'date-fns';
 import LeaderboardInviteList from "./components/LeaderboardInviteList";
-import { auth } from "./firebase";
 import LeaderboardViewer from "./components/LeaderboardViewer";
 import LeaderboardNotification from "./components/LeaderboardNotification";
 import LoanManagement from "./components/LoanManagement"; // 引入借貸管理組件
@@ -86,26 +81,18 @@ const chartRef = useRef<HTMLDivElement>(null);
   const dailyChartRef = useRef<HTMLDivElement>(null);
   const {
     currentUser,
-    login,
     logout,
-    register,
     userNickname,
     getFriendRequests,
     getLeaderboardInvites,
     userProfileColor,
   } = useAuth();
   const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [totalExpense, setTotalExpense] = useState(0);
-  const [todayExpense, setTodayExpense] = useState(0);
   const [error, setError] = useState<string | null>(null);
   // 用於存儲用戶數據緩存的對象
-  const [userDataCache, setUserDataCache] = useState<Record<string, Expense[]>>(
+  const [_userDataCache, setUserDataCache] = useState<Record<string, Expense[]>>(
     {},
   );
-  // 用於標記是否處於數據恢復模式
-  const [isRecoveryMode, setIsRecoveryMode] = useState<boolean>(false);
-  // 用於標記是否是瀏覽器刷新加載的標記
-  const [isBrowserRefresh, setIsBrowserRefresh] = useState<boolean>(false);
   // 添加計時器引用，用於管理成功訊息的顯示
   const successMessageTimer = useRef<number | undefined>(undefined);
   // 添加選取的日期狀態，默認為今天
@@ -125,16 +112,6 @@ const chartRef = useRef<HTMLDivElement>(null);
     description: string;
     date: string;
   } | null>(null);
-  // 日期選項
-  const dateOptions = [
-    { value: new Date().toISOString().slice(0, 10), label: "今日" },
-    {
-      value: new Date(Date.now() - 86400000).toISOString().slice(0, 10),
-      label: "昨日",
-    },
-    { value: "earlier", label: "更早" },
-    { value: "all", label: "全部" },
-  ];
   // 添加選擇的日期選項，區分"今日"，"昨日"，"更早"，"全部"
   const [selectedDateOption, setSelectedDateOption] = useState<
     "today" | "yesterday" | "this_week" | "last_week" | "earlier" | "all" | "month" | "month_select"
@@ -144,8 +121,6 @@ const chartRef = useRef<HTMLDivElement>(null);
   const [selectedMonth, setSelectedMonth] = useState<string>(
     new Date().toISOString().slice(0, 7) // 格式為 "YYYY-MM"
   );
-  const [showMobileForm, setShowMobileForm] = useState(false);
-  const [showPasswordForm, setShowPasswordForm] = useState(false);
   const [friendRequestCount, setFriendRequestCount] = useState(0);
   const [leaderboardInviteCount, setLeaderboardInviteCount] = useState(0);
   const [groupInviteCount, setGroupInviteCount] = useState(0); // 添加群组邀请计数状态
@@ -1433,7 +1408,6 @@ const chartRef = useRef<HTMLDivElement>(null);
 
           // 補產所有到期但未記的帳目
           while (nextDate <= today) {
-            const dateStr = `${nextDate.getFullYear()}-${String(nextDate.getMonth() + 1).padStart(2, '0')}-${String(nextDate.getDate()).padStart(2, '0')}`;
             await addDoc(collection(db, "expenses"), {
               amount: rec.amount,
               category: rec.category,
@@ -2069,7 +2043,7 @@ const chartRef = useRef<HTMLDivElement>(null);
         if (isNaN(expenseDate.getTime())) {
           throw new Error("Invalid date");
         }
-      } catch (e) {
+      } catch (_e) {
         // 默認為當前日期
         console.warn(`無效的日期格式: ${JSON.stringify(updatedData.date)}`);
         expenseDate = new Date();
@@ -2495,99 +2469,14 @@ useEffect(() => {
 
   const filteredTransactions = getFilteredExpenses();
 
-  // 產生一個渲染 key，用於強制組件重新渲染
-  const [renderKey, setRenderKey] = useState<number>(Date.now());
-
   // 強制重新渲染組件的函數
   const forceRerender = () => {
-    setRenderKey(Date.now());
   };
 
   // 在支出數據變更時，強制組件重新渲染
   useEffect(() => {
     forceRerender();
   }, [expenses.length]);
-
-  // Firebase連接測試函數
-  const testFirebaseConnection = async () => {
-    try {
-      if (!currentUser) {
-        setError("請先登入再測試");
-        setTimeout(() => setError(null), 3000);
-        return;
-      }
-
-      setSuccessMessage("正在測試連線...");
-      setShowSuccessMessage(true);
-
-      console.log("===========開始連線測試===========");
-      console.log("當前用戶:", currentUser.uid, currentUser.email);
-      console.log("檢查Firestore實例:", db ? "已初始化" : "未初始化");
-
-      // 嘗試添加一條測試記錄
-      const testRecord = {
-        amount: 1,
-        category: "測試",
-        date: new Date().toISOString().slice(0, 10),
-        notes: "Firebase連接測試 - " + new Date().toISOString(),
-        userId: currentUser.uid,
-        createdAt: new Date(),
-      };
-
-      console.log("準備添加測試消費明細:", testRecord);
-
-      // 添加到Firebase
-      const docRef = await addDoc(collection(db, "expenses"), testRecord);
-
-      console.log("測試消費明細已添加，ID:", docRef.id);
-      console.log("===========連線測試成功===========");
-
-      // 顯示成功消息
-      setSuccessMessage("連線正常！已添加測試消費明細");
-      setShowSuccessMessage(true);
-      if (successMessageTimer.current) {
-        window.clearTimeout(successMessageTimer.current);
-      }
-      successMessageTimer.current = window.setTimeout(
-        () => setShowSuccessMessage(false),
-        3000,
-      );
-
-      // 自動刷新數據
-      if (typeof (window as any).initializeAppData === "function") {
-        (window as any).initializeAppData();
-      } else {
-        console.log("刷新函數未定義，無法自動刷新數據");
-        // 不再強制刷新頁面，避免用戶數據丟失
-        // console.log("刷新函數未定義，嘗試手動刷新頁面");
-        // window.location.reload();
-        
-        // 顯示一個較為友好的提示
-        setSuccessMessage("初始化完成");
-        setShowSuccessMessage(true);
-        if (successMessageTimer.current) {
-          window.clearTimeout(successMessageTimer.current);
-        }
-        successMessageTimer.current = window.setTimeout(
-          () => setShowSuccessMessage(false),
-          1500,
-        );
-      }
-    } catch (error) {
-      console.error("連線測試失敗:", error);
-      // 顯示更詳細的錯誤信息
-      if (error instanceof Error) {
-        console.error("錯誤類型:", error.name);
-        console.error("錯誤消息:", error.message);
-        console.error("錯誤堆棧:", error.stack);
-        setError(`連線失敗: ${error.message}`);
-      } else {
-        setError("連線失敗，請檢查控制檯日誌");
-      }
-      setTimeout(() => setError(null), 5000);
-      console.log("===========連線測試失敗===========");
-    }
-  };
 
   // 讀取通知數量
   useEffect(() => {
@@ -2714,11 +2603,6 @@ useEffect(() => {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     });
-  };
-
-  // 找到 calculateTotalAmount 函數的定義
-  const calculateTotalAmount = (expenses: Expense[]): number => {
-    return expenses.reduce((total, expense) => total + expense.amount, 0);
   };
 
   // 顯示排行榜管理面板
@@ -3057,7 +2941,7 @@ useEffect(() => {
         console.error(event.error.message);
         
         // 提取索引创建链接
-        const indexMatch = event.error.message.match(/https:\/\/console\.firebase\.google\.com[\w\/\.\-\?\=\&\%]+/);
+        const indexMatch = event.error.message.match(/https:\/\/console\.firebase\.google\.com[\w/.?=&%-]+/);
         if (indexMatch && indexMatch[0]) {
           console.log("%c点击以下链接创建必要的索引:", "color: green; font-weight: bold; font-size: 16px;");
           console.log("%c" + indexMatch[0], "color: blue; text-decoration: underline; cursor: pointer; font-size: 14px;");
@@ -3079,7 +2963,7 @@ useEffect(() => {
 
   // 监听新群组邀请的事件
   useEffect(() => {
-    const handleNewGroupInvite = (event: Event) => {
+    const handleNewGroupInvite = (_event: Event) => {
       // 更新群組邀請計數（從數據庫重新獲取）
       if (currentUser) {
         // 查詢待處理的群組邀請
@@ -3148,8 +3032,6 @@ useEffect(() => {
       window.history.replaceState({}, document.title, window.location.pathname);
     }
   }, []);
-
-  const [showSplitExpenseManagement, setShowSplitExpenseManagement] = useState(false);
 
   // 組件掛載時檢查URL參數
   useEffect(() => {

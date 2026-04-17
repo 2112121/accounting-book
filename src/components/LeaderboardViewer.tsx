@@ -24,7 +24,6 @@ import {
   getDocs,
   getDoc,
   doc,
-  orderBy,
   Timestamp,
 } from "firebase/firestore";
 import { db } from "../firebase";
@@ -749,97 +748,6 @@ const LeaderboardViewer: React.FC<LeaderboardViewerProps> = ({ onClose }) => {
   const handleBackToList = () => {
     setSelectedLeaderboard(null);
     setMemberExpenses({});
-  };
-
-  // 手動同步支出記錄
-  const syncExpenseRecords = async (
-    leaderboard: Leaderboard,
-  ): Promise<void> => {
-    if (!leaderboard) return;
-
-    try {
-      setError("");
-
-      // 顯示加載狀態
-      setLoading(true);
-
-      console.log(
-        `開始同步排行榜 ${leaderboard.id} (${leaderboard.name}) 的支出記錄`,
-      );
-
-      // 調用更新函數重新計算所有成員的支出
-      if (typeof updateLeaderboardMemberExpenses === "function") {
-        await updateLeaderboardMemberExpenses(leaderboard);
-        console.log(`排行榜 ${leaderboard.name} 的支出記錄同步完成`);
-
-        // 清空當前的支出詳情，以便重新加載
-        setMemberExpenses({});
-
-        // 獲取當前查看的成員詳情
-        const currentMemberId = Object.keys(memberExpenses)[0];
-        if (currentMemberId) {
-          const member = leaderboard.members.find(
-            (m) => m.userId === currentMemberId,
-          );
-          if (member) {
-            console.log(
-              `自動重新加載成員 ${member.nickname || member.userId} 的支出詳情`,
-            );
-
-            // 標記該成員為加載中狀態
-            setLoadingMemberIds((prev) => [...prev, member.userId]);
-
-            // 延遲一點時間後重新加載該成員的支出詳情
-            setTimeout(async () => {
-              try {
-                const expenses = await loadMemberExpenses(
-                  member.userId,
-                  member.allowViewDetail || member.userId === currentUser?.uid,
-                  leaderboard.startDate,
-                  leaderboard.endDate,
-                );
-
-                // 更新狀態，顯示支出詳情
-                setMemberExpenses((prev) => ({
-                  ...prev,
-                  [member.userId]: expenses,
-                }));
-
-                // 移除加載中狀態
-                setLoadingMemberIds((prev) =>
-                  prev.filter((id) => id !== member.userId),
-                );
-
-                if (expenses.length > 0) {
-                  console.log(`成功獲取到 ${expenses.length} 條支出記錄`);
-                } else {
-                  console.log(`同步後仍未獲取到支出記錄，請檢查數據庫`);
-                }
-              } catch (error) {
-                console.error("自動重新加載支出詳情失敗:", error);
-                // 移除加載中狀態
-                setLoadingMemberIds((prev) =>
-                  prev.filter((id) => id !== member.userId),
-                );
-              }
-            }, 500);
-          }
-        }
-
-        // 提示同步成功
-        alert("支出記錄同步成功！系統正在重新加載支出詳情。");
-      } else {
-        throw new Error("無法獲取同步函數");
-      }
-    } catch (error) {
-      console.error("同步支出記錄失敗:", error);
-      setError(
-        "同步支出記錄失敗: " +
-          (error instanceof Error ? error.message : "未知錯誤"),
-      );
-    } finally {
-      setLoading(false);
-    }
   };
 
   // 手動刷新當前排行榜數據

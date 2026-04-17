@@ -56,7 +56,7 @@ const BudgetSetting: React.FC<BudgetSettingProps> = ({ onClose }) => {
   });
   const [categories, setCategories] = useState<{id: string, name: string}[]>([]);
   const [showAddForm, setShowAddForm] = useState<boolean>(true);
-  const [editingItemId, setEditingItemId] = useState<string | null>(null);
+  const [, setEditingItemId] = useState<string | null>(null);
   
   // 动画状态
   const [fadeInItems, setFadeInItems] = useState<boolean>(false);
@@ -458,103 +458,6 @@ const BudgetSetting: React.FC<BudgetSettingProps> = ({ onClose }) => {
     }
   };
   
-  // 更新现有预算项
-  const updateBudgetItem = (itemId: string) => {
-    // 基本验证
-      if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
-        setError('請輸入有效的預算金額');
-        return;
-      }
-      
-    // 验证自定义日期区间
-      if (selectedPeriod === 'custom') {
-        if (!startDate || !endDate) {
-          setError('請選擇自訂日期區間');
-          return;
-        }
-        
-        const start = new Date(startDate);
-        const end = new Date(endDate);
-        
-        if (start > end) {
-          setError('結束日期必須晚於開始日期');
-          return;
-        }
-      }
-      
-    // 驗證選擇的類別（如果是類別預算需要選擇至少一個類別）
-    if (budgetType === 'multi' && (!selectedCategories || selectedCategories.length === 0)) {
-      setError('請至少選擇一個類別');
-      return;
-    }
-    
-      setError('');
-      
-    // 获取类别名称
-    let categoryName = '总体';
-    
-    if (budgetType === 'multi' && selectedCategories.length > 0) {
-      const categoryNames = selectedCategories.map(catId => {
-        const category = categories.find(c => c.id === catId);
-        return category ? category.name : catId;
-      });
-      categoryName = categoryNames.join('+');
-    } else if (selectedCategory === 'investment') {
-      categoryName = '投資'; // 特別處理investment類別
-    } else if (budgetType !== 'overall' && selectedCategory !== 'overall') {
-      // 查找單一類別的名稱
-      const category = categories.find(c => c.id === selectedCategory);
-      if (category) {
-        categoryName = category.name;
-      }
-    }
-    
-    // 更新预算项
-    const updatedBudgetItems = budget.budgetItems.map(item => {
-      if (item.id === itemId) {
-        const updatedItem: BudgetItem = {
-          ...item,
-        period: selectedPeriod,
-        amount: parseFloat(amount),
-          categoryId: budgetType === 'overall' ? 'overall' : (budgetType === 'multi' ? 'multi' : selectedCategory),
-          categoryName,
-          budgetType,
-          ...(budgetType === 'multi' ? { categories: selectedCategories } : {})
-      };
-      
-        // 處理自定義日期範圍
-      if (selectedPeriod === 'custom') {
-          updatedItem.startDate = new Date(startDate);
-          updatedItem.endDate = new Date(endDate);
-        } else {
-          // 如果不是自定義日期範圍，刪除日期
-          delete updatedItem.startDate;
-          delete updatedItem.endDate;
-        }
-        
-        return updatedItem;
-      }
-      return item;
-    });
-    
-    const updatedBudget = {
-      ...budget,
-      budgetItems: updatedBudgetItems
-    };
-    
-    console.log('更新預算項目:', updatedBudget);
-    
-    // 保存更新
-      setBudget(updatedBudget);
-    saveBudget(updatedBudget);
-    
-    // 重置表单
-    resetForm();
-    
-    // 返回列表视图
-    setShowAddForm(false);
-  };
-  
   // 添加预算项目
   const addBudgetItem = () => {
     // 基本验证
@@ -642,7 +545,7 @@ const BudgetSetting: React.FC<BudgetSettingProps> = ({ onClose }) => {
        selectedPeriod !== 'custom')
     );
     
-    let updatedItems = [...budget.budgetItems];
+    const updatedItems = [...budget.budgetItems];
     
     if (existingItemIndex !== -1) {
       // 更新现有项目
@@ -882,8 +785,7 @@ const BudgetSetting: React.FC<BudgetSettingProps> = ({ onClose }) => {
       console.log('正在保存到 Firestore...', '數據大小約:', JSON.stringify(saveData).length, '字節');
       
       let savedSuccessfully = false;
-      let errorMessage = '';
-      
+
       // 嘗試方法1: 使用 setDoc 合并方式保存
       try {
       const budgetRef = doc(db, 'budgets', currentUser.uid);
@@ -892,7 +794,6 @@ const BudgetSetting: React.FC<BudgetSettingProps> = ({ onClose }) => {
         savedSuccessfully = true;
       } catch (error1) {
         console.error('方法1失敗: setDoc with merge', error1);
-        errorMessage = error1 instanceof Error ? error1.message : '未知錯誤';
         
         // 嘗試方法2: 不使用 merge 參數，完全替換文檔
         try {

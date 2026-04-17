@@ -41,16 +41,13 @@ const LeaderboardForm: React.FC<LeaderboardFormProps> = ({ onClose }) => {
   } = useAuth();
   const [leaderboards, setLeaderboards] = useState<Leaderboard[]>([]);
   const [friends, setFriends] = useState<Friend[]>([]);
-  const [activeTab, setActiveTab] = useState<"leaderboards">("leaderboards");
+  const [, setActiveTab] = useState<"leaderboards">("leaderboards");
   const [newLeaderboardName, setNewLeaderboardName] = useState("");
-  const [searchQuery, setSearchQuery] = useState("");
   const [selectedLeaderboard, setSelectedLeaderboard] =
     useState<Leaderboard | null>(null);
   const [editingLeaderboard, setEditingLeaderboard] =
     useState<Leaderboard | null>(null);
   const [timeRange, setTimeRange] = useState<TimeRangeType | null>(null);
-  const [startDate, setStartDate] = useState<Date>(new Date());
-  const [endDate, setEndDate] = useState<Date>(new Date());
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
@@ -61,11 +58,8 @@ const LeaderboardForm: React.FC<LeaderboardFormProps> = ({ onClose }) => {
   >(null);
   const [customStartDate, setCustomStartDate] = useState<Date>(new Date());
   const [customEndDate, setCustomEndDate] = useState<Date>(new Date());
-  const [inviteCount, setInviteCount] = useState(0);
-  const [customDateRange, setCustomDateRange] = useState({
-    startDate: new Date(),
-    endDate: new Date(),
-  });
+  const [, setInviteCount] = useState(0);
+
 
   // 加載數據
   useEffect(() => {
@@ -590,31 +584,6 @@ const LeaderboardForm: React.FC<LeaderboardFormProps> = ({ onClose }) => {
     } finally {
       setLoading(false);
     }
-  };
-
-  // 搜尋好友
-  const handleSearchFriend = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!searchQuery.trim()) {
-      setError("請輸入搜尋關鍵字");
-      return;
-    }
-
-    // 模擬搜尋功能
-    setSuccess("找到相符的用戶！");
-    setTimeout(() => setSuccess(""), 3000);
-
-    // 模擬添加搜尋結果
-    const newFriend: Friend = {
-      id: `search_${Date.now()}`,
-      nickname: searchQuery,
-      email: `${searchQuery.toLowerCase()}@example.com`,
-      photoURL: "",
-      isSelected: false,
-    };
-
-    setFriends((prev) => [...prev, newFriend]);
-    setSearchQuery("");
   };
 
   // 渲染好友列表時過濾掉已經是當前排行榜成員的好友

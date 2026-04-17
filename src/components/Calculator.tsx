@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 
 interface CalculatorProps {
   onClose: () => void;
@@ -37,14 +37,14 @@ const Calculator: React.FC<CalculatorProps> = ({
     try {
       // 基本檢查括號是否平衡
       let openBrackets = 0;
-      for (let char of expression) {
+      for (const char of expression) {
         if (char === '(') openBrackets++;
         if (char === ')') openBrackets--;
         if (openBrackets < 0) return false;
       }
       
       return true;
-    } catch (error) {
+    } catch (_error) {
       return false;
     }
   };
@@ -74,7 +74,7 @@ const Calculator: React.FC<CalculatorProps> = ({
       
       // 檢查括號是否平衡
       let openBrackets = 0;
-      for (let char of sanitizedExpression) {
+      for (const char of sanitizedExpression) {
         if (char === '(') openBrackets++;
         if (char === ')') openBrackets--;
         if (openBrackets < 0) throw new Error('括號不匹配');
@@ -87,9 +87,9 @@ const Calculator: React.FC<CalculatorProps> = ({
       }
       
       // 使用 Function 構造器而不是 eval
-      // eslint-disable-next-line no-new-func
+       
       const calculateFn = new Function(`return ${sanitizedExpression}`);
-      let calculatedResult = calculateFn();
+      const calculatedResult = calculateFn();
       
       // 檢查結果是否為有效數字
       if (typeof calculatedResult !== 'number' || !isFinite(calculatedResult)) {

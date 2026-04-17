@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import Calculator from './Calculator';
 
 interface ExpenseFormProps {
@@ -66,8 +66,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
     
   // 計算機相關狀態
   const [showCalculator, setShowCalculator] = useState<boolean>(false);
-  const [calculatorInput, setCalculatorInput] = useState<string>('');
-  const [calculatorResult, setCalculatorResult] = useState<string>('0');
+
 
   const categories = [
     { id: "food", name: "餐飲", icon: "fa-utensils" },
@@ -326,40 +325,6 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
     }
   };
 
-  // 獲取當前貨幣信息
-  const currentCurrency =
-    currencies.find((c) => c.code === selectedCurrency) || currencies[0];
-    
-  // 計算機功能
-  const calculateResult = () => {
-    try {
-      // 替換顯示的乘號和除號為JS可以運算的符號
-      const expression = calculatorInput.replace(/×/g, '*').replace(/÷/g, '/');
-      const result = eval(expression);
-      setCalculatorResult(Number.isInteger(result) ? result.toString() : result.toFixed(2));
-    } catch (error) {
-      setCalculatorResult('錯誤');
-    }
-  };
-
-  // 處理計算機按鈕點擊
-  const handleCalculatorClick = (value: string) => {
-    if (value === 'C') {
-      // 清除輸入
-      setCalculatorInput('');
-      setCalculatorResult('0');
-    } else if (value === '=') {
-      // 計算結果
-      calculateResult();
-    } else if (value === '←') {
-      // 刪除最後一個字符
-      setCalculatorInput(prev => prev.slice(0, -1));
-    } else {
-      // 添加輸入
-      setCalculatorInput(prev => prev + value);
-    }
-  };
-  
   // 關閉計算機
   const closeCalculator = () => {
     setShowCalculator(false);

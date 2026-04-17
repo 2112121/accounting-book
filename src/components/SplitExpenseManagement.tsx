@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Friend } from '../contexts/AuthContext';
-import { collection, query, where, getDocs, addDoc, updateDoc, doc, serverTimestamp, Timestamp, runTransaction, deleteDoc, getDoc, orderBy, arrayUnion } from 'firebase/firestore';
+import { collection, query, where, getDocs, addDoc, updateDoc, doc, serverTimestamp, Timestamp, deleteDoc, getDoc, orderBy } from 'firebase/firestore';
 import { db } from '../firebase';
 import SplitExpenseForm from './SplitExpenseForm';
 import ExpenseGroupForm from './ExpenseGroupForm';
@@ -53,7 +53,7 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [activeTab, setActiveTab] = useState<'created'>('created'); // 默認顯示分帳群組
+  const [activeTab] = useState<'created'>('created'); // 默認顯示分帳群組
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showGroupForm, setShowGroupForm] = useState(false);
   const [showEditGroupForm, setShowEditGroupForm] = useState(false); // 添加編輯群組表單狀態
@@ -66,7 +66,6 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
   const [showGroupInvites, setShowGroupInvites] = useState(false); // 控制群組邀請列表的顯示
   const [showGroupExpenseForm, setShowGroupExpenseForm] = useState(false);
   const [showConfirmExpenseForm, setShowConfirmExpenseForm] = useState(false); // 新增：顯示確認帳單表單
-  const [selectedExpenses, setSelectedExpenses] = useState<any[]>([]); // 新增：選擇的支出列表
   const [groupExpenses, setGroupExpenses] = useState<any[]>([]); // 新增：群組中的支出列表
   const [editingExpense, setEditingExpense] = useState<any>(null);
   
@@ -367,7 +366,7 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
   };
   
   // 處理表單提交創建分帳群組
-  const createExpenseGroupFromForm = (groupData: { name: string; description: string }) => {
+  const createExpenseGroupFromForm = (_groupData: { name: string; description: string }) => {
     // 這個函數只在表單提交後處理UI變化，不再創建群組
     // 因為群組已在ExpenseGroupForm中創建
     setShowGroupForm(false);
@@ -1977,7 +1976,7 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
             </h5>
             
             {Object.entries(balances[currentUserId].transactions)
-              .filter(([targetId, amount]) => Math.abs(amount) > 0)
+              .filter(([_targetId, amount]) => Math.abs(amount) > 0)
               .length === 0 ? (
               <div className="bg-white p-4 rounded-lg text-center">
                 <div className="w-12 h-12 mx-auto mb-2 bg-gray-100 rounded-full flex items-center justify-center">
@@ -1989,7 +1988,7 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
             ) : (
               <div className="grid grid-cols-1 gap-3 relative z-10">
                 {Object.entries(balances[currentUserId].transactions)
-                  .filter(([targetId, amount]) => Math.abs(amount) > 0)
+                  .filter(([_targetId, amount]) => Math.abs(amount) > 0)
                   .map(([targetId, amount], index) => {
                     const targetUser = balances[targetId];
                     if (!targetUser) return null;
@@ -2056,7 +2055,7 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
         )}
         
         {/* 過賬到借貸管理入口 */}
-        {Object.entries(balances[currentUserId].transactions).filter(([_, amount]) => Math.abs(amount) > 0).length > 0 && (
+        {Object.entries(balances[currentUserId].transactions).filter(([_item, amount]) => Math.abs(amount) > 0).length > 0 && (
           <div className="mt-5 p-4 bg-gradient-to-br from-blue-50 to-[#F0EAFA] rounded-xl border border-blue-100 animate-[fadeInUp_0.5s_ease-out] transform transition-all duration-300 hover:shadow-lg relative overflow-hidden">
             <div className="absolute top-0 right-0 w-24 h-24 -mt-8 -mr-8 bg-blue-100 rounded-full opacity-20"></div>
             <div className="absolute bottom-0 left-0 w-16 h-16 -ml-5 -mb-5 bg-[#A487C3] rounded-full opacity-10"></div>
@@ -2073,7 +2072,7 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
             
             <div className="grid grid-cols-1 gap-3 relative z-10">
               {Object.entries(balances[currentUserId].transactions)
-                .filter(([userId, amount]) => Math.abs(amount) > 0)
+                .filter(([_userId, amount]) => Math.abs(amount) > 0)
                 .map(([userId, amount], index) => {
                   const targetMember = balances[userId];
                   if (!targetMember) return null;
@@ -2193,7 +2192,7 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
         )}
         
         {/* 過賬到消費明細入口 */}
-        {Object.entries(balances[currentUserId].transactions).filter(([_, amount]) => Math.abs(amount) > 0).length > 0 && (
+        {Object.entries(balances[currentUserId].transactions).filter(([_item, amount]) => Math.abs(amount) > 0).length > 0 && (
           <div className="mt-5 p-4 bg-gradient-to-br from-green-50 to-[#F0EAFA] rounded-xl border border-green-100 animate-[fadeInUp_0.6s_ease-out] transform transition-all duration-300 hover:shadow-lg relative overflow-hidden">
             <div className="absolute top-0 right-0 w-24 h-24 -mt-8 -mr-8 bg-green-100 rounded-full opacity-20"></div>
             <div className="absolute bottom-0 left-0 w-16 h-16 -ml-5 -mb-5 bg-[#A487C3] rounded-full opacity-10"></div>

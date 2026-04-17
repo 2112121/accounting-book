@@ -90,10 +90,6 @@ const LeaderboardInviteList: React.FC<LeaderboardInviteListProps> = ({ onClose }
     }
   };
 
-  const formatDate = (timestamp: Date) => {
-    return `${timestamp.getFullYear()}-${String(timestamp.getMonth() + 1).padStart(2, '0')}-${String(timestamp.getDate()).padStart(2, '0')}`;
-  };
-
   // 格式化時間為相對時間（如：3天前、2小時前）
   const formatRelativeTime = (date: Date) => {
     const now = new Date();

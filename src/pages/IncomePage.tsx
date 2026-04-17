@@ -38,7 +38,7 @@ const IncomePage: React.FC = () => {
   // 收入數據狀態
   const [incomes, setIncomes] = useState<Income[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+  const [_error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string>("");
   const [showSuccessMessage, setShowSuccessMessage] = useState<boolean>(false);
   
@@ -74,7 +74,7 @@ const IncomePage: React.FC = () => {
     return `${today.getFullYear()}-${today.getMonth() + 1}`;
   });
   
-  const navigate = useNavigate();
+  const _navigate = useNavigate();
   const { currentUser } = useAuth();
   
   // 獲取類別圖標
@@ -166,7 +166,7 @@ const IncomePage: React.FC = () => {
       chart.setOption(option);
       
       // 添加點擊事件處理，空圖表點擊無操作
-      chart.on('click', function (params: any) {
+      chart.on('click', function (_params: any) {
         console.log('空圖表被點擊，不執行任何操作');
       });
       
@@ -805,7 +805,7 @@ const IncomePage: React.FC = () => {
   };
   
   // 計算總收入
-  const calculateMonthlyTotal = () => {
+  const _calculateMonthlyTotal = () => {
     const now = new Date();
     const thisMonth = now.getMonth();
     const thisYear = now.getFullYear();
@@ -821,7 +821,7 @@ const IncomePage: React.FC = () => {
     };
   };
   
-  const calculateYearlyTotal = () => {
+  const _calculateYearlyTotal = () => {
     const now = new Date();
     const thisYear = now.getFullYear();
     
@@ -835,9 +835,6 @@ const IncomePage: React.FC = () => {
       count: yearlyIncomes.length
     };
   };
-  
-  const monthlyStats = calculateMonthlyTotal();
-  const yearlyStats = calculateYearlyTotal();
   
   // 重置分類選擇
   const resetCategorySelection = () => {

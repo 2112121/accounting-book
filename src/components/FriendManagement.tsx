@@ -26,7 +26,7 @@ interface FriendManagementProps {
 const FriendManagement: React.FC<FriendManagementProps> = ({ onClose }) => {
   const { currentUser, searchUsers, sendFriendRequest, getFriends, getFriendRequests, getSentFriendRequests, cancelFriendRequest, acceptFriendRequest, rejectFriendRequest, removeFriend } = useAuth();
 
-  const [searchQuery, setSearchQuery] = useState('');
+  const [_searchQuery, setSearchQuery] = useState('');
   const [friendCodeQuery, setFriendCodeQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Friend[]>([]);
   const [friends, setFriends] = useState<Friend[]>([]);

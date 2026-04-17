@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '../contexts/AuthContext';
+import React, { useState } from 'react';
 import { LoanTransaction } from './LoanManagement';
 import { format } from 'date-fns';
 
@@ -30,8 +29,6 @@ const LoanForm: React.FC<LoanFormProps> = ({
   initialValues,
   formType,
 }) => {
-  const { currentUser } = useAuth();
-  
   // 表單字段
   const [counterpartyName, setCounterpartyName] = useState(initialValues?.counterpartyName || '');
   const [amount, setAmount] = useState(initialValues?.amount?.toString() || '');

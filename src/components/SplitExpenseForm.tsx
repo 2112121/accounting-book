@@ -61,17 +61,16 @@ const SplitExpenseForm: React.FC<SplitExpenseFormProps> = ({ onSave, onCancel, e
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [friends, setFriends] = useState<Friend[]>([]);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [success] = useState('');
   const [step, setStep] = useState<1 | 2 | 3>(1);
   
   // 其他狀態
   const [showExpenses, setShowExpenses] = useState(false);
   const [showCalculator, setShowCalculator] = useState<boolean>(false);
-  const [calculatorInput, setCalculatorInput] = useState<string>('');
-  const [calculatorResult, setCalculatorResult] = useState<string>('0');
-  
+
+
   // 添加state來跟踪當前使用計算機的成員ID
-  const [calculatorMemberId, setCalculatorMemberId] = useState<string>('');
+  const [calculatorMemberId] = useState<string>('');
 
   // 加載數據
   useEffect(() => {
@@ -222,41 +221,11 @@ const SplitExpenseForm: React.FC<SplitExpenseFormProps> = ({ onSave, onCancel, e
     }).format(amount);
   };
   
-  // 計算機功能
-  const calculateResult = () => {
-    try {
-      // 替換顯示的乘號和除號為JS可以運算的符號
-      const expression = calculatorInput.replace(/×/g, '*').replace(/÷/g, '/');
-      const result = eval(expression);
-      setCalculatorResult(Number.isInteger(result) ? result.toString() : result.toFixed(2));
-    } catch (error) {
-      setCalculatorResult('錯誤');
-    }
-  };
-
-  // 處理計算機按鈕點擊
-  const handleCalculatorClick = (value: string) => {
-    if (value === 'C') {
-      // 清除輸入
-      setCalculatorInput('');
-      setCalculatorResult('0');
-    } else if (value === '=') {
-      // 計算結果
-      calculateResult();
-    } else if (value === '←') {
-      // 刪除最後一個字符
-      setCalculatorInput(prev => prev.slice(0, -1));
-    } else {
-      // 添加輸入
-      setCalculatorInput(prev => prev + value);
-    }
-  };
-  
   // 關閉計算機
   const closeCalculator = () => {
     setShowCalculator(false);
   };
-  
+
   // 使用計算結果作為金額
   const useCalculatorResult = (result: string) => {
     if (result && result !== '錯誤') {
@@ -268,13 +237,7 @@ const SplitExpenseForm: React.FC<SplitExpenseFormProps> = ({ onSave, onCancel, e
       closeCalculator();
     }
   };
-  
-  // 打開計算機來設置成員的金額
-  const openCalculatorForMember = (memberId: string) => {
-    setCalculatorMemberId(memberId);
-    setShowCalculator(true);
-  };
-  
+
   // 添加一個處理類別選擇的函數
   const handleCategorySelect = (categoryName: string) => {
     setSelectedCategory(categoryName);

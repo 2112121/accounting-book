@@ -1,12 +1,10 @@
 import React, { useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { 
-  collection, 
-  query, 
-  where, 
-  onSnapshot, 
-  updateDoc, 
-  doc 
+  collection,
+  query,
+  where,
+  onSnapshot
 } from 'firebase/firestore';
 import { db } from '../firebase';
 

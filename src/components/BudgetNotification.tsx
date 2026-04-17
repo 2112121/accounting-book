@@ -82,7 +82,7 @@ const BudgetNotification: React.FC = () => {
               periodEndDate = new Date(now);
               periodEndDate.setHours(23, 59, 59, 999);
               break;
-            case 'weekly':
+            case 'weekly': {
               const day = now.getDay();
               periodStartDate = new Date(now);
               periodStartDate.setDate(now.getDate() - day);
@@ -91,6 +91,7 @@ const BudgetNotification: React.FC = () => {
               periodEndDate.setDate(periodStartDate.getDate() + 6);
               periodEndDate.setHours(23, 59, 59, 999);
               break;
+            }
             case 'monthly':
               periodStartDate = new Date(now.getFullYear(), now.getMonth(), 1);
               periodEndDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
@@ -126,7 +127,7 @@ const BudgetNotification: React.FC = () => {
           
           // 处理查询条件
           const expensesRef = collection(db, 'expenses');
-          let expensesQueryParams: any[] = [
+          const expensesQueryParams: any[] = [
             where('userId', '==', currentUser.uid),
             where('date', '>=', periodStartDate),
             where('date', '<=', periodEndDate)
@@ -149,7 +150,7 @@ const BudgetNotification: React.FC = () => {
           
           // 检查是否已发送通知
           const notificationsRef = collection(db, 'notifications');
-          let notificationType = budgetItem.categoryId === 'overall' ? 'budget_warning' : 'category_budget_warning';
+          const notificationType = budgetItem.categoryId === 'overall' ? 'budget_warning' : 'category_budget_warning';
           
           const notificationsQuery = query(
             notificationsRef,
@@ -200,7 +201,7 @@ const BudgetNotification: React.FC = () => {
             // 浏览器通知
             if (typeof window !== 'undefined' && 'Notification' in window) {
               if (Notification.permission === 'granted') {
-                let title = budgetItem.categoryId === 'overall' ? '預算警告' : '類別預算警告';
+                const title = budgetItem.categoryId === 'overall' ? '預算警告' : '類別預算警告';
                 let periodText = '';
                 
                 switch(budgetItem.period) {

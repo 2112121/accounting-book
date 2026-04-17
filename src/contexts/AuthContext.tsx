@@ -433,7 +433,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }
   
   // 更新頭像函數
-  async function updateUserAvatar(file: File) {
+  async function updateUserAvatar(_file: File) {
     if (!currentUser) throw new Error("用戶未登入");
     
     try {
@@ -1565,8 +1565,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
       if (!leaderboardDoc.exists()) {
         throw new Error("排行榜不存在");
       }
-      
-      const leaderboardData = leaderboardDoc.data();
       
       // 獲取用戶資料
       const userRef = doc(db, "users", currentUser.uid);

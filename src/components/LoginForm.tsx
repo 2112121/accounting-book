@@ -38,8 +38,8 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess, initialMode = 'login' 
   const isSubmittingRef = useRef(false);
   
   // 保存用戶嘗試的操作類型，用於錯誤處理後保持正確狀態
-  const [lastOperationType, setLastOperationType] = useState<'login' | 'register'>(initialMode);
-  
+  const [, setLastOperationType] = useState<'login' | 'register'>(initialMode);
+
   const { login, register, loginWithGoogle } = useAuth();
 
   // 添加調試日誌
