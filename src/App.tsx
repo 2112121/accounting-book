@@ -2475,7 +2475,7 @@ useEffect(() => {
         }
       }, 300);
     }
-  }, [expenses, selectedCategory]);
+  }, [expenses]); // eslint-disable-line react-hooks/exhaustive-deps
   
   // 添加波紋效果處理
   useEffect(() => {
