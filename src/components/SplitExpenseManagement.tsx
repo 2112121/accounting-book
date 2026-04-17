@@ -1926,12 +1926,11 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
                   if (!targetMember) return null;
                   
                   return (
-                    <div 
+                    <div
                       key={`transfer-${userId}`}
-                      className={`flex items-center justify-between bg-white p-3 rounded-xl shadow-sm border ${amount < 0 ? 'border-green-100' : 'border-red-100'} 
-                      animate-[fadeInRight_${0.3 + index * 0.15}s_ease-out] transform transition-all duration-300 hover:shadow-md hover:translate-x-1`}
+                      className={`flex flex-col gap-3 bg-white p-3 rounded-xl shadow-sm border ${amount < 0 ? 'border-green-100' : 'border-red-100'} transition-all duration-300 hover:shadow-md`}
                     >
-                      <div className="flex items-center min-w-0">
+                      <div className="flex items-center">
                         <div className={`w-8 h-8 shrink-0 rounded-full flex items-center justify-center overflow-hidden mr-2 border ${amount < 0 ? 'border-green-200' : 'border-red-200'}`}>
                           {targetMember.photoURL ? (
                             <img
@@ -1945,83 +1944,70 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
                             </span>
                           )}
                         </div>
-                        <div className="min-w-0">
-                          <div className="font-medium text-sm truncate">{targetMember.nickname}</div>
+                        <div>
+                          <div className="font-medium text-sm">{targetMember.nickname}</div>
                           {amount < 0 ? (
-                            <span className="text-xs text-green-600 px-1.5 py-0.5 bg-green-50 rounded-full border border-green-100 whitespace-nowrap">應收 {Math.abs(amount).toFixed(0)}元</span>
+                            <span className="text-xs text-green-600 px-1.5 py-0.5 bg-green-50 rounded-full border border-green-100">應收 {Math.abs(amount).toFixed(0)}元</span>
                           ) : (
-                            <span className="text-xs text-red-600 px-1.5 py-0.5 bg-red-50 rounded-full border border-red-100 whitespace-nowrap">應付 {Math.abs(amount).toFixed(0)}元</span>
+                            <span className="text-xs text-red-600 px-1.5 py-0.5 bg-red-50 rounded-full border border-red-100">應付 {Math.abs(amount).toFixed(0)}元</span>
                           )}
                         </div>
                       </div>
-                      
-                      <div className="flex gap-2">
-                        {amount < 0 ? (
-                          <button
-                            onClick={() => {
-                              // 导航到借贷管理并设置借出记录
-                              let dateParam = '';
-                              if (selectedTransaction?.date) {
-                                try {
-                                  // 使用更安全的檢查
-                                  const date = selectedTransaction.date;
-                                  if (date instanceof Date) {
-                                    dateParam = `&date=${format(date, 'yyyy-MM-dd')}`;
-                                  } else {
-                                    // 對於Firestore Timestamp對象，嘗試安全轉換
-                                    const timestamp = date as any;
-                                    if (timestamp && typeof timestamp.toDate === 'function') {
-                                      try {
-                                        const dateObj = timestamp.toDate();
-                                        if (dateObj instanceof Date) {
-                                          dateParam = `&date=${format(dateObj, 'yyyy-MM-dd')}`;
-                                        }
-                                      } catch (_err) { /* noop */ }
-                                    }
+                      {amount < 0 ? (
+                        <button
+                          onClick={() => {
+                            let dateParam = '';
+                            if (selectedTransaction?.date) {
+                              try {
+                                const date = selectedTransaction.date;
+                                if (date instanceof Date) {
+                                  dateParam = `&date=${format(date, 'yyyy-MM-dd')}`;
+                                } else {
+                                  const timestamp = date as any;
+                                  if (timestamp && typeof timestamp.toDate === 'function') {
+                                    try {
+                                      const dateObj = timestamp.toDate();
+                                      if (dateObj instanceof Date) dateParam = `&date=${format(dateObj, 'yyyy-MM-dd')}`;
+                                    } catch (_err) { /* noop */ }
                                   }
-                                } catch (_error) { /* noop */ }
-                              }
-                              window.location.href = `/?action=add-lend&amount=${Math.abs(amount).toFixed(0)}&person=${encodeURIComponent(targetMember.nickname)}&description=${encodeURIComponent(`分帳：${selectedTransaction?.title || '群組支出'}`)}${dateParam}`;
-                            }}
-                            className="px-3 py-1.5 bg-gradient-to-r from-green-500 to-green-600 text-white text-xs rounded-lg hover:from-green-600 hover:to-green-700 transition-colors flex items-center font-medium shadow-sm hover:shadow whitespace-nowrap shrink-0"
-                          >
-                            <i className="fas fa-file-invoice-dollar mr-1.5"></i>
-                            新增借出記錄
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => {
-                              // 导航到借贷管理并设置借入记录
-                              let dateParam = '';
-                              if (selectedTransaction?.date) {
-                                try {
-                                  // 使用更安全的檢查
-                                  const date = selectedTransaction.date;
-                                  if (date instanceof Date) {
-                                    dateParam = `&date=${format(date, 'yyyy-MM-dd')}`;
-                                  } else {
-                                    // 對於Firestore Timestamp對象，嘗試安全轉換
-                                    const timestamp = date as any;
-                                    if (timestamp && typeof timestamp.toDate === 'function') {
-                                      try {
-                                        const dateObj = timestamp.toDate();
-                                        if (dateObj instanceof Date) {
-                                          dateParam = `&date=${format(dateObj, 'yyyy-MM-dd')}`;
-                                        }
-                                      } catch (_err) { /* noop */ }
-                                    }
+                                }
+                              } catch (_error) { /* noop */ }
+                            }
+                            window.location.href = `/?action=add-lend&amount=${Math.abs(amount).toFixed(0)}&person=${encodeURIComponent(targetMember.nickname)}&description=${encodeURIComponent(`分帳：${selectedTransaction?.title || '群組支出'}`)}${dateParam}`;
+                          }}
+                          className="w-full px-3 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white text-xs rounded-lg hover:from-green-600 hover:to-green-700 transition-colors flex items-center justify-center font-medium shadow-sm"
+                        >
+                          <i className="fas fa-file-invoice-dollar mr-1.5"></i>
+                          新增借出記錄
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            let dateParam = '';
+                            if (selectedTransaction?.date) {
+                              try {
+                                const date = selectedTransaction.date;
+                                if (date instanceof Date) {
+                                  dateParam = `&date=${format(date, 'yyyy-MM-dd')}`;
+                                } else {
+                                  const timestamp = date as any;
+                                  if (timestamp && typeof timestamp.toDate === 'function') {
+                                    try {
+                                      const dateObj = timestamp.toDate();
+                                      if (dateObj instanceof Date) dateParam = `&date=${format(dateObj, 'yyyy-MM-dd')}`;
+                                    } catch (_err) { /* noop */ }
                                   }
-                                } catch (_error) { /* noop */ }
-                              }
-                              window.location.href = `/?action=add-borrow&amount=${Math.abs(amount).toFixed(0)}&person=${encodeURIComponent(targetMember.nickname)}&description=${encodeURIComponent(`分帳：${selectedTransaction?.title || '群組支出'}`)}${dateParam}`;
-                            }}
-                            className="px-3 py-1.5 bg-gradient-to-r from-red-500 to-red-600 text-white text-xs rounded-lg hover:from-red-600 hover:to-red-700 transition-colors flex items-center font-medium shadow-sm hover:shadow whitespace-nowrap shrink-0"
-                          >
-                            <i className="fas fa-file-invoice-dollar mr-1.5"></i>
-                            新增借入記錄
-                          </button>
-                        )}
-                      </div>
+                                }
+                              } catch (_error) { /* noop */ }
+                            }
+                            window.location.href = `/?action=add-borrow&amount=${Math.abs(amount).toFixed(0)}&person=${encodeURIComponent(targetMember.nickname)}&description=${encodeURIComponent(`分帳：${selectedTransaction?.title || '群組支出'}`)}${dateParam}`;
+                          }}
+                          className="w-full px-3 py-2 bg-gradient-to-r from-red-500 to-red-600 text-white text-xs rounded-lg hover:from-red-600 hover:to-red-700 transition-colors flex items-center justify-center font-medium shadow-sm"
+                        >
+                          <i className="fas fa-file-invoice-dollar mr-1.5"></i>
+                          新增借入記錄
+                        </button>
+                      )}
                     </div>
                   );
                 })}
@@ -2063,56 +2049,50 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
                 }
                 
                 return (
-                  <div 
+                  <div
                     key="transfer-expense"
-                    className="flex items-center justify-between bg-white p-3 rounded-xl shadow-sm border border-green-100 animate-[fadeInRight_0.4s_ease-out] transform transition-all duration-300 hover:shadow-md hover:translate-x-1"
+                    className="flex flex-col gap-3 bg-white p-3 rounded-xl shadow-sm border border-green-100 animate-[fadeInRight_0.4s_ease-out] transition-all duration-300 hover:shadow-md"
                   >
-                    <div className="flex items-center min-w-0">
+                    <div className="flex items-center">
                       <div className="w-9 h-9 shrink-0 rounded-full bg-green-100 flex items-center justify-center overflow-hidden mr-3 border border-green-200 shadow-inner">
                         <i className="fas fa-wallet text-green-600 text-sm"></i>
                       </div>
-                      <div className="min-w-0">
-                        <div className="font-medium text-gray-800 whitespace-nowrap">我的應付款</div>
-                        <div className="text-xs text-gray-500 flex items-center whitespace-nowrap">
+                      <div>
+                        <div className="font-medium text-gray-800">我的應付款</div>
+                        <div className="text-xs text-gray-500 flex items-center">
                           <i className="fas fa-coins text-green-500 mr-1.5"></i>
                           總額 {totalOwed.toFixed(0)}元
                         </div>
                       </div>
                     </div>
-
-                    <div className="flex gap-2 shrink-0 ml-2">
-                      <button
-                        onClick={() => {
-                          // 導航到消費明細並設置新增支出
-                          let dateParam = '';
-                          if (selectedTransaction?.date) {
-                            try {
-                              // 使用更安全的檢查
-                              const date = selectedTransaction.date;
-                              if (date instanceof Date) {
-                                dateParam = `&date=${format(date, 'yyyy-MM-dd')}`;
-                              } else {
-                                // 對於Firestore Timestamp對象，嘗試安全轉換
-                                const timestamp = date as any;
-                                if (timestamp && typeof timestamp.toDate === 'function') {
-                                  try {
-                                    const dateObj = timestamp.toDate();
-                                    if (dateObj instanceof Date) {
-                                      dateParam = `&date=${format(dateObj, 'yyyy-MM-dd')}`;
-                                    }
-                                  } catch (_err) { /* noop */ }
-                                }
+                    <button
+                      onClick={() => {
+                        let dateParam = '';
+                        if (selectedTransaction?.date) {
+                          try {
+                            const date = selectedTransaction.date;
+                            if (date instanceof Date) {
+                              dateParam = `&date=${format(date, 'yyyy-MM-dd')}`;
+                            } else {
+                              const timestamp = date as any;
+                              if (timestamp && typeof timestamp.toDate === 'function') {
+                                try {
+                                  const dateObj = timestamp.toDate();
+                                  if (dateObj instanceof Date) {
+                                    dateParam = `&date=${format(dateObj, 'yyyy-MM-dd')}`;
+                                  }
+                                } catch (_err) { /* noop */ }
                               }
-                            } catch (_error) { /* noop */ }
-                          }
-                          window.location.href = `/?action=add-expense&amount=${totalOwed.toFixed(0)}&category=其他&notes=${encodeURIComponent(`分帳應付款：${selectedTransaction?.title || '群組支出'}`)}${dateParam}`;
-                        }}
-                        className="px-3 py-1.5 bg-gradient-to-r from-green-500 to-green-600 text-white text-xs rounded-lg hover:from-green-600 hover:to-green-700 transition-colors flex items-center font-medium shadow-sm hover:shadow whitespace-nowrap shrink-0"
-                      >
-                        <i className="fas fa-file-invoice-dollar mr-1.5"></i>
-                        新增支出紀錄
-                      </button>
-                    </div>
+                            }
+                          } catch (_error) { /* noop */ }
+                        }
+                        window.location.href = `/?action=add-expense&amount=${totalOwed.toFixed(0)}&category=其他&notes=${encodeURIComponent(`分帳應付款：${selectedTransaction?.title || '群組支出'}`)}${dateParam}`;
+                      }}
+                      className="w-full px-3 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white text-xs rounded-lg hover:from-green-600 hover:to-green-700 transition-colors flex items-center justify-center font-medium shadow-sm hover:shadow"
+                    >
+                      <i className="fas fa-file-invoice-dollar mr-1.5"></i>
+                      新增支出紀錄
+                    </button>
                   </div>
                 );
               })()}
