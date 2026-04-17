@@ -56,6 +56,7 @@ const ConfirmExpenseForm: React.FC<ConfirmExpenseFormProps> = ({
   const [totalAmount, setTotalAmount] = useState<number>(0);
   const [currency, setCurrency] = useState<string>('NTD');
   const [remainingAmount, setRemainingAmount] = useState<number>(0);
+  const [, setValidSplitAmount] = useState(false);
   // 添加計算機相關狀態
   const [showCalculator, setShowCalculator] = useState<boolean>(false);
   const [calculatorInput, setCalculatorInput] = useState<string>('');
