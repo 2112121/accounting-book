@@ -135,10 +135,6 @@ const chartRef = useRef<HTMLDivElement>(null);
 
   const [chartsKey, setChartsKey] = useState(0);
   // 添加圖例選擇狀態管理
-  const [legendSelectedMap, setLegendSelectedMap] = useState<
-    Record<string, boolean>
-  >({});
-
   const [navScrolled, setNavScrolled] = useState(false);
     
     // 監聽滾動事件，實現導航欄滾動變化效果
@@ -470,8 +466,6 @@ const chartRef = useRef<HTMLDivElement>(null);
             color: "#6E6E6E",
             fontSize: 12, // 確保文字大小適當
           },
-          // 使用React狀態中的圖例選擇狀態
-          selected: legendSelectedMap,
         },
         color: [
           "#A487C3", // 紫色
@@ -535,12 +529,6 @@ const chartRef = useRef<HTMLDivElement>(null);
       // 明確移除graphic屬性，確保不會顯示"暫無數據"
       chart.setOption(option);
 
-      // 添加圖例選擇變化事件
-      chart.on("legendselectchanged", function (params: any) {
-        // 更新React狀態中的圖例選擇
-        setLegendSelectedMap(params.selected);
-      });
-
       // 點擊事件處理
       chart.on("click", function (params) {
         if (params.componentType === "series") {
@@ -571,7 +559,6 @@ const chartRef = useRef<HTMLDivElement>(null);
         chartInstanceRef.current?.setOption({
           legend: {
             show: true,
-            selected: legendSelectedMap, // 使用React狀態中保存的圖例選擇
           },
           series: [
             {
