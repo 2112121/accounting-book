@@ -3250,15 +3250,15 @@ const chartRef = useRef<HTMLDivElement>(null);
                   >
                     全部
                   </button>
+                  {selectedCategory && (
+                    <button
+                      onClick={resetCategorySelection}
+                      className="text-xs text-white bg-[#3AA6B9] hover:bg-[#4ABBC9] px-2 py-1 rounded-md flex items-center transition-all duration-300"
+                    >
+                      <i className="fas fa-arrow-left mr-1"></i> 返回總覽
+                    </button>
+                  )}
                 </div>
-              {selectedCategory && (
-                <button
-                  onClick={resetCategorySelection}
-                  className="text-xs text-white bg-[#3AA6B9] hover:bg-[#4ABBC9] px-2 py-1 rounded-md flex items-center transition-all duration-300"
-                >
-                  <i className="fas fa-arrow-left mr-1"></i> 返回總覽
-                </button>
-              )}
             </div>
             <div className="flex flex-col md:flex-row">
               <div
@@ -4734,7 +4734,7 @@ const chartRef = useRef<HTMLDivElement>(null);
                   setTimeout(() => { element.classList.remove('highlight-section'); }, 2000);
                 }
               }}
-              className="h-9 w-9 sm:h-12 sm:w-12 rounded-full bg-gradient-to-r from-[#6BBFA0] to-[#8FD3B9] shadow-lg flex items-center justify-center text-white opacity-60 hover:opacity-100 active:scale-95 transition-all duration-300 focus:outline-none"
+              className="h-12 w-12 rounded-full bg-gradient-to-r from-[#6BBFA0] to-[#8FD3B9] shadow-lg flex items-center justify-center text-white opacity-60 hover:opacity-100 active:scale-95 transition-all duration-300 focus:outline-none"
               aria-label="歷史消費明細"
             >
               <i className="fas fa-list-ul text-sm sm:text-lg"></i>
@@ -4748,7 +4748,7 @@ const chartRef = useRef<HTMLDivElement>(null);
           <div className="group relative">
             <button
               onClick={() => setShowExpenseForm(true)}
-              className="h-12 w-12 sm:h-14 sm:w-14 rounded-full bg-gradient-to-r from-[#E07A8D] to-[#F09CA7] shadow-xl flex items-center justify-center text-white opacity-75 hover:opacity-100 active:scale-95 transition-all duration-300 focus:outline-none"
+              className="h-12 w-12 rounded-full bg-gradient-to-r from-[#E07A8D] to-[#F09CA7] shadow-xl flex items-center justify-center text-white opacity-75 hover:opacity-100 active:scale-95 transition-all duration-300 focus:outline-none"
               aria-label="新增支出"
             >
               <i className="fas fa-plus text-xl sm:text-2xl"></i>
