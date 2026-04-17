@@ -3541,17 +3541,16 @@ useEffect(() => {
                 <h3 className="font-bold text-[#2E2E2E] mb-3">選單</h3>
                 {currentUser && (
                   <div className="flex items-center gap-3">
-                    {currentUser.photoURL ? (
-                      <img src={currentUser.photoURL} alt="avatar" className="w-8 h-8 rounded-full object-cover" />
-                    ) : (
-                      <span className="w-8 h-8 rounded-full bg-[#C6B2DD] flex items-center justify-center text-white font-bold text-sm">
-                        {userNickname
-                          ? userNickname.charAt(0).toUpperCase()
-                          : currentUser.email
-                            ? currentUser.email.charAt(0).toUpperCase()
-                            : "?"}
-                      </span>
-                    )}
+                    <span
+                      className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm overflow-hidden"
+                      style={{ background: userProfileColor || (!currentUser.photoURL ? '#C6B2DD' : undefined) }}
+                    >
+                      {!userProfileColor && currentUser.photoURL ? (
+                        <img src={currentUser.photoURL} alt="avatar" className="w-full h-full object-cover" />
+                      ) : (
+                        (userNickname ? userNickname.charAt(0).toUpperCase() : currentUser.email ? currentUser.email.charAt(0).toUpperCase() : "?")
+                      )}
+                    </span>
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-[#2E2E2E] truncate">
                         {userNickname ||
