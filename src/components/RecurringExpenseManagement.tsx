@@ -547,7 +547,7 @@ const RecurringExpenseManagement: React.FC<RecurringExpenseManagementProps> = ({
                     <p className="mt-1 text-sm text-gray-600">
                       下次將產生：{renderNextDueDate(rule)}
                     </p>
-                    {rule.notes && <p className="mt-2 text-sm text-gray-500">{rule.notes}</p>}
+                    {rule.notes && <p className="mt-2 text-sm text-gray-500 truncate">{rule.notes}</p>}
                   </div>
 
                   <div className="flex flex-col gap-1.5 shrink-0">
