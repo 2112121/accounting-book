@@ -3189,9 +3189,9 @@ const chartRef = useRef<HTMLDivElement>(null);
           
           {/* 支出分析卡片 */}
           <div className="relative bg-white bg-opacity-95 backdrop-blur-sm rounded-xl shadow-md border-l-4 border-[#3AA6B9] p-5 mb-6 hover:shadow-lg transition-all duration-300">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center flex-wrap gap-2">
-              <h2 className="text-lg font-bold text-[#3AA6B9]">支出分析</h2>
+            <div className="mb-4">
+              <h2 className="text-lg font-bold text-[#3AA6B9] mb-2">支出分析</h2>
+              <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
                   <button 
                     className={`text-xs px-2 py-1 rounded-md transition-colors ${pieChartMode === 'current' ? 'bg-[#3AA6B9] text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
@@ -3252,7 +3252,6 @@ const chartRef = useRef<HTMLDivElement>(null);
                     全部
                   </button>
                 </div>
-              </div>
               {selectedCategory && (
                 <button
                   onClick={resetCategorySelection}
@@ -3261,6 +3260,7 @@ const chartRef = useRef<HTMLDivElement>(null);
                   <i className="fas fa-arrow-left mr-1"></i> 返回總覽
                 </button>
               )}
+              </div>
             </div>
             <div className="flex flex-col md:flex-row">
               <div
