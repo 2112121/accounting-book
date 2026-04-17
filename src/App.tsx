@@ -3541,20 +3541,20 @@ useEffect(() => {
                 <h3 className="font-bold text-[#2E2E2E] mb-3">選單</h3>
                 <p className="mb-3">
                   {selectedDateOption === "today"
-                    ? "????????"
+                    ? "今日消費明細"
                     : selectedDateOption === "yesterday"
-                      ? "????????"
+                      ? "昨日消費明細"
                       : selectedDateOption === "month"
-                        ? "????????"
+                        ? "本月消費明細"
                         : selectedDateOption === "month_select"
-                          ? `${selectedMonth.split('-')[0]}?${String(selectedMonth.split('-')[1]).padStart(2, "0")}???????`
+                          ? `${selectedMonth.split('-')[0]}年${String(selectedMonth.split('-')[1]).padStart(2, "0")}月消費明細`
                           : selectedDateOption === "this_week"
-                            ? "????????"
+                            ? "本週消費明細"
                             : selectedDateOption === "last_week"
-                              ? "????????"
+                              ? "上週消費明細"
                               : selectedDateOption === "all"
-                                ? "????????"
-                                : `${format(selectedDate, "yyyy?M?d?")} ??????`}
+                                ? "全部消費明細"
+                                : `${format(selectedDate, "yyyy年M月d日")} 消費明細`}
                 </p>
                 {currentUser && (
                   <div className="flex items-center gap-3">
