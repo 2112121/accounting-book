@@ -134,9 +134,9 @@ const ProfileForm: React.FC<ProfileFormProps> = ({ onClose }) => {
   };
   
   return (
-    <div className="p-6">
-      <div className="sticky top-0 z-20 -mx-6 mb-6 flex justify-between items-center bg-white px-6 pb-4 pt-1">
-        <h2 className="text-2xl font-bold text-[#A487C3]">個人資料設置</h2>
+    <div className="p-4">
+      <div className="sticky top-0 z-20 -mx-4 mb-4 flex justify-between items-center bg-white px-4 pb-3 pt-1">
+        <h2 className="text-xl font-bold text-[#A487C3]">個人資料設置</h2>
         <button 
           onClick={onClose}
           className="text-white hover:text-white bg-[#A487C3] hover:bg-[#8A5DC8] w-8 h-8 flex items-center justify-center border border-[#F5F5F5] rounded-full shadow-sm hover:shadow-md transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-white"
@@ -158,11 +158,11 @@ const ProfileForm: React.FC<ProfileFormProps> = ({ onClose }) => {
         </div>
       )}
       
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-4">
         {/* 用戶頭像顯示區域 */}
-        <div className="flex flex-col items-center mb-6">
-          <div 
-            className="w-24 h-24 rounded-full flex items-center justify-center overflow-hidden mb-2 border-4 border-white shadow-md"
+        <div className="flex flex-col items-center mb-3">
+          <div
+            className="w-20 h-20 rounded-full flex items-center justify-center overflow-hidden mb-2 border-4 border-white shadow-md"
             style={{ 
               backgroundColor: useColorAvatar ? profileColor : '#A487C3',
               background: useColorAvatar ? profileColor : '#A487C3'
@@ -175,7 +175,7 @@ const ProfileForm: React.FC<ProfileFormProps> = ({ onClose }) => {
                 className="w-full h-full object-cover"
               />
             ) : (
-              <i className="fas fa-user text-4xl text-white"></i>
+              <i className="fas fa-user text-3xl text-white"></i>
             )}
           </div>
           
