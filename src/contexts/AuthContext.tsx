@@ -1020,21 +1020,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
     
     console.log("執行好友碼搜索，搜索詞:", searchQuery);
     
-    // 特別處理TQTX2T好友碼
-    if (searchQuery.toUpperCase() === "TQTX2T") {
-      console.log("檢測到特殊好友碼TQTX2T");
-      
-      // 創建一個假用戶結果
-      results.push({
-        id: "tqtx2t_special_user",
-        nickname: "特殊用戶",
-        email: "special@example.com",
-        friendCode: "TQTX2T"
-      });
-      
-      return results;
-    }
-    
     // 檢查是否是好友碼搜索 (6位字符)
     if (searchQuery.length !== 6) {
       console.log("搜索詞長度不是6位，可能不是好友碼");
