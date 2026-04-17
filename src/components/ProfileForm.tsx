@@ -135,7 +135,7 @@ const ProfileForm: React.FC<ProfileFormProps> = ({ onClose }) => {
   
   return (
     <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
+      <div className="sticky top-0 z-20 -mx-6 mb-6 flex justify-between items-center bg-white px-6 pb-4 pt-1">
         <h2 className="text-2xl font-bold text-[#A487C3]">個人資料設置</h2>
         <button 
           onClick={onClose}

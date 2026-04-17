@@ -316,7 +316,7 @@ const RecurringExpenseManagement: React.FC<RecurringExpenseManagementProps> = ({
 
   return (
     <div className="p-5">
-      <div className="flex items-center justify-between mb-4">
+      <div className="sticky top-0 z-20 -mx-5 mb-4 flex items-center justify-between bg-white px-5 pb-4 pt-1">
         <div>
           <h2 className="text-2xl font-bold text-[#A487C3]">定期費用管理</h2>
           <p className="text-sm text-gray-500 mt-1">
@@ -446,7 +446,9 @@ const RecurringExpenseManagement: React.FC<RecurringExpenseManagementProps> = ({
           <button
             type="button"
             onClick={loadRules}
-            className="text-sm text-[#A487C3] hover:text-[#8F6FB2]"
+            className="relative flex h-9 w-9 items-center justify-center rounded-full border border-[#D8CAE9] bg-white text-transparent transition-colors hover:bg-[#F7F1FD] after:absolute after:inset-0 after:flex after:items-center after:justify-center after:text-base after:text-[#A487C3] after:content-['↻'] hover:after:text-[#8F6FB2]"
+            aria-label="重新整理定期規則"
+            title="重新整理"
           >
             重新整理
           </button>

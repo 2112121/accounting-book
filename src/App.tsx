@@ -2991,7 +2991,7 @@ const chartRef = useRef<HTMLDivElement>(null);
       
       {/* 主要內容區 - 只有登入用戶才能看到 */}
       {currentUser ? (
-        <div className="flex-1 w-full pt-20 px-4 md:px-8 pb-8 max-w-full md:max-w-5xl mx-auto overflow-x-hidden">
+        <div className="flex-1 w-full pt-20 px-4 md:px-8 pb-32 sm:pb-24 md:pb-8 max-w-full md:max-w-5xl mx-auto overflow-x-hidden">
           <div className="mb-6">
             <h1 className="text-2xl font-bold text-[#A487C3] mb-1 font-heading">
               歡迎回來，{userNickname || currentUser.email?.split("@")[0]}
@@ -3402,7 +3402,7 @@ const chartRef = useRef<HTMLDivElement>(null);
           </div>
           
           {/* 今日支出 - 放在每日消費趨勢下方 */}
-          <div id="expense-details" className="bg-white bg-opacity-95 rounded-xl shadow-md border-l-4 border-elora-pink p-5 mb-6">
+          <div id="expense-details" className="bg-white bg-opacity-95 rounded-xl shadow-md border-l-4 border-elora-pink p-4 sm:p-5 mb-6">
             <div className="flex flex-col mb-4">
               {/* 刪除選項卡切換 */}
               
@@ -3577,12 +3577,12 @@ const chartRef = useRef<HTMLDivElement>(null);
                   {filteredTransactions.map((transaction) => (
                     <div
                       key={transaction.id}
-                      className="p-4 border border-gray-100 rounded-lg hover:shadow-md transition-all duration-300 bg-white"
+                      className="rounded-lg border border-gray-100 bg-white p-3.5 transition-all duration-300 hover:shadow-md sm:p-4"
                     >
-                    <div className="flex justify-between items-start">
-                    <div className="flex items-center gap-3">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="flex min-w-0 flex-1 items-start gap-3">
                         <div
-                          className="w-10 h-10 rounded-full flex items-center justify-center text-white"
+                          className="w-10 h-10 shrink-0 rounded-full flex items-center justify-center text-white"
                           style={{
                             backgroundColor: getCategoryColor(
                               typeof transaction.category === "string"
@@ -3595,13 +3595,13 @@ const chartRef = useRef<HTMLDivElement>(null);
                             className={`fas ${typeof transaction.category === "string" ? getCategoryIcon(transaction.category) : transaction.category?.icon || "fa-question"}`}
                           ></i>
                       </div>
-                      <div>
-                          <h3 className="font-medium text-gray-800">
+                      <div className="min-w-0 flex-1">
+                          <h3 className="font-medium text-gray-800 break-words">
                             {typeof transaction.category === "string"
                               ? transaction.category
                               : transaction.category?.name || "未分類"}
                           </h3>
-                          <p className="text-sm text-gray-500">
+                          <p className="text-sm text-gray-500 break-words">
                             {transaction.date.toLocaleDateString('zh-TW', { year: 'numeric', month: 'long', day: 'numeric' })}
                           </p>
                           {transaction.recurringPeriod && (
@@ -3611,17 +3611,17 @@ const chartRef = useRef<HTMLDivElement>(null);
                               {{ daily: '每日', weekly: '每週', monthly: '每月', yearly: '每年' }[transaction.recurringPeriod] || transaction.recurringPeriod}
                             </span>
                           )}
-                          {transaction.notes && <p className="text-sm mt-1 truncate max-w-[200px]">{transaction.notes}</p>}
+                          {transaction.notes && <p className="mt-1 text-sm text-gray-600 break-words line-clamp-2 sm:line-clamp-none">{transaction.notes}</p>}
 </div>
 </div>
-                      <div className="flex flex-col items-end">
-                        <span className="text-lg font-bold text-[#E07A8D]">
+                      <div className="flex w-full items-center justify-between gap-3 sm:w-auto sm:flex-col sm:items-end sm:justify-start">
+                        <span className="shrink-0 whitespace-nowrap text-right text-xl font-bold leading-tight text-[#E07A8D] sm:text-lg">
                           NT$ {transaction.amount.toLocaleString('zh-TW')}
                         </span>
-                        <div className="mt-2 flex gap-2">
+                        <div className="flex gap-2 sm:mt-2">
                         <button 
                           onClick={() => editExpense(transaction)}
-                          className="text-xs text-blue-600 bg-blue-50 hover:bg-blue-100 p-1 rounded"
+                          className="rounded bg-blue-50 p-2 text-xs text-blue-600 hover:bg-blue-100"
                             title="編輯消費明細"
                         >
                           <i className="fas fa-edit"></i>
@@ -3630,7 +3630,7 @@ const chartRef = useRef<HTMLDivElement>(null);
                           onClick={() => {
                             deleteExpense(transaction.id);
                           }}
-                          className="text-xs text-red-600 bg-red-50 hover:bg-red-100 p-1 rounded"
+                          className="rounded bg-red-50 p-2 text-xs text-red-600 hover:bg-red-100"
                           title="刪除消費明細"
                         >
                           <i className="fas fa-trash-alt"></i>
@@ -4001,8 +4001,15 @@ const chartRef = useRef<HTMLDivElement>(null);
 
       {/* 個人資料表單 */}
       {showProfileForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 animate-fadeIn">
-          <div className="relative bg-white rounded-xl shadow-lg max-w-md w-full" style={{animation: 'slideUpIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) both'}}>
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 animate-fadeIn"
+          onClick={() => setShowProfileForm(false)}
+        >
+          <div
+            className="relative bg-white rounded-xl shadow-lg max-w-md w-full max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+            style={{animation: 'slideUpIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) both'}}
+          >
             <ProfileForm onClose={() => setShowProfileForm(false)} />
           </div>
         </div>
@@ -4019,8 +4026,14 @@ const chartRef = useRef<HTMLDivElement>(null);
 
       {/* 好友管理表單 */}
       {showFriendManagement && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-xl max-h-[80vh] overflow-y-auto">
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowFriendManagement(false)}
+        >
+          <div
+            className="bg-white rounded-lg shadow-xl w-full max-w-xl max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
             <FriendManagement onClose={() => setShowFriendManagement(false)} />
           </div>
         </div>
@@ -4291,8 +4304,14 @@ const chartRef = useRef<HTMLDivElement>(null);
 
       {/* 通知彈出窗口 */}
       {showNotifications && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center z-50 pt-16 animate-fadeIn">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md max-h-[80vh] overflow-y-auto animate-slideUpIn transform">
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center z-50 pt-16 animate-fadeIn"
+          onClick={() => setShowNotifications(false)}
+        >
+          <div
+            className="bg-white rounded-xl shadow-2xl w-full max-w-md max-h-[80vh] overflow-y-auto animate-slideUpIn transform"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="p-5 border-b border-gray-200 relative">
               <div className="flex justify-between items-center">
                 <h2 className="text-2xl font-bold text-gray-800 flex items-center">
@@ -4597,19 +4616,16 @@ const chartRef = useRef<HTMLDivElement>(null);
         </div>
       )}
 
-      {/* 好友管理頁面 */}
-      {showFriendManagement && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-xl max-h-[80vh] overflow-y-auto">
-            <FriendManagement onClose={() => setShowFriendManagement(false)} />
-          </div>
-        </div>
-      )}
-
       {/* 排行榜查看組件 */}
       {showLeaderboardViewer && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowLeaderboardViewer(false)}
+        >
+          <div
+            className="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
             <LeaderboardViewer
               onClose={() => setShowLeaderboardViewer(false)}
             />
@@ -4628,8 +4644,17 @@ const chartRef = useRef<HTMLDivElement>(null);
 
       {/* 借貸管理表單 */}
       {showLoanManagement && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          onClick={() => {
+            setShowLoanManagement(false);
+            setLoanParams(null);
+          }}
+        >
+          <div
+            className="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
             <LoanManagement 
               onClose={() => {
                 setShowLoanManagement(false);
@@ -4643,8 +4668,14 @@ const chartRef = useRef<HTMLDivElement>(null);
 
       {/* 定期費用管理表單 */}
       {showRecurringExpenseManagement && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowRecurringExpenseManagement(false)}
+        >
+          <div
+            className="bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
             <RecurringExpenseManagement
               onClose={() => setShowRecurringExpenseManagement(false)}
             />
@@ -4654,8 +4685,14 @@ const chartRef = useRef<HTMLDivElement>(null);
 
       {/* 預算設置表單 */}
       {showBudgetSetting && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowBudgetSetting(false)}
+        >
+          <div
+            className="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
             <BudgetSetting onClose={() => setShowBudgetSetting(false)} />
           </div>
         </div>
@@ -4663,14 +4700,10 @@ const chartRef = useRef<HTMLDivElement>(null);
 
       {/* 好友分帳表單 */}
       {showSplitExpenseForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
-            <SplitExpenseManagement 
-              onClose={() => setShowSplitExpenseForm(false)} 
-              groupInviteCount={groupInviteCount}
-            />
-          </div>
-        </div>
+        <SplitExpenseManagement 
+          onClose={() => setShowSplitExpenseForm(false)} 
+          groupInviteCount={groupInviteCount}
+        />
       )}
 
       {/* 固定在右下角的懸浮新增支出按鈕 */}
@@ -4689,7 +4722,7 @@ const chartRef = useRef<HTMLDivElement>(null);
         !showDatePicker && 
         !showMonthPicker && 
         !showNotifications && (
-        <div className="fixed bottom-8 right-8 z-[1000] flex flex-col gap-4 items-center">
+        <div className="fixed bottom-5 right-4 z-[1000] flex flex-col gap-3 items-center sm:bottom-8 sm:right-8 sm:gap-4">
           {/* 添加历史明细按钮和提示 */}
           <div className="group relative">
             <button
@@ -4704,10 +4737,10 @@ const chartRef = useRef<HTMLDivElement>(null);
                   }, 2000);
                 }
               }}
-              className="w-14 h-14 sm:w-12 sm:h-12 bg-gradient-to-r from-[#6BBFA0] to-[#8FD3B9] rounded-full shadow-xl hover:shadow-2xl flex items-center justify-center text-white transform hover:scale-110 active:scale-95 transition-all duration-300 relative overflow-hidden focus:outline-none focus:ring-4 focus:ring-green-300 focus:ring-opacity-50"
+              className="h-12 w-12 rounded-full bg-gradient-to-r from-[#6BBFA0] to-[#8FD3B9] shadow-xl hover:shadow-2xl flex items-center justify-center text-white transform hover:scale-110 active:scale-95 transition-all duration-300 relative overflow-hidden focus:outline-none focus:ring-4 focus:ring-green-300 focus:ring-opacity-50 sm:h-14 sm:w-14"
               aria-label="歷史消費明細"
             >
-              <i className="fas fa-list-ul text-2xl sm:text-xl relative z-10"></i>
+              <i className="fas fa-list-ul relative z-10 text-xl sm:text-2xl"></i>
               {/* 波紋效果元素 */}
               <div className="absolute inset-0 bg-white opacity-0 hover:opacity-20 transition-opacity duration-300 rounded-full"></div>
             </button>
@@ -4728,10 +4761,10 @@ const chartRef = useRef<HTMLDivElement>(null);
           <div className="group relative">
             <button
               onClick={() => setShowExpenseForm(true)}
-              className="w-16 h-16 sm:w-14 sm:h-14 bg-gradient-to-r from-[#E07A8D] to-[#F09CA7] rounded-full shadow-xl hover:shadow-2xl flex items-center justify-center text-white transform hover:scale-110 active:scale-95 transition-all duration-300 relative overflow-hidden focus:outline-none focus:ring-4 focus:ring-pink-300 focus:ring-opacity-50"
+              className="h-14 w-14 rounded-full bg-gradient-to-r from-[#E07A8D] to-[#F09CA7] shadow-xl hover:shadow-2xl flex items-center justify-center text-white transform hover:scale-110 active:scale-95 transition-all duration-300 relative overflow-hidden focus:outline-none focus:ring-4 focus:ring-pink-300 focus:ring-opacity-50 sm:h-16 sm:w-16"
               aria-label="新增支出"
             >
-              <i className="fas fa-plus text-2xl sm:text-xl relative z-10"></i>
+              <i className="fas fa-plus relative z-10 text-2xl"></i>
               {/* 波紋效果元素 */}
               <div className="absolute inset-0 bg-white opacity-0 hover:opacity-20 transition-opacity duration-300 rounded-full"></div>
               {/* 脈衝效果 - 使用兩層不同速度的脈衝 */}

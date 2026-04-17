@@ -2126,10 +2126,16 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
   };
   
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-3xl h-[75vh] flex flex-col">
+    <div
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-xl shadow-xl w-full max-w-3xl h-[75vh] max-h-[90vh] flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* 頭部 */}
-        <div className="px-4 py-3 rounded-t-xl flex justify-between items-center border-b border-gray-200">
+        <div className="sticky top-0 z-20 px-4 py-3 rounded-t-xl flex justify-between items-center border-b border-gray-200 bg-white">
           <h2 className="text-2xl font-bold text-[#A487C3] flex items-center">
             <i className="fas fa-users mr-2"></i>
             好友分帳
