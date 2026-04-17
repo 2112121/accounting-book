@@ -187,7 +187,7 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
                 amount: 0,
                 paid: false
               })),
-              created: date
+              created: data.createdAt ? date : new Date(0)
             };
             
             transactionsList.push(transaction);
@@ -235,7 +235,7 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
                   amount: 0,
                   paid: false
                 })),
-                created: date
+                created: data.createdAt ? date : new Date(0)
               };
               
               uniqueTransactionIds.add(doc.id);
@@ -281,7 +281,7 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
                       amount: 0,
                       paid: false
                     })),
-                    created: date
+                    created: data.createdAt ? date : new Date(0)
                   };
                   
                   uniqueTransactionIds.add(doc.id);
@@ -990,7 +990,7 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
                       分帳群組
                     </div>
                   </div>
-                  {selectedTransaction.created && selectedTransaction.created.getFullYear() > 2000 && (
+                  {selectedTransaction.created && selectedTransaction.created.getTime() > 0 && (
                     <p className="text-gray-500 text-xs flex items-center">
                       <i className="far fa-calendar-alt mr-1.5 text-[#A487C3]"></i>
                       創建時間: {formatDate(selectedTransaction.created)}
