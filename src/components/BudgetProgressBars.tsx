@@ -254,10 +254,9 @@ const BudgetProgressBars: React.FC = () => {
           await loadExpenses();
           // 顯示成功訊息
           setSuccess('預算數據已更新！');
-          // 3秒後清除成功提示
           setTimeout(() => {
             setSuccess('');
-          }, 3000);
+          }, 1500);
         } catch (_err) {
           setError('刷新預算數據時出錯，請再試一次。');
           // 5秒後清除錯誤提示
@@ -1089,9 +1088,6 @@ const BudgetProgressBars: React.FC = () => {
           <button
             className="text-sm text-white bg-gradient-to-r from-[#A487C3] to-[#9678B6] hover:from-[#9678B6] hover:to-[#8A5DC8] px-4 py-1.5 rounded-lg flex items-center transition-all duration-300 shadow-sm hover:shadow-md"
             onClick={() => {
-              setSuccess('正在刷新預算數據...');
-              setLoading(true);
-              setBudgetProgress([]);
               const refreshEvent = new CustomEvent('refreshBudgetProgress');
               window.dispatchEvent(refreshEvent);
             }}
@@ -1110,6 +1106,12 @@ const BudgetProgressBars: React.FC = () => {
           display: collapsed ? 'none' : 'block'
         } as React.CSSProperties}
       >
+        {success && (
+          <div className="bg-green-50 text-green-600 px-4 py-2 rounded-xl mb-3 border border-green-100 flex items-center gap-2 text-sm">
+            <i className="fas fa-check-circle"></i>
+            <span>{success}</span>
+          </div>
+        )}
         {loading ? (
           <div className="flex flex-col justify-center items-center py-10">
             <div className="relative w-16 h-16">
@@ -1125,14 +1127,6 @@ const BudgetProgressBars: React.FC = () => {
             <div>
               <h4 className="font-bold mb-1">載入失敗</h4>
               <p>{error}</p>
-            </div>
-          </div>
-        ) : success ? (
-          <div className="bg-green-50 text-green-600 p-4 rounded-xl mb-3 shadow-inner border border-green-100 flex items-start budget-card" style={{ '--index': 0 } as React.CSSProperties}>
-            <i className="fas fa-check-circle text-xl mr-3 mt-0.5 animate-bounce"></i>
-            <div>
-              <h4 className="font-bold mb-1">操作成功</h4>
-              <p>{success}</p>
             </div>
           </div>
         ) : budgetProgress.length === 0 ? (
