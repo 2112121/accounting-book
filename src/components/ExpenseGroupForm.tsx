@@ -192,14 +192,12 @@ const ExpenseGroupForm: React.FC<ExpenseGroupFormProps> = ({
         });
       }
       
-      // 準備要儲存的分帳群組數據
+      // 準備要儲存的分帳群組數據（serverTimestamp 需在清理後單獨加入，否則 FieldValue 會被破壞）
       const groupData = {
         title: groupName || '未命名群組',
         name: groupName || '未命名群組',
         description: description || '',
         createdBy: currentUser?.uid || '',
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
         members: initialMembers,
         memberIds: [currentUser?.uid || ''],
         status: 'active',
@@ -207,9 +205,13 @@ const ExpenseGroupForm: React.FC<ExpenseGroupFormProps> = ({
         currency: 'NTD',
         expenseCount: 0
       };
-      
-      // 清理數據中的所有undefined值
-      const cleanedData = cleanUndefinedValues(groupData);
+
+      // 清理數據中的所有undefined值，之後再加入 serverTimestamp
+      const cleanedData = {
+        ...cleanUndefinedValues(groupData),
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      };
 
       // 創建群組文檔 - 只包含當前用戶作為成員
       const groupRef = await addDoc(collection(db, 'expenseGroups'), cleanedData);
