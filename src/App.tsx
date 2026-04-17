@@ -128,10 +128,8 @@ const chartRef = useRef<HTMLDivElement>(null);
     "login",
   );
 
-  // 宣告圖表實例變數以供全局使用
-  const [chartInstance, setChartInstance] = useState<echarts.ECharts | null>(
-    null,
-  );
+  // 用 useRef 儲存圖表實例，避免 stale closure 問題
+  const chartInstanceRef = useRef<echarts.ECharts | null>(null);
   const [dailyChartInstance, setDailyChartInstance] =
     useState<echarts.ECharts | null>(null);
 
@@ -225,9 +223,9 @@ const chartRef = useRef<HTMLDivElement>(null);
 
     try {
       // 清除舊實例
-      if (chartInstance) {
+      if (chartInstanceRef.current) {
         try {
-          chartInstance.dispose();
+          chartInstanceRef.current?.dispose();
         } catch (_e) { /* noop */ }
       }
 
@@ -291,7 +289,7 @@ const chartRef = useRef<HTMLDivElement>(null);
       };
 
       chart.setOption(option);
-      setChartInstance(chart);
+      chartInstanceRef.current = chart;
     } catch (_e) { /* noop */ }
   };
 
@@ -394,9 +392,9 @@ const chartRef = useRef<HTMLDivElement>(null);
     }
 
     // 先清除舊的實例
-    if (chartInstance) {
+    if (chartInstanceRef.current) {
       try {
-        chartInstance.dispose();
+        chartInstanceRef.current?.dispose();
       } catch (_e) { /* noop */ }
     }
 
@@ -440,9 +438,6 @@ const chartRef = useRef<HTMLDivElement>(null);
         value: categorySum[category],
       }));
 
-
-      // 設置圖表選項
-      const isMobile = window.innerWidth < 768; // 檢測是否為移動設備
 
       // 當前是否選中某個類別
       const isSelectedMode = selectedCategory !== null;
@@ -554,25 +549,12 @@ const chartRef = useRef<HTMLDivElement>(null);
         if (params.componentType === "series") {
           setSelectedCategory(params.name);
 
-          // 點擊後，重新設置圖表，確保標題不顯示並調整圖表位置
-          chart.setOption({
-            title: null,
-            legend: {
-              show: false,
-              // 保留圖例選擇狀態
-              selected: legendSelectedMap,
-            },
-            series: [
-              {
-                center: [isMobile ? "48%" : "45%", "50%"],
-              },
-            ],
-          });
+          chart.setOption({ animation: false, legend: { show: false } });
         }
       });
 
       // 設置實例後再保存
-      setChartInstance(chart);
+      chartInstanceRef.current = chart;
     } catch (_e) {
       // 出錯時顯示空圖表
       createEmptyPieChart();
@@ -586,10 +568,10 @@ const chartRef = useRef<HTMLDivElement>(null);
     setSelectedCategory(null);
 
     // 如果有圖表實例，調整它的位置和圖例，但不重新初始化
-    if (chartInstance) {
+    if (chartInstanceRef.current) {
       try {
         // 更新圖表選項，保留圖例選擇狀態，不需要重新初始化
-        chartInstance.setOption({
+        chartInstanceRef.current?.setOption({
           legend: {
             show: true,
             selected: legendSelectedMap, // 使用React狀態中保存的圖例選擇
@@ -603,7 +585,7 @@ const chartRef = useRef<HTMLDivElement>(null);
 
         // 確保圖表重新渲染
       setTimeout(() => {
-          chartInstance.resize();
+          chartInstanceRef.current?.resize();
         }, 10);
       } catch (_err) {
         // 只有在出錯時才強制重新渲染
@@ -1916,66 +1898,40 @@ const chartRef = useRef<HTMLDivElement>(null);
     }
   };
 
-  // 重構圓餅圖初始化
-useEffect(() => {
-    // 初始化圖表
+  // 圓餅圖：資料或模式變更時重新初始化
+  useEffect(() => {
     initPieChart();
 
-    // 處理窗口大小變化
     const handleResize = () => {
-      if (chartInstance) {
-        // 首先調整大小
-        chartInstance.resize();
-
-        // 重新應用佈局調整以適應新窗口大小
-        const isSelectedMode = selectedCategory !== null;
-
-        // 重新設置佈局參數，但保持其他選項不變
-        chartInstance.setOption({
-          title: null, // 確保不顯示標題
-          legend: {
-            show: !isSelectedMode,
-            left: "center",
-          },
-          series: [{ center: ["50%", "45%"] }],
-        });
-      }
+      chartInstanceRef.current?.resize();
     };
+    const handleExpensesChanged = () => { initPieChart(); };
+
     window.addEventListener("resize", handleResize);
-
-    // 處理數據變化
-    const handleExpensesChanged = () => {
-      initPieChart();
-    };
     window.addEventListener("expenses-changed", handleExpensesChanged);
 
     return () => {
-      // 清理
-      if (chartInstance) {
-        chartInstance.dispose();
-      }
+      chartInstanceRef.current?.dispose();
+      chartInstanceRef.current = null;
       window.removeEventListener("resize", handleResize);
       window.removeEventListener("expenses-changed", handleExpensesChanged);
     };
-  }, [expenses, chartRef.current]);
+  }, [expenses, pieChartMode, pieChartMonth]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // 監聽selectedCategory狀態變化，更新餅圖位置
+  // 圓餅圖：切換類別時只更新圖例，不重建圖表
   useEffect(() => {
-    if (chartInstance) {
-      // 容器寬度改變後先 resize，再更新圖例
-      setTimeout(() => {
-        chartInstance.resize();
-        chartInstance.setOption({
-          animation: false,
-          legend: {
-            show: !selectedCategory,
-            orient: "horizontal",
-            left: "center",
-            bottom: 10,
-          },
-        });
-      }, 50);
-    }
+    setTimeout(() => {
+      chartInstanceRef.current?.resize();
+      chartInstanceRef.current?.setOption({
+        animation: false,
+        legend: {
+          show: !selectedCategory,
+          orient: "horizontal",
+          left: "center",
+          bottom: 10,
+        },
+      });
+    }, 50);
   }, [selectedCategory]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 重構每日趨勢圖初始化
@@ -2691,15 +2647,6 @@ useEffect(() => {
     }
   }, []);
 
-  // 在圓餅圖模式或選擇月份變化時重新初始化圖表
-  useEffect(() => {
-    if (expenses.length > 0 && chartRef.current) {
-      initPieChart();
-      
-      // 重新計算類別支出明細，確保與圓餅圖顯示的數據一致
-      getCategoryExpenses();
-    }
-  }, [pieChartMode, pieChartMonth]);
 
   return (
     <div className="min-h-screen w-full bg-[#F5F5FA] font-sans flex flex-col">
@@ -3069,7 +3016,7 @@ useEffect(() => {
                       justifyContent: "center",
                       alignItems: "center",
                     }}
-                    key={`pie-chart-${selectedCategory ? "selected" : "overview"}-${chartsKey}`}
+                    key={`pie-chart-${chartsKey}`}
                   />
                     {!selectedCategory && (
                       <p className="text-xs text-gray-500 italic mt-1">
