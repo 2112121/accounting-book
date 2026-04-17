@@ -535,7 +535,6 @@ const chartRef = useRef<HTMLDivElement>(null);
         if (params.componentType === "series") {
           setSelectedCategory(params.name);
 
-          chart.setOption({ animation: false, legend: { show: false } });
         }
       });
 
