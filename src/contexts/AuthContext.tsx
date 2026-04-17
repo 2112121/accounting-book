@@ -199,23 +199,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }
 
   // 登入用戶
-  async function login(email: string, password: string): Promise<User | void> {
-    try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      return userCredential.user;
-    } catch (_error) {
-      // 重新拋出錯誤給調用者處理
-      throw _error;
-    }
+  async function login(email: string, password: string): Promise<User | void> {        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    return userCredential.user;
   }
 
   // 登出
   async function logout(): Promise<void> {
-    try {
-      await signOut(auth);
-    } catch (_error) {
-      throw _error;
-    }
+    await signOut(auth);
   }
 
   // Google 登入
@@ -325,68 +315,64 @@ export function AuthProvider({ children }: AuthProviderProps) {
   async function updateUserNickname(nickname: string) {
     if (!currentUser) throw new Error("用戶未登入");
     
-    try {
-      // 首先更新用戶個人資料
-      await updateUserProfile({ nickname });
-      
-      
-      // 獲取用戶參與的所有排行榜
-      const userRef = doc(db, "users", currentUser.uid);
-      const userDoc = await getDoc(userRef);
-      
-      if (!userDoc.exists()) {
-        return;
-      }
-      
-      const userData = userDoc.data();
-      const leaderboardIds = userData.leaderboards || [];
-      
-      if (leaderboardIds.length === 0) {
-        return;
-      }
-      
-      
-      // 對每個排行榜進行更新
-      const updatePromises = leaderboardIds.map(async (leaderboardId: string) => {
-        try {
-          const leaderboardRef = doc(db, "leaderboards", leaderboardId);
-          const leaderboardDoc = await getDoc(leaderboardRef);
-          
-          if (!leaderboardDoc.exists()) {
-            return;
-          }
-          
-          const leaderboardData = leaderboardDoc.data();
-          const members = leaderboardData.members || [];
-          
-          // 查找並更新當前用戶的暱稱
-          let updated = false;
-          const updatedMembers = members.map((member: LeaderboardMember) => {
-            if (member.userId === currentUser.uid) {
-              updated = true;
-              return {
-                ...member,
-                nickname: nickname
-              };
-            }
-            return member;
-          });
-          
-          // 如果找到並更新了用戶，則寫回排行榜
-          if (updated) {
-            await updateDoc(leaderboardRef, {
-              members: updatedMembers
-            });
-          }
-        } catch (_error) { /* noop */ }
-      });
-      
-      // 等待所有更新完成
-      await Promise.all(updatePromises);
-      
-    } catch (_error) {
-      throw _error;
+    // 首先更新用戶個人資料
+    await updateUserProfile({ nickname });
+    
+    
+    // 獲取用戶參與的所有排行榜
+    const userRef = doc(db, "users", currentUser.uid);
+    const userDoc = await getDoc(userRef);
+    
+    if (!userDoc.exists()) {
+      return;
     }
+    
+    const userData = userDoc.data();
+    const leaderboardIds = userData.leaderboards || [];
+    
+    if (leaderboardIds.length === 0) {
+      return;
+    }
+    
+    
+    // 對每個排行榜進行更新
+    const updatePromises = leaderboardIds.map(async (leaderboardId: string) => {
+      try {
+        const leaderboardRef = doc(db, "leaderboards", leaderboardId);
+        const leaderboardDoc = await getDoc(leaderboardRef);
+        
+        if (!leaderboardDoc.exists()) {
+          return;
+        }
+        
+        const leaderboardData = leaderboardDoc.data();
+        const members = leaderboardData.members || [];
+        
+        // 查找並更新當前用戶的暱稱
+        let updated = false;
+        const updatedMembers = members.map((member: LeaderboardMember) => {
+          if (member.userId === currentUser.uid) {
+            updated = true;
+            return {
+              ...member,
+              nickname: nickname
+            };
+          }
+          return member;
+        });
+        
+        // 如果找到並更新了用戶，則寫回排行榜
+        if (updated) {
+          await updateDoc(leaderboardRef, {
+            members: updatedMembers
+          });
+        }
+      } catch (_error) { /* noop */ }
+    });
+    
+    // 等待所有更新完成
+    await Promise.all(updatePromises);
+    
   }
   
   // 更新頭像函數
@@ -905,29 +891,52 @@ export function AuthProvider({ children }: AuthProviderProps) {
     if (!searchQuery.trim()) return [];
     
     const usersRef = collection(db, "users");
-    let querySnapshot;
     const results: Friend[] = [];
-    
-    
+
+
     // 檢查是否是好友碼搜索 (6位字符)
     if (searchQuery.length !== 6) {
       throw new Error("請輸入6位好友碼");
     }
-    
+
     // 將搜索詞轉為大寫進行搜索，不區分大小寫
     const upperQuery = searchQuery.toUpperCase();
+
+    // 首先嘗試精確匹配
+    const q = query(usersRef, where("friendCode", "==", upperQuery));
+    const querySnapshot = await getDocs(q);
     
-    try {
-      // 首先嘗試精確匹配
-      const q = query(usersRef, where("friendCode", "==", upperQuery));
-      querySnapshot = await getDocs(q);
+    // 處理精確匹配結果
+    if (!querySnapshot.empty) {
+      querySnapshot.forEach((doc) => {
+        // 排除當前用戶
+        if (doc.id !== currentUser.uid) {
+          const userData = doc.data();
+          results.push({
+            id: doc.id,
+            nickname: userData.nickname || "未命名用戶",
+            photoURL: userData.photoURL || null,
+            email: userData.email || "",
+            friendCode: userData.friendCode
+          });
+        }
+      });
+    } else {
       
-      // 處理精確匹配結果
-      if (!querySnapshot.empty) {
-        querySnapshot.forEach((doc) => {
-          // 排除當前用戶
-          if (doc.id !== currentUser.uid) {
-            const userData = doc.data();
+      // 獲取所有用戶，然後手動過濾 - 限制獲取的用戶數量以提高性能
+      const allUsersQuery = query(usersRef, limit(100));
+      const allUsers = await getDocs(allUsersQuery);
+      
+      allUsers.forEach((doc) => {
+        if (doc.id !== currentUser.uid) {
+          const userData = doc.data();
+          const userFriendCode = userData.friendCode || "";
+          
+          // 不區分大小寫比較
+          const normalizedUserCode = userFriendCode.toUpperCase();
+          
+          // 檢查是否匹配 (精確匹配或部分匹配)
+          if (normalizedUserCode === upperQuery) {
             results.push({
               id: doc.id,
               nickname: userData.nickname || "未命名用戶",
@@ -936,64 +945,36 @@ export function AuthProvider({ children }: AuthProviderProps) {
               friendCode: userData.friendCode
             });
           }
-        });
-      } else {
-        
-        // 獲取所有用戶，然後手動過濾 - 限制獲取的用戶數量以提高性能
-        const allUsersQuery = query(usersRef, limit(100));
-        const allUsers = await getDocs(allUsersQuery);
-        
-        allUsers.forEach((doc) => {
-          if (doc.id !== currentUser.uid) {
-            const userData = doc.data();
-            const userFriendCode = userData.friendCode || "";
-            
-            // 不區分大小寫比較
-            const normalizedUserCode = userFriendCode.toUpperCase();
-            
-            // 檢查是否匹配 (精確匹配或部分匹配)
-            if (normalizedUserCode === upperQuery) {
-              results.push({
-                id: doc.id,
-                nickname: userData.nickname || "未命名用戶",
-                photoURL: userData.photoURL || null,
-                email: userData.email || "",
-                friendCode: userData.friendCode
-              });
-            }
-          }
-        });
-        
-        
-        // 如果還是沒有找到結果，嘗試生成一條有用的錯誤信息
-        if (results.length === 0) {
-          // 獲取一個示例好友碼，用於幫助用戶理解
-          let exampleCode = "";
-          if (allUsers.size > 0) {
-            const sampleDoc = allUsers.docs[0];
-            const sampleData = sampleDoc.data();
-            if (sampleData.friendCode) {
-              exampleCode = sampleData.friendCode;
-            }
-          }
-          
-          let errorMsg = `未找到好友碼為 "${searchQuery}" 的用戶，請檢查以下可能的原因：\n`;
-          errorMsg += "1. 好友碼輸入錯誤，請確認輸入正確\n";
-          errorMsg += "2. 該用戶可能未啟用好友碼功能\n";
-          errorMsg += "3. 系統暫時無法完成搜索，請稍後再試";
-          
-          if (exampleCode) {
-            errorMsg += `\n\n參考: 有效的好友碼格式如 "${exampleCode}"`;
-          }
-          
-          throw new Error(errorMsg);
         }
-      }
+      });
       
-      return results;
-    } catch (_error) {
-      throw _error;
+      
+      // 如果還是沒有找到結果，嘗試生成一條有用的錯誤信息
+      if (results.length === 0) {
+        // 獲取一個示例好友碼，用於幫助用戶理解
+        let exampleCode = "";
+        if (allUsers.size > 0) {
+          const sampleDoc = allUsers.docs[0];
+          const sampleData = sampleDoc.data();
+          if (sampleData.friendCode) {
+            exampleCode = sampleData.friendCode;
+          }
+        }
+        
+        let errorMsg = `未找到好友碼為 "${searchQuery}" 的用戶，請檢查以下可能的原因：\n`;
+        errorMsg += "1. 好友碼輸入錯誤，請確認輸入正確\n";
+        errorMsg += "2. 該用戶可能未啟用好友碼功能\n";
+        errorMsg += "3. 系統暫時無法完成搜索，請稍後再試";
+        
+        if (exampleCode) {
+          errorMsg += `\n\n參考: 有效的好友碼格式如 "${exampleCode}"`;
+        }
+        
+        throw new Error(errorMsg);
+      }
     }
+    
+    return results;
   }
 
   // 發送好友請求
@@ -1343,236 +1324,216 @@ export function AuthProvider({ children }: AuthProviderProps) {
   async function getLeaderboardInvites(): Promise<LeaderboardInvite[]> {
     if (!currentUser) throw new Error("用戶未登錄");
     
-    try {
-      // 查詢以當前用戶為接收者的排行榜邀請
-      const invitesRef = collection(db, "leaderboardInvites");
-      const q = query(invitesRef, where("to", "==", currentUser.uid), where("status", "==", "pending"));
-      const querySnapshot = await getDocs(q);
-      
-      // 轉換為前端類型
-      const invites: LeaderboardInvite[] = [];
-      
-      // 收集所有需要檢查的排行榜ID
-      const leaderboardIdsToCheck = new Set<string>();
-      querySnapshot.forEach(doc => {
-        const data = doc.data();
-        leaderboardIdsToCheck.add(data.leaderboardId);
-      });
-      
-      // 檢查排行榜是否存在
-      const existingLeaderboardIds = new Set<string>();
-      for (const leaderboardId of leaderboardIdsToCheck) {
-        const leaderboardRef = doc(db, "leaderboards", leaderboardId);
-        const leaderboardDoc = await getDoc(leaderboardRef);
-        if (leaderboardDoc.exists()) {
-          existingLeaderboardIds.add(leaderboardId);
-        }
+    // 查詢以當前用戶為接收者的排行榜邀請
+    const invitesRef = collection(db, "leaderboardInvites");
+    const q = query(invitesRef, where("to", "==", currentUser.uid), where("status", "==", "pending"));
+    const querySnapshot = await getDocs(q);
+    
+    // 轉換為前端類型
+    const invites: LeaderboardInvite[] = [];
+    
+    // 收集所有需要檢查的排行榜ID
+    const leaderboardIdsToCheck = new Set<string>();
+    querySnapshot.forEach(doc => {
+      const data = doc.data();
+      leaderboardIdsToCheck.add(data.leaderboardId);
+    });
+    
+    // 檢查排行榜是否存在
+    const existingLeaderboardIds = new Set<string>();
+    for (const leaderboardId of leaderboardIdsToCheck) {
+      const leaderboardRef = doc(db, "leaderboards", leaderboardId);
+      const leaderboardDoc = await getDoc(leaderboardRef);
+      if (leaderboardDoc.exists()) {
+        existingLeaderboardIds.add(leaderboardId);
       }
-      
-      // 只添加存在的排行榜邀請
-      querySnapshot.forEach(doc => {
-        const data = doc.data();
-        if (existingLeaderboardIds.has(data.leaderboardId)) {
-          invites.push({
-            id: doc.id,
-            from: data.from,
-            to: data.to,
-            leaderboardId: data.leaderboardId,
-            leaderboardName: data.leaderboardName,
-            status: data.status,
-            createdAt: data.createdAt.toDate()
-          });
-        } else {
-          // 自動拒絕不存在排行榜的邀請
-          updateDoc(doc.ref, { status: "rejected" })
-            .then(() => {})
-            .catch(() => {});
-        }
-      });
-      
-      return invites;
-    } catch (_error) {
-      throw _error;
     }
+    
+    // 只添加存在的排行榜邀請
+    querySnapshot.forEach(doc => {
+      const data = doc.data();
+      if (existingLeaderboardIds.has(data.leaderboardId)) {
+        invites.push({
+          id: doc.id,
+          from: data.from,
+          to: data.to,
+          leaderboardId: data.leaderboardId,
+          leaderboardName: data.leaderboardName,
+          status: data.status,
+          createdAt: data.createdAt.toDate()
+        });
+      } else {
+        // 自動拒絕不存在排行榜的邀請
+        updateDoc(doc.ref, { status: "rejected" })
+          .then(() => {})
+          .catch(() => {});
+      }
+    });
+    
+    return invites;
   }
 
   // 接受排行榜邀請
   async function acceptLeaderboardInvite(inviteId: string): Promise<void> {
     if (!currentUser) throw new Error("用戶未登錄");
     
-    try {
-      // 獲取邀請文檔
-      const inviteRef = doc(db, "leaderboardInvites", inviteId);
-      const inviteDoc = await getDoc(inviteRef);
-      
-      if (!inviteDoc.exists()) {
-        throw new Error("邀請不存在");
-      }
-      
-      const inviteData = inviteDoc.data();
-      
-      // 確認當前用戶是邀請的接收者
-      if (inviteData.to !== currentUser.uid) {
-        throw new Error("無權接受此邀請");
-      }
-      
-      // 獲取排行榜
-      const leaderboardRef = doc(db, "leaderboards", inviteData.leaderboardId);
-      const leaderboardDoc = await getDoc(leaderboardRef);
-      
-      if (!leaderboardDoc.exists()) {
-        throw new Error("排行榜不存在");
-      }
-      
-      // 獲取用戶資料
-      const userRef = doc(db, "users", currentUser.uid);
-      const userDoc = await getDoc(userRef);
-      
-      if (!userDoc.exists()) {
-        throw new Error("用戶資料不存在");
-      }
-      
-      const userData = userDoc.data();
-      
-      // 更新排行榜成員列表
-      await updateDoc(leaderboardRef, {
-        members: arrayUnion({
-          userId: currentUser.uid,
-          nickname: userData.nickname || userNickname || '未命名用戶',
-          photoURL: userData.photoURL || null,
-          totalExpense: 0,
-          allowViewDetail: true
-        })
-      });
-      
-      // 更新用戶的排行榜列表
-      await updateDoc(userRef, {
-        leaderboards: arrayUnion(inviteData.leaderboardId)
-      });
-      
-      // 更新邀請狀態
-      await updateDoc(inviteRef, {
-        status: "accepted"
-      });
-      
-    } catch (_error) {
-      throw _error;
+    // 獲取邀請文檔
+    const inviteRef = doc(db, "leaderboardInvites", inviteId);
+    const inviteDoc = await getDoc(inviteRef);
+    
+    if (!inviteDoc.exists()) {
+      throw new Error("邀請不存在");
     }
+    
+    const inviteData = inviteDoc.data();
+    
+    // 確認當前用戶是邀請的接收者
+    if (inviteData.to !== currentUser.uid) {
+      throw new Error("無權接受此邀請");
+    }
+    
+    // 獲取排行榜
+    const leaderboardRef = doc(db, "leaderboards", inviteData.leaderboardId);
+    const leaderboardDoc = await getDoc(leaderboardRef);
+    
+    if (!leaderboardDoc.exists()) {
+      throw new Error("排行榜不存在");
+    }
+    
+    // 獲取用戶資料
+    const userRef = doc(db, "users", currentUser.uid);
+    const userDoc = await getDoc(userRef);
+    
+    if (!userDoc.exists()) {
+      throw new Error("用戶資料不存在");
+    }
+    
+    const userData = userDoc.data();
+    
+    // 更新排行榜成員列表
+    await updateDoc(leaderboardRef, {
+      members: arrayUnion({
+        userId: currentUser.uid,
+        nickname: userData.nickname || userNickname || '未命名用戶',
+        photoURL: userData.photoURL || null,
+        totalExpense: 0,
+        allowViewDetail: true
+      })
+    });
+    
+    // 更新用戶的排行榜列表
+    await updateDoc(userRef, {
+      leaderboards: arrayUnion(inviteData.leaderboardId)
+    });
+    
+    // 更新邀請狀態
+    await updateDoc(inviteRef, {
+      status: "accepted"
+    });
+    
   }
 
   // 拒絕排行榜邀請
   async function rejectLeaderboardInvite(inviteId: string): Promise<void> {
     if (!currentUser) throw new Error("用戶未登錄");
     
-    try {
-      // 獲取邀請文檔
-      const inviteRef = doc(db, "leaderboardInvites", inviteId);
-      const inviteDoc = await getDoc(inviteRef);
-      
-      if (!inviteDoc.exists()) {
-        throw new Error("邀請不存在");
-      }
-      
-      const inviteData = inviteDoc.data();
-      
-      // 確認當前用戶是邀請的接收者
-      if (inviteData.to !== currentUser.uid) {
-        throw new Error("無權拒絕此邀請");
-      }
-      
-      // 更新邀請狀態
-      await updateDoc(inviteRef, {
-        status: "rejected"
-      });
-      
-    } catch (_error) {
-      throw _error;
+    // 獲取邀請文檔
+    const inviteRef = doc(db, "leaderboardInvites", inviteId);
+    const inviteDoc = await getDoc(inviteRef);
+    
+    if (!inviteDoc.exists()) {
+      throw new Error("邀請不存在");
     }
+    
+    const inviteData = inviteDoc.data();
+    
+    // 確認當前用戶是邀請的接收者
+    if (inviteData.to !== currentUser.uid) {
+      throw new Error("無權拒絕此邀請");
+    }
+    
+    // 更新邀請狀態
+    await updateDoc(inviteRef, {
+      status: "rejected"
+    });
+    
   }
 
   // 添加手動同步排行榜數據的函數
   async function syncLeaderboardData(leaderboardId: string): Promise<void> {
     if (!currentUser) throw new Error("用戶未登入");
     
-    try {
-      // 獲取排行榜數據
-      const leaderboardRef = doc(db, "leaderboards", leaderboardId);
-      const leaderboardDoc = await getDoc(leaderboardRef);
-      
-      if (!leaderboardDoc.exists()) {
-        throw new Error("排行榜不存在");
-      }
-      
-      const lbData = leaderboardDoc.data();
-      
-      // 轉換日期
-      let startDate = lbData.startDate;
-      let endDate = lbData.endDate;
-      
-      if (startDate && typeof startDate.toDate === 'function') {
-        startDate = startDate.toDate();
-      }
-      
-      if (endDate && typeof endDate.toDate === 'function') {
-        endDate = endDate.toDate();
-      }
-      
-      let createdAt = new Date();
-      if (lbData.createdAt && typeof lbData.createdAt.toDate === 'function') {
-        createdAt = lbData.createdAt.toDate();
-      }
-      
-      const leaderboard: Leaderboard = {
-        id: leaderboardId,
-        name: lbData.name,
-        createdBy: lbData.createdBy,
-        members: lbData.members || [],
-        createdAt: createdAt,
-        timeRange: lbData.timeRange,
-        startDate: startDate,
-        endDate: endDate
-      };
-      
-      // 更新排行榜數據
-      await updateLeaderboardMemberExpenses(leaderboard);
-      
-    } catch (_error) {
-      throw _error;
+    // 獲取排行榜數據
+    const leaderboardRef = doc(db, "leaderboards", leaderboardId);
+    const leaderboardDoc = await getDoc(leaderboardRef);
+    
+    if (!leaderboardDoc.exists()) {
+      throw new Error("排行榜不存在");
     }
+    
+    const lbData = leaderboardDoc.data();
+    
+    // 轉換日期
+    let startDate = lbData.startDate;
+    let endDate = lbData.endDate;
+    
+    if (startDate && typeof startDate.toDate === 'function') {
+      startDate = startDate.toDate();
+    }
+    
+    if (endDate && typeof endDate.toDate === 'function') {
+      endDate = endDate.toDate();
+    }
+    
+    let createdAt = new Date();
+    if (lbData.createdAt && typeof lbData.createdAt.toDate === 'function') {
+      createdAt = lbData.createdAt.toDate();
+    }
+    
+    const leaderboard: Leaderboard = {
+      id: leaderboardId,
+      name: lbData.name,
+      createdBy: lbData.createdBy,
+      members: lbData.members || [],
+      createdAt: createdAt,
+      timeRange: lbData.timeRange,
+      startDate: startDate,
+      endDate: endDate
+    };
+    
+    // 更新排行榜數據
+    await updateLeaderboardMemberExpenses(leaderboard);
+    
   }
 
   // 新增：更新用戶頭像顏色
   async function updateUserProfileColor(colorCode: string | null) {
     if (!currentUser) throw new Error('用戶未登錄');
     
-    try {
-      // 更新 Firestore 中的用戶檔案
-      const userRef = doc(db, "users", currentUser.uid);
+    // 更新 Firestore 中的用戶檔案
+    const userRef = doc(db, "users", currentUser.uid);
+    
+    if (colorCode === null) {
+      // 如果取消顏色頭像，只需要移除profileColor屬性
+      await updateDoc(userRef, { 
+        profileColor: null
+      });
+    } else {
+      // 設置顏色頭像時，設置profileColor並清除photoURL
+      await updateDoc(userRef, { 
+        profileColor: colorCode,
+        photoURL: null 
+      });
       
-      if (colorCode === null) {
-        // 如果取消顏色頭像，只需要移除profileColor屬性
-        await updateDoc(userRef, { 
-          profileColor: null
-        });
-      } else {
-        // 設置顏色頭像時，設置profileColor並清除photoURL
-        await updateDoc(userRef, { 
-          profileColor: colorCode,
-          photoURL: null 
-        });
-        
-        // 更新 Auth 檔案
-        await fbUpdateProfile(currentUser, {
-          photoURL: null // 清除 photoURL，因為我們現在使用顏色頭像
-        });
-      }
-      
-      // 更新本地狀態
-      setUserProfileColor(colorCode);
-      
-    } catch (_error) {
-      throw _error;
+      // 更新 Auth 檔案
+      await fbUpdateProfile(currentUser, {
+        photoURL: null // 清除 photoURL，因為我們現在使用顏色頭像
+      });
     }
+    
+    // 更新本地狀態
+    setUserProfileColor(colorCode);
+    
   }
 
   // 用戶狀態變更監聽器

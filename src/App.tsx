@@ -1509,197 +1509,189 @@ const chartRef = useRef<HTMLDivElement>(null);
     }
     
     
-    try {
-      // 獲取當前用戶參與的所有進行中排行榜
-      const result = await runTransaction(db, async (transaction) => {
+    // 獲取當前用戶參與的所有進行中排行榜
+    const result = await runTransaction(db, async (transaction) => {
+      
+      // 步驟 1: 添加支出記錄
+      const expenseRef = doc(collection(db, "expenses"));
+      transaction.set(expenseRef, expenseData);
+      
+      // 步驟 2: 如果是分帳支出，創建分帳記錄
+      let splitDocId;
+      if (isShared && sharedWith && sharedWith.length > 0) {
+        // 獲取當前用戶的最新數據
+        const userDoc = await transaction.get(doc(db, "users", currentUser.uid));
+        let creatorNickname = "";
         
-        try {
-          // 步驟 1: 添加支出記錄
-          const expenseRef = doc(collection(db, "expenses"));
-          transaction.set(expenseRef, expenseData);
-          
-          // 步驟 2: 如果是分帳支出，創建分帳記錄
-          let splitDocId;
-          if (isShared && sharedWith && sharedWith.length > 0) {
-            // 獲取當前用戶的最新數據
-            const userDoc = await transaction.get(doc(db, "users", currentUser.uid));
-            let creatorNickname = "";
-            
-            if (userDoc.exists()) {
-              const userData = userDoc.data();
-              creatorNickname = userData.nickname || currentUser.displayName || "";
-            }
-            
-            // 準備分帳數據 - 確保使用最新的用戶昵称
-            const participants = await Promise.all(sharedWith.map(async person => {
-              // 對每個參與者嘗試獲取最新的用戶昵稱信息
-              if (person.userId) {
-                try {
-                  const participantDoc = await transaction.get(doc(db, "users", person.userId));
-                  if (participantDoc.exists()) {
-                    const participantData = participantDoc.data();
-                    // 使用Firestore中存儲的最新昵稱
-                    return {
-                      userId: person.userId,
-                      nickname: participantData.nickname || person.nickname || "",
-                      email: participantData.email || person.email || "",
-                      photoURL: participantData.photoURL || person.photoURL || "",
-                      amount: person.amount,
-                      paid: person.paid || false
-                    };
-                  }
-                } catch (_e) { /* noop */ }
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          creatorNickname = userData.nickname || currentUser.displayName || "";
+        }
+        
+        // 準備分帳數據 - 確保使用最新的用戶昵称
+        const participants = await Promise.all(sharedWith.map(async person => {
+          // 對每個參與者嘗試獲取最新的用戶昵稱信息
+          if (person.userId) {
+            try {
+              const participantDoc = await transaction.get(doc(db, "users", person.userId));
+              if (participantDoc.exists()) {
+                const participantData = participantDoc.data();
+                // 使用Firestore中存儲的最新昵稱
+                return {
+                  userId: person.userId,
+                  nickname: participantData.nickname || person.nickname || "",
+                  email: participantData.email || person.email || "",
+                  photoURL: participantData.photoURL || person.photoURL || "",
+                  amount: person.amount,
+                  paid: person.paid || false
+                };
               }
-              
-              // 如果無法獲取或發生錯誤，則使用傳入的資料
-              return {
-                userId: person.userId,
-                nickname: person.nickname || "",
-                email: person.email || "",
-                photoURL: person.photoURL || "",
-                amount: person.amount,
-                paid: person.paid || false
-              };
-            }));
+            } catch (_e) { /* noop */ }
+          }
+          
+          // 如果無法獲取或發生錯誤，則使用傳入的資料
+          return {
+            userId: person.userId,
+            nickname: person.nickname || "",
+            email: person.email || "",
+            photoURL: person.photoURL || "",
+            amount: person.amount,
+            paid: person.paid || false
+          };
+        }));
+        
+        // 提取參與者 ID 列表，方便查詢
+        const participantIds = participants.map(p => p.userId);
+        
+        // 創建分帳數據 - 使用最新的創建者昵称
+        const splitData = {
+          creatorId: currentUser.uid,
+          creatorNickname,  // 添加創建者昵稱字段
+          title: expenseData.notes || expenseData.category,
+          description: `${expenseData.category} 支出分帳`,
+          totalAmount: expenseData.amount,
+          date: expenseData.date,
+          originalExpenseId: expenseRef.id,
+          status: 'pending',
+          participants,
+          participantIds,
+          created: new Date()
+        };
+        
+        // 添加分帳記錄
+        const splitRef = doc(collection(db, "splitExpenses"));
+        transaction.set(splitRef, splitData);
+        
+        // 更新原始支出記錄，標記為已分帳
+        transaction.update(expenseRef, {
+          isSplit: true,
+          splitTransactionId: splitRef.id
+        });
+        
+        splitDocId = splitRef.id;
+      }
+
+      const userDoc = await transaction.get(doc(db, "users", currentUser.uid));
+      if (!userDoc.exists()) {
+        throw new Error("用戶數據不存在");
+      }
+      
+      const userData = userDoc.data();
+      const userLeaderboardIds = userData.leaderboards || [];
+      
+      // 如果用戶沒有參與排行榜，就不需要更新
+      if (userLeaderboardIds.length === 0) {
+        return { 
+          docId: expenseRef.id, 
+          splitDocId 
+        };
+      }
+      
+      // 獲取所有排行榜數據
+      const leaderboardPromises = userLeaderboardIds.map((id: string) => {
+        return transaction.get(doc(db, "leaderboards", id));
+      });
+      
+      const leaderboardDocs = await Promise.all(leaderboardPromises);
+      let _updatedLeaderboardCount = 0;
+
+      // 篩選出進行中的排行榜並立即更新
+      const now = new Date();
+      const expenseDate = expenseData.date instanceof Timestamp 
+        ? expenseData.date.toDate() 
+        : new Date(expenseData.date);
+      const expenseAmount = expenseData.amount;
+
+      for (let i = 0; i < leaderboardDocs.length; i++) {
+        const leaderboardDoc = leaderboardDocs[i];
+        if (!leaderboardDoc.exists()) {
+          continue;
+        }
+        
+        const leaderboardData = leaderboardDoc.data();
+
+        // 解析日期
+        const startDate = leaderboardData.startDate instanceof Timestamp 
+          ? leaderboardData.startDate.toDate() 
+          : new Date(leaderboardData.startDate);
+          
+        const endDate = leaderboardData.endDate instanceof Timestamp 
+          ? leaderboardData.endDate.toDate() 
+          : new Date(leaderboardData.endDate);
+        
+        // 修改逻辑：确保结束日期包含当天的所有数据
+        // 创建结束日期的副本，设置为当天23:59:59
+        const endDateFull = new Date(endDate);
+        endDateFull.setHours(23, 59, 59, 999);
+        
+        // 检查排行榜是否进行中，修改判断逻辑确保包含结束日期当天
+        // 修改判断条件，确保结束日期当天的支出也能被统计
+        const isOngoing = now <= endDate;
+        const isInRange = expenseDate >= startDate && (isOngoing || expenseDate <= endDateFull);
+        
+        
+        if (isInRange) {
+          // 獲取用戶在排行榜中的成員索引
+          const memberIndex = leaderboardData.members.findIndex(
+            (m: any) => m.userId === currentUser.uid
+          );
+          
+          if (memberIndex !== -1) {
+            // 更新成員支出金額
+            const updatedMembers = [...leaderboardData.members];
+            const member = {...updatedMembers[memberIndex]};
             
-            // 提取參與者 ID 列表，方便查詢
-            const participantIds = participants.map(p => p.userId);
+            // 更新總支出
+            member.totalExpense = (member.totalExpense || 0) + expenseAmount;
             
-            // 創建分帳數據 - 使用最新的創建者昵称
-            const splitData = {
-              creatorId: currentUser.uid,
-              creatorNickname,  // 添加創建者昵稱字段
-              title: expenseData.notes || expenseData.category,
-              description: `${expenseData.category} 支出分帳`,
-              totalAmount: expenseData.amount,
+            // 更新支出ID列表
+            member.expenseIds = [...(member.expenseIds || []), expenseRef.id];
+            
+            // 更新支出摘要
+            const expenseSummary = {
+              id: expenseRef.id,
+              amount: expenseAmount,
               date: expenseData.date,
-              originalExpenseId: expenseRef.id,
-              status: 'pending',
-              participants,
-              participantIds,
-              created: new Date()
+              category: expenseData.category
             };
+            member.expenseSummaries = [...(member.expenseSummaries || []), expenseSummary];
             
-            // 添加分帳記錄
-            const splitRef = doc(collection(db, "splitExpenses"));
-            transaction.set(splitRef, splitData);
+            // 更新成員資料
+            updatedMembers[memberIndex] = member;
             
-            // 更新原始支出記錄，標記為已分帳
-            transaction.update(expenseRef, {
-              isSplit: true,
-              splitTransactionId: splitRef.id
+            // 更新排行榜
+            transaction.update(doc(db, "leaderboards", leaderboardDoc.id), {
+              members: updatedMembers
             });
             
-            splitDocId = splitRef.id;
-          }
-
-          const userDoc = await transaction.get(doc(db, "users", currentUser.uid));
-          if (!userDoc.exists()) {
-            throw new Error("用戶數據不存在");
-          }
-          
-          const userData = userDoc.data();
-          const userLeaderboardIds = userData.leaderboards || [];
-          
-          // 如果用戶沒有參與排行榜，就不需要更新
-          if (userLeaderboardIds.length === 0) {
-            return { 
-              docId: expenseRef.id, 
-              splitDocId 
-            };
-          }
-          
-          // 獲取所有排行榜數據
-          const leaderboardPromises = userLeaderboardIds.map((id: string) => {
-            return transaction.get(doc(db, "leaderboards", id));
-          });
-          
-          const leaderboardDocs = await Promise.all(leaderboardPromises);
-          let updatedLeaderboardCount = 0;
-
-          // 篩選出進行中的排行榜並立即更新
-          const now = new Date();
-          const expenseDate = expenseData.date instanceof Timestamp 
-            ? expenseData.date.toDate() 
-            : new Date(expenseData.date);
-          const expenseAmount = expenseData.amount;
-
-          for (let i = 0; i < leaderboardDocs.length; i++) {
-            const leaderboardDoc = leaderboardDocs[i];
-            if (!leaderboardDoc.exists()) {
-              continue;
-            }
-            
-            const leaderboardData = leaderboardDoc.data();
-
-            // 解析日期
-            const startDate = leaderboardData.startDate instanceof Timestamp 
-              ? leaderboardData.startDate.toDate() 
-              : new Date(leaderboardData.startDate);
-              
-            const endDate = leaderboardData.endDate instanceof Timestamp 
-              ? leaderboardData.endDate.toDate() 
-              : new Date(leaderboardData.endDate);
-            
-            // 修改逻辑：确保结束日期包含当天的所有数据
-            // 创建结束日期的副本，设置为当天23:59:59
-            const endDateFull = new Date(endDate);
-            endDateFull.setHours(23, 59, 59, 999);
-            
-            // 检查排行榜是否进行中，修改判断逻辑确保包含结束日期当天
-            // 修改判断条件，确保结束日期当天的支出也能被统计
-            const isOngoing = now <= endDate;
-            const isInRange = expenseDate >= startDate && (isOngoing || expenseDate <= endDateFull);
-            
-            
-            if (isInRange) {
-              // 獲取用戶在排行榜中的成員索引
-              const memberIndex = leaderboardData.members.findIndex(
-                (m: any) => m.userId === currentUser.uid
-              );
-              
-              if (memberIndex !== -1) {
-                // 更新成員支出金額
-                const updatedMembers = [...leaderboardData.members];
-                const member = {...updatedMembers[memberIndex]};
-                
-                // 更新總支出
-                member.totalExpense = (member.totalExpense || 0) + expenseAmount;
-                
-                // 更新支出ID列表
-                member.expenseIds = [...(member.expenseIds || []), expenseRef.id];
-                
-                // 更新支出摘要
-                const expenseSummary = {
-                  id: expenseRef.id,
-                  amount: expenseAmount,
-                  date: expenseData.date,
-                  category: expenseData.category
-                };
-                member.expenseSummaries = [...(member.expenseSummaries || []), expenseSummary];
-                
-                // 更新成員資料
-                updatedMembers[memberIndex] = member;
-                
-                // 更新排行榜
-                transaction.update(doc(db, "leaderboards", leaderboardDoc.id), {
-                  members: updatedMembers
-                });
-                
-                updatedLeaderboardCount++;
-              } // else: no matching member
-            }
-          }
-
-          return { docId: expenseRef.id, splitDocId };
-        } catch (_error) {
-          throw _error; // 重新拋出以便外部捕獲
+            _updatedLeaderboardCount++;
+          } // else: no matching member
         }
-      });
-      return result;
-    } catch (_error) {
-      throw _error; // 重新拋出以便外部捕獲和處理
-    }
+      }
+
+      return { docId: expenseRef.id, splitDocId };
+    });
+    return result;
   };
 
   // 獲取類別對應的顏色

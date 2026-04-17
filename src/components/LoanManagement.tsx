@@ -190,34 +190,30 @@ const LoanManagement: React.FC<LoanManagementProps> = ({ onClose, initialParams 
     dueDate?: string;
     notes: string;
   }) => {
-    try {
-      if (!currentUser) throw new Error('用戶未登入');
-      
-      // 準備數據
-      const newLoan = {
-        type: loanData.type,
-        counterpartyName: loanData.counterpartyName,
-        amount: loanData.amount,
-        remainingAmount: loanData.amount, // 初始剩餘金額等於借貸金額
-        date: new Date(loanData.date),
-        dueDate: loanData.dueDate ? new Date(loanData.dueDate) : null,
-        notes: loanData.notes,
-        status: 'pending', // 初始狀態為未還款
-        userId: currentUser.uid,
-        repayments: [],
-        createdAt: serverTimestamp(),
-      };
-      
-      // 保存到Firestore
-      await addDoc(collection(db, 'loans'), newLoan);
-      
-      // 關閉表單並重新加載數據
-      setShowAddForm(false);
-      setInitialFormValues(null); // 清除初始值
-      loadLoans();
-    } catch (_error) {
-      throw _error;
-    }
+    if (!currentUser) throw new Error('用戶未登入');
+    
+    // 準備數據
+    const newLoan = {
+      type: loanData.type,
+      counterpartyName: loanData.counterpartyName,
+      amount: loanData.amount,
+      remainingAmount: loanData.amount, // 初始剩餘金額等於借貸金額
+      date: new Date(loanData.date),
+      dueDate: loanData.dueDate ? new Date(loanData.dueDate) : null,
+      notes: loanData.notes,
+      status: 'pending', // 初始狀態為未還款
+      userId: currentUser.uid,
+      repayments: [],
+      createdAt: serverTimestamp(),
+    };
+    
+    // 保存到Firestore
+    await addDoc(collection(db, 'loans'), newLoan);
+    
+    // 關閉表單並重新加載數據
+    setShowAddForm(false);
+    setInitialFormValues(null); // 清除初始值
+    loadLoans();
   };
   
   // 記錄還款
@@ -226,62 +222,58 @@ const LoanManagement: React.FC<LoanManagementProps> = ({ onClose, initialParams 
     date: string;
     notes: string;
   }) => {
-    try {
-      if (!currentUser || !selectedLoan) throw new Error('數據錯誤');
+    if (!currentUser || !selectedLoan) throw new Error('數據錯誤');
+    
+    // 使用事務確保數據一致性
+    await runTransaction(db, async (transaction) => {
+      // 獲取最新的借貸數據
+      const loanRef = doc(db, 'loans', selectedLoan.id);
+      const loanDoc = await transaction.get(loanRef);
       
-      // 使用事務確保數據一致性
-      await runTransaction(db, async (transaction) => {
-        // 獲取最新的借貸數據
-        const loanRef = doc(db, 'loans', selectedLoan.id);
-        const loanDoc = await transaction.get(loanRef);
-        
-        if (!loanDoc.exists()) {
-          throw new Error('借貸記錄不存在');
-        }
-        
-        const loanData = loanDoc.data();
-        
-        // 準備還款記錄
-        const newRepayment = {
-          id: Date.now().toString(), // 簡單生成ID
-          amount: repaymentData.amount,
-          date: new Date(repaymentData.date),
-          notes: repaymentData.notes,
-        };
-        
-        // 更新剩餘金額
-        const newRemainingAmount = loanData.remainingAmount - repaymentData.amount;
-        
-        // 更新狀態
-        let newStatus = loanData.status;
-        if (newRemainingAmount <= 0) {
-          newStatus = 'paid'; // 完全還清
-        } else if (newRemainingAmount < loanData.amount) {
-          newStatus = 'partially_paid'; // 部分還款
-        }
-        
-        // 獲取當前還款記錄
-        const currentRepayments = loanData.repayments || [];
-        
-        // 更新借貸記錄
-        transaction.update(loanRef, {
-          repayments: [...currentRepayments, newRepayment],
-          remainingAmount: newRemainingAmount,
-          status: newStatus,
-          updatedAt: serverTimestamp(),
-        });
+      if (!loanDoc.exists()) {
+        throw new Error('借貸記錄不存在');
+      }
+      
+      const loanData = loanDoc.data();
+      
+      // 準備還款記錄
+      const newRepayment = {
+        id: Date.now().toString(), // 簡單生成ID
+        amount: repaymentData.amount,
+        date: new Date(repaymentData.date),
+        notes: repaymentData.notes,
+      };
+      
+      // 更新剩餘金額
+      const newRemainingAmount = loanData.remainingAmount - repaymentData.amount;
+      
+      // 更新狀態
+      let newStatus = loanData.status;
+      if (newRemainingAmount <= 0) {
+        newStatus = 'paid'; // 完全還清
+      } else if (newRemainingAmount < loanData.amount) {
+        newStatus = 'partially_paid'; // 部分還款
+      }
+      
+      // 獲取當前還款記錄
+      const currentRepayments = loanData.repayments || [];
+      
+      // 更新借貸記錄
+      transaction.update(loanRef, {
+        repayments: [...currentRepayments, newRepayment],
+        remainingAmount: newRemainingAmount,
+        status: newStatus,
+        updatedAt: serverTimestamp(),
       });
-      
-      // 關閉表單並重新加載數據
-      setShowRepaymentForm(false);
-      setSelectedLoan(null);
-      loadLoans();
-      
-      // 如果還款後狀態變為已還清，更新逾期借貸數
-      updateOverdueLoansCount();
-    } catch (_error) {
-      throw _error;
-    }
+    });
+    
+    // 關閉表單並重新加載數據
+    setShowRepaymentForm(false);
+    setSelectedLoan(null);
+    loadLoans();
+    
+    // 如果還款後狀態變為已還清，更新逾期借貸數
+    updateOverdueLoansCount();
   };
   
   // 刪除借貸記錄

@@ -328,83 +328,119 @@ const BudgetProgressBars: React.FC = () => {
   
   // 載入預算項目
   const loadBudgetItems = async () => {
-    try {
-      if (!currentUser) {
-        return;
-      }
-      
-      const budgetRef = doc(db, 'budgets', currentUser.uid);
-      const budgetDoc = await getDoc(budgetRef);
-      
-      if (budgetDoc.exists()) {
-        const data = budgetDoc.data();
+    if (!currentUser) {
+      return;
+    }
+    
+    const budgetRef = doc(db, 'budgets', currentUser.uid);
+    const budgetDoc = await getDoc(budgetRef);
+    
+    if (budgetDoc.exists()) {
+      const data = budgetDoc.data();
 
-        // 獲取預算項目
-        let items: BudgetItem[] = [];
+      // 獲取預算項目
+      let items: BudgetItem[] = [];
+      
+      // 處理新版預算格式
+      if (data.budgetItems && Array.isArray(data.budgetItems)) {
+        items = data.budgetItems.map((item: any, index: number) => {
+          try {
+            // 轉換日期格式
+            let startDate = undefined;
+            let endDate = undefined;
+            
+            if (item.startDate) {
+              startDate = item.startDate instanceof Timestamp 
+                ? item.startDate.toDate() 
+                : new Date(item.startDate);
+            }
+            
+            if (item.endDate) {
+              endDate = item.endDate instanceof Timestamp 
+                ? item.endDate.toDate() 
+                : new Date(item.endDate);
+            }
+            
+            // 返回處理後的預算項目，確保可選屬性符合類型定義
+            return {
+              id: item.id || `item-${index}-${Date.now()}`,
+              period: item.period || 'monthly',
+              amount: typeof item.amount === 'number' ? item.amount : parseFloat(item.amount) || 0,
+              categoryId: item.categoryId || 'overall',
+              categoryName: item.categoryId === 'investment' ? '投資' : (item.categoryName || getCategoryName(item.categoryId) || '總體'),
+              ...(startDate ? { startDate } : {}),
+              ...(endDate ? { endDate } : {}),
+              budgetType: item.budgetType || 'multi',
+              categories: item.categories || []
+            } as BudgetItem;
+          } catch (_error) {
+            return null;
+          }
+        }).filter((item): item is BudgetItem => item !== null);
+      } else if (data.simplifiedItems && Array.isArray(data.simplifiedItems)) {
+        // 處理簡化格式
+        items = data.simplifiedItems.map((item: any, index: number) => {
+          try {
+            return {
+              id: item.id || `simplified-${index}-${Date.now()}`,
+              period: item.period || 'monthly',
+              amount: typeof item.amount === 'number' ? item.amount : parseFloat(item.amount) || 0,
+              categoryId: item.categoryId || 'overall',
+              categoryName: item.categoryId === 'investment' ? '投資' : (item.categoryName || getCategoryName(item.categoryId) || '總體'),
+              budgetType: item.budgetType || 'multi',
+              categories: item.categories || []
+            } as BudgetItem;
+          } catch (_error) {
+            return null;
+          }
+        }).filter((item): item is BudgetItem => item !== null);
+      } else {
+        // 處理舊版預算格式
+        const periodTypes = ['daily', 'weekly', 'monthly', 'yearly', 'custom'];
         
-        // 處理新版預算格式
-        if (data.budgetItems && Array.isArray(data.budgetItems)) {
-          items = data.budgetItems.map((item: any, index: number) => {
+        if (data.period && periodTypes.includes(data.period) && data.amount) {
+          try {
+            let startDate = undefined;
+            let endDate = undefined;
+            
+            // 處理自定義日期範圍
+            if (data.startDate) {
+              startDate = data.startDate instanceof Timestamp 
+                ? data.startDate.toDate() 
+                : new Date(data.startDate);
+            }
+            
+            if (data.endDate) {
+              endDate = data.endDate instanceof Timestamp 
+                ? data.endDate.toDate() 
+                : new Date(data.endDate);
+            }
+            
+            items.push({
+              id: `overall-${data.period}-legacy`,
+              period: data.period as any,
+              amount: typeof data.amount === 'number' ? data.amount : parseFloat(data.amount) || 0,
+              categoryId: 'overall',
+              categoryName: '總體',
+              startDate,
+              endDate,
+              budgetType: 'overall'
+            } as BudgetItem);
+          } catch (_error) { /* noop */ }
+        }
+        
+        // 處理類別預算
+        if (data.categoryBudgets && Array.isArray(data.categoryBudgets)) {
+          data.categoryBudgets.forEach((cat: any) => {
             try {
-              // 轉換日期格式
+              if (!cat.categoryId || !cat.amount) {
+                return;
+              }
+              
               let startDate = undefined;
               let endDate = undefined;
               
-              if (item.startDate) {
-                startDate = item.startDate instanceof Timestamp 
-                  ? item.startDate.toDate() 
-                  : new Date(item.startDate);
-              }
-              
-              if (item.endDate) {
-                endDate = item.endDate instanceof Timestamp 
-                  ? item.endDate.toDate() 
-                  : new Date(item.endDate);
-              }
-              
-              // 返回處理後的預算項目，確保可選屬性符合類型定義
-              return {
-                id: item.id || `item-${index}-${Date.now()}`,
-                period: item.period || 'monthly',
-                amount: typeof item.amount === 'number' ? item.amount : parseFloat(item.amount) || 0,
-                categoryId: item.categoryId || 'overall',
-                categoryName: item.categoryId === 'investment' ? '投資' : (item.categoryName || getCategoryName(item.categoryId) || '總體'),
-                ...(startDate ? { startDate } : {}),
-                ...(endDate ? { endDate } : {}),
-                budgetType: item.budgetType || 'multi',
-                categories: item.categories || []
-              } as BudgetItem;
-            } catch (_error) {
-              return null;
-            }
-          }).filter((item): item is BudgetItem => item !== null);
-        } else if (data.simplifiedItems && Array.isArray(data.simplifiedItems)) {
-          // 處理簡化格式
-          items = data.simplifiedItems.map((item: any, index: number) => {
-            try {
-              return {
-                id: item.id || `simplified-${index}-${Date.now()}`,
-                period: item.period || 'monthly',
-                amount: typeof item.amount === 'number' ? item.amount : parseFloat(item.amount) || 0,
-                categoryId: item.categoryId || 'overall',
-                categoryName: item.categoryId === 'investment' ? '投資' : (item.categoryName || getCategoryName(item.categoryId) || '總體'),
-                budgetType: item.budgetType || 'multi',
-                categories: item.categories || []
-              } as BudgetItem;
-            } catch (_error) {
-              return null;
-            }
-          }).filter((item): item is BudgetItem => item !== null);
-        } else {
-          // 處理舊版預算格式
-          const periodTypes = ['daily', 'weekly', 'monthly', 'yearly', 'custom'];
-          
-          if (data.period && periodTypes.includes(data.period) && data.amount) {
-            try {
-              let startDate = undefined;
-              let endDate = undefined;
-              
-              // 處理自定義日期範圍
+              // 使用總體預算的日期範圍
               if (data.startDate) {
                 startDate = data.startDate instanceof Timestamp 
                   ? data.startDate.toDate() 
@@ -418,63 +454,23 @@ const BudgetProgressBars: React.FC = () => {
               }
               
               items.push({
-                id: `overall-${data.period}-legacy`,
-                period: data.period as any,
-                amount: typeof data.amount === 'number' ? data.amount : parseFloat(data.amount) || 0,
-                categoryId: 'overall',
-                categoryName: '總體',
+                id: `${cat.categoryId}-${data.period || 'monthly'}-legacy`,
+                period: data.period || 'monthly',
+                amount: typeof cat.amount === 'number' ? cat.amount : parseFloat(cat.amount) || 0,
+                categoryId: cat.categoryId,
+                categoryName: cat.categoryId === 'investment' ? '投資' : (cat.categoryName || getCategoryName(cat.categoryId) || '總體'),
                 startDate,
                 endDate,
-                budgetType: 'overall'
+                budgetType: 'multi'
               } as BudgetItem);
             } catch (_error) { /* noop */ }
-          }
-          
-          // 處理類別預算
-          if (data.categoryBudgets && Array.isArray(data.categoryBudgets)) {
-            data.categoryBudgets.forEach((cat: any) => {
-              try {
-                if (!cat.categoryId || !cat.amount) {
-                  return;
-                }
-                
-                let startDate = undefined;
-                let endDate = undefined;
-                
-                // 使用總體預算的日期範圍
-                if (data.startDate) {
-                  startDate = data.startDate instanceof Timestamp 
-                    ? data.startDate.toDate() 
-                    : new Date(data.startDate);
-                }
-                
-                if (data.endDate) {
-                  endDate = data.endDate instanceof Timestamp 
-                    ? data.endDate.toDate() 
-                    : new Date(data.endDate);
-                }
-                
-                items.push({
-                  id: `${cat.categoryId}-${data.period || 'monthly'}-legacy`,
-                  period: data.period || 'monthly',
-                  amount: typeof cat.amount === 'number' ? cat.amount : parseFloat(cat.amount) || 0,
-                  categoryId: cat.categoryId,
-                  categoryName: cat.categoryId === 'investment' ? '投資' : (cat.categoryName || getCategoryName(cat.categoryId) || '總體'),
-                  startDate,
-                  endDate,
-                  budgetType: 'multi'
-                } as BudgetItem);
-              } catch (_error) { /* noop */ }
-            });
-          }
+          });
         }
-        
-        setBudgetItems(items);
-      } else {
-        setBudgetItems([]);
       }
-    } catch (_err) {
-      throw _err;
+      
+      setBudgetItems(items);
+    } else {
+      setBudgetItems([]);
     }
   };
   
@@ -534,123 +530,119 @@ const BudgetProgressBars: React.FC = () => {
   
   // 載入支出數據
   const loadExpenses = async () => {
-    try {
-      if (!currentUser) {
-        return;
-      }
+    if (!currentUser) {
+      return;
+    }
+    
+    const now = new Date();
+    const startOfYear = new Date(now.getFullYear(), 0, 1);
+    
+    // 查詢支出數據 - 至少包含當年的數據以確保所有時間範圍的預算計算
+    const expensesRef = collection(db, 'expenses');
+    const expensesQuery = query(
+      expensesRef,
+      where('userId', '==', currentUser.uid),
+      where('date', '>=', startOfYear),
+    );
+    
+    const expensesSnapshot = await getDocs(expensesQuery);
+    
+    // 用於診斷的類別統計
+    const categoryStats = {
+      totalProcessed: 0,
+      byFormat: {
+        objectFormat: 0,
+        stringFormat: 0,
+        directProperties: 0
+      },
+      byCategory: {} as Record<string, number>
+    };
+    
+    const expensesData = expensesSnapshot.docs.map(doc => {
+      const data = doc.data();
+      categoryStats.totalProcessed++;
       
-      const now = new Date();
-      const startOfYear = new Date(now.getFullYear(), 0, 1);
-      
-      // 查詢支出數據 - 至少包含當年的數據以確保所有時間範圍的預算計算
-      const expensesRef = collection(db, 'expenses');
-      const expensesQuery = query(
-        expensesRef,
-        where('userId', '==', currentUser.uid),
-        where('date', '>=', startOfYear),
-      );
-      
-      const expensesSnapshot = await getDocs(expensesQuery);
-      
-      // 用於診斷的類別統計
-      const categoryStats = {
-        totalProcessed: 0,
-        byFormat: {
-          objectFormat: 0,
-          stringFormat: 0,
-          directProperties: 0
-        },
-        byCategory: {} as Record<string, number>
-      };
-      
-      const expensesData = expensesSnapshot.docs.map(doc => {
-        const data = doc.data();
-        categoryStats.totalProcessed++;
+      // 處理日期
+      let expenseDate;
+      try {
+        if (data.date instanceof Timestamp) {
+          expenseDate = data.date.toDate();
+        } else if (data.date && typeof data.date === 'object' && 'seconds' in data.date) {
+          expenseDate = new Date(data.date.seconds * 1000);
+        } else {
+          expenseDate = new Date(data.date);
+        }
         
-        // 處理日期
-        let expenseDate;
-        try {
-          if (data.date instanceof Timestamp) {
-            expenseDate = data.date.toDate();
-          } else if (data.date && typeof data.date === 'object' && 'seconds' in data.date) {
-            expenseDate = new Date(data.date.seconds * 1000);
-          } else {
-            expenseDate = new Date(data.date);
-          }
-          
-          if (isNaN(expenseDate.getTime())) {
-            expenseDate = new Date(); // 使用當前日期作為後備
-          }
-        } catch (_error) {
+        if (isNaN(expenseDate.getTime())) {
           expenseDate = new Date(); // 使用當前日期作為後備
         }
+      } catch (_error) {
+        expenseDate = new Date(); // 使用當前日期作為後備
+      }
+      
+      // 初始化類別信息
+      let categoryId = '';
+      let categoryName = '';
+      let categoryObj: any = null;
+      
+      // 處理不同的類別格式
+      if (data.category && typeof data.category === 'object') {
+        // 類別是對象格式: {id: 'food', name: '餐飲'}
+        categoryStats.byFormat.objectFormat++;
+        categoryObj = data.category;
+        categoryId = data.category.id || '';
+        categoryName = data.category.name || '';
+      } else if (typeof data.category === 'string') {
+        // 類別是字符串格式，直接作為ID使用
+        categoryStats.byFormat.stringFormat++;
+        categoryId = data.category;
+        categoryName = data.category;
+      } else if (data.categoryId || data.categoryName) {
+        // 類別信息直接作為屬性
+        categoryStats.byFormat.directProperties++;
+        categoryId = data.categoryId || '';
+        categoryName = data.categoryName || categoryId;
+      }
+      
+      // 確保類別ID和名稱不為空，並嘗試從筆記內容推斷類別
+      if (!categoryId && !categoryName && data.notes) {
+        // 嘗試從筆記中推斷類別
+        const notes = data.notes.toLowerCase();
         
-        // 初始化類別信息
-        let categoryId = '';
-        let categoryName = '';
-        let categoryObj: any = null;
-        
-        // 處理不同的類別格式
-        if (data.category && typeof data.category === 'object') {
-          // 類別是對象格式: {id: 'food', name: '餐飲'}
-          categoryStats.byFormat.objectFormat++;
-          categoryObj = data.category;
-          categoryId = data.category.id || '';
-          categoryName = data.category.name || '';
-        } else if (typeof data.category === 'string') {
-          // 類別是字符串格式，直接作為ID使用
-          categoryStats.byFormat.stringFormat++;
-          categoryId = data.category;
-          categoryName = data.category;
-        } else if (data.categoryId || data.categoryName) {
-          // 類別信息直接作為屬性
-          categoryStats.byFormat.directProperties++;
-          categoryId = data.categoryId || '';
-          categoryName = data.categoryName || categoryId;
-        }
-        
-        // 確保類別ID和名稱不為空，並嘗試從筆記內容推斷類別
-        if (!categoryId && !categoryName && data.notes) {
-          // 嘗試從筆記中推斷類別
-          const notes = data.notes.toLowerCase();
-          
-          // 遍歷類別映射尋找匹配
-          for (const [id, names] of Object.entries(categoryMappings)) {
-            if (names.some(name => notes.includes(name.toLowerCase()))) {
-              categoryId = id;
-              categoryName = names[0]; // 使用第一個名稱作為顯示名稱
-              break;
-            }
+        // 遍歷類別映射尋找匹配
+        for (const [id, names] of Object.entries(categoryMappings)) {
+          if (names.some(name => notes.includes(name.toLowerCase()))) {
+            categoryId = id;
+            categoryName = names[0]; // 使用第一個名稱作為顯示名稱
+            break;
           }
         }
-        
-        // 如果仍然沒有類別，設為"其他"
-        if (!categoryId) {
-          categoryId = 'other';
-          categoryName = '其他';
-        }
-        
-        // 更新類別統計
-        categoryStats.byCategory[categoryId] = (categoryStats.byCategory[categoryId] || 0) + 1;
-        
-        // 建立支出對象
-        const expense = {
-          id: doc.id,
-          amount: typeof data.amount === 'number' ? data.amount : parseFloat(data.amount) || 0,
-          categoryId,
-          categoryName,
-          date: expenseDate,
-          category: categoryObj || { id: categoryId, name: categoryName },
-          notes: data.notes || ''
-        };
-        
-        return expense;
-      });
+      }
       
-      setExpenses(expensesData);
-    } catch (_err) {
-      throw _err;
-    }
+      // 如果仍然沒有類別，設為"其他"
+      if (!categoryId) {
+        categoryId = 'other';
+        categoryName = '其他';
+      }
+      
+      // 更新類別統計
+      categoryStats.byCategory[categoryId] = (categoryStats.byCategory[categoryId] || 0) + 1;
+      
+      // 建立支出對象
+      const expense = {
+        id: doc.id,
+        amount: typeof data.amount === 'number' ? data.amount : parseFloat(data.amount) || 0,
+        categoryId,
+        categoryName,
+        date: expenseDate,
+        category: categoryObj || { id: categoryId, name: categoryName },
+        notes: data.notes || ''
+      };
+      
+      return expense;
+    });
+    
+    setExpenses(expensesData);
   };
   
   // 類別ID和名稱的對應表，確保正確匹配

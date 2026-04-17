@@ -409,9 +409,6 @@ const BudgetSetting: React.FC<BudgetSettingProps> = ({ onClose }) => {
       setTimeout(() => {
         setSuccess('');
       }, 3000);
-    } catch (_error) {
-      // 拋出錯誤而不是設置錯誤狀態，這樣調用方可以處理錯誤
-      throw _error;
     } finally {
       setLoading(false);
     }
