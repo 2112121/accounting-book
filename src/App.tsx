@@ -1932,7 +1932,7 @@ const chartRef = useRef<HTMLDivElement>(null);
         },
       });
     }, 50);
-  }, [selectedCategory]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [selectedCategory]);
 
   // 重構每日趨勢圖初始化
   useEffect(() => {
