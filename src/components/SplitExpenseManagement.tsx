@@ -1921,7 +1921,7 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
             <div className="grid grid-cols-1 gap-3 relative z-10">
               {Object.entries(balances[currentUserId].transactions)
                 .filter(([_userId, amount]) => Math.abs(amount) > 0)
-                .map(([userId, amount], index) => {
+                .map(([userId, amount]) => {
                   const targetMember = balances[userId];
                   if (!targetMember) return null;
                   
