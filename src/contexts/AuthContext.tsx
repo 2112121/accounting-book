@@ -199,7 +199,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }
 
   // 登入用戶
-  async function login(email: string, password: string): Promise<User | void> {        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+  async function login(email: string, password: string): Promise<User | void> {
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
     return userCredential.user;
   }
 
