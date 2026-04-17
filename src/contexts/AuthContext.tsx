@@ -844,13 +844,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
       return [];
     }
     
-    // 獲取好友詳細資訊
+    // 批次查詢所有好友（一次請求取代 N 次 getDoc）
     const friends: Friend[] = [];
-    for (const friendId of friendIds) {
-      const friendRef = doc(db, "users", friendId);
-      const friendDoc = await getDoc(friendRef);
-      
-      if (friendDoc.exists()) {
+    const BATCH_SIZE = 30;
+    for (let i = 0; i < friendIds.length; i += BATCH_SIZE) {
+      const batch = friendIds.slice(i, i + BATCH_SIZE);
+      const snap = await getDocs(
+        query(collection(db, "users"), where(documentId(), "in", batch))
+      );
+      snap.forEach(friendDoc => {
         const friendData = friendDoc.data();
         friends.push({
           id: friendDoc.id,
@@ -858,9 +860,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
           photoURL: friendData.photoURL,
           email: friendData.email
         });
-      }
+      });
     }
-    
+
     return friends;
   }
 
@@ -1333,14 +1335,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
       leaderboardIdsToCheck.add(data.leaderboardId);
     });
     
-    // 檢查排行榜是否存在
+    // 批次查詢排行榜是否存在
     const existingLeaderboardIds = new Set<string>();
-    for (const leaderboardId of leaderboardIdsToCheck) {
-      const leaderboardRef = doc(db, "leaderboards", leaderboardId);
-      const leaderboardDoc = await getDoc(leaderboardRef);
-      if (leaderboardDoc.exists()) {
-        existingLeaderboardIds.add(leaderboardId);
-      }
+    const lbIdsArray = Array.from(leaderboardIdsToCheck);
+    if (lbIdsArray.length > 0) {
+      const snap = await getDocs(
+        query(collection(db, "leaderboards"), where(documentId(), "in", lbIdsArray.slice(0, 30)))
+      );
+      snap.forEach(d => existingLeaderboardIds.add(d.id));
     }
     
     // 只添加存在的排行榜邀請
