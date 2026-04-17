@@ -447,15 +447,15 @@ const chartRef = useRef<HTMLDivElement>(null);
         legend: {
           // 當選中類別時，隱藏圖例
           show: true,
+          selectedMode: false,
           orient: "horizontal",
           left: "center",
           bottom: 0,
           padding: [20, 0, 0, 0],
           itemWidth: 14,
           itemHeight: 14,
-          itemGap: 20, // 增加項目間距以防止重疊
+          itemGap: 20,
           formatter: function (name: string) {
-            // 對長文字進行縮短處理
             if (name.length > 4) {
               return name.substring(0, 4) + "...";
             }
@@ -464,7 +464,7 @@ const chartRef = useRef<HTMLDivElement>(null);
           data: Object.keys(categorySum),
           textStyle: {
             color: "#6E6E6E",
-            fontSize: 12, // 確保文字大小適當
+            fontSize: 12,
           },
         },
         color: [
@@ -533,8 +533,10 @@ const chartRef = useRef<HTMLDivElement>(null);
       // 點擊事件處理
       chart.on("click", function (params) {
         if (params.componentType === "series") {
+          // 先取消所有 highlight，再 highlight 點擊的 slice
+          chart.dispatchAction({ type: "downplay", seriesIndex: 0 });
+          chart.dispatchAction({ type: "highlight", seriesIndex: 0, dataIndex: params.dataIndex });
           setSelectedCategory(params.name);
-
         }
       });
 
@@ -551,6 +553,7 @@ const chartRef = useRef<HTMLDivElement>(null);
 
     // 更新狀態
     setSelectedCategory(null);
+    chartInstanceRef.current?.dispatchAction({ type: "downplay", seriesIndex: 0 });
 
     // 如果有圖表實例，調整它的位置和圖例，但不重新初始化
     if (chartInstanceRef.current) {
