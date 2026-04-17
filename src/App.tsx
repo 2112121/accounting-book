@@ -3539,23 +3539,6 @@ useEffect(() => {
             <div className="p-4 border-b border-gray-100">
               <div className="flex flex-col">
                 <h3 className="font-bold text-[#2E2E2E] mb-3">選單</h3>
-                <p className="mb-3">
-                  {selectedDateOption === "today"
-                    ? "今日消費明細"
-                    : selectedDateOption === "yesterday"
-                      ? "昨日消費明細"
-                      : selectedDateOption === "month"
-                        ? "本月消費明細"
-                        : selectedDateOption === "month_select"
-                          ? `${selectedMonth.split('-')[0]}年${String(selectedMonth.split('-')[1]).padStart(2, "0")}月消費明細`
-                          : selectedDateOption === "this_week"
-                            ? "本週消費明細"
-                            : selectedDateOption === "last_week"
-                              ? "上週消費明細"
-                              : selectedDateOption === "all"
-                                ? "全部消費明細"
-                                : `${format(selectedDate, "yyyy年M月d日")} 消費明細`}
-                </p>
                 {currentUser && (
                   <div className="flex items-center gap-3">
                     <span className="w-8 h-8 rounded-full bg-[#C6B2DD] flex items-center justify-center text-white font-bold text-sm">
