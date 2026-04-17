@@ -1928,7 +1928,6 @@ useEffect(() => {
         chartInstance.resize();
 
         // 重新應用佈局調整以適應新窗口大小
-        const isMobile = window.innerWidth < 768;
         const isSelectedMode = selectedCategory !== null;
 
         // 重新設置佈局參數，但保持其他選項不變
@@ -1963,8 +1962,6 @@ useEffect(() => {
   // 監聽selectedCategory狀態變化，更新餅圖位置
   useEffect(() => {
     if (chartInstance) {
-      const isMobile = window.innerWidth < 768; // 檢測是否為移動設備
-
       // 切換類別時只更新圖例顯示，不移動圓心位置（避免標籤浮動）
       chartInstance.setOption({
         animation: false,
