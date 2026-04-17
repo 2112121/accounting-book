@@ -105,7 +105,7 @@ const IncomePage: React.FC = () => {
     console.log("創建空圓餅圖 - 不顯示暫無數據提示");
 
     if (!chartRef.current) {
-      console.error("圓餅圖DOM元素不存在");
+      console.warn("圓餅圖DOM元素不存在，等待渲染");
       return;
     }
 
@@ -181,7 +181,7 @@ const IncomePage: React.FC = () => {
     console.log("初始化收入分析圓餅圖");
 
     if (!chartRef.current) {
-      console.error("圓餅圖DOM元素不存在");
+      console.warn("圓餅圖DOM元素不存在，等待渲染");
       return;
     }
 
@@ -405,7 +405,7 @@ const IncomePage: React.FC = () => {
   // 創建空每日趨勢圖
   const createEmptyDailyChart = () => {
     if (!dailyChartRef.current) {
-      console.error("每日趨勢圖DOM元素不存在");
+      console.warn("每日趨勢圖DOM元素不存在，等待渲染");
       return;
     }
 
@@ -482,7 +482,7 @@ const IncomePage: React.FC = () => {
     console.log("初始化每日趨勢圖 - 開始檢查數據");
 
     if (!dailyChartRef.current) {
-      console.error("每日趨勢圖DOM元素不存在");
+      console.warn("每日趨勢圖DOM元素不存在，等待渲染");
       return;
     }
 
