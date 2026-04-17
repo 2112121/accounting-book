@@ -677,10 +677,10 @@ const chartRef = useRef<HTMLDivElement>(null);
           {
             name: "支出金額",
             type: "pie",
-            radius: ["30%", "60%"], // 原先是 ["40%", "70%"]，縮小比例
-            // 將y坐標從50%調整為40%，向上移動
-            center: ["50%", "45%"],
-            avoidLabelOverlap: false,
+            radius: ["30%", "58%"],
+            center: ["50%", "46%"],
+            avoidLabelOverlap: true,
+            minShowLabelAngle: 5,
             selectedMode: false,
             emphasis: {
               itemStyle: {
@@ -694,12 +694,18 @@ const chartRef = useRef<HTMLDivElement>(null);
             label: {
               show: true,
               formatter: "{b}\n{d}%",
+              fontSize: 11,
+              overflow: "truncate",
+            },
+            labelLayout: {
+              hideOverlap: true,
             },
             labelLine: {
               show: true,
               smooth: true,
-              length: 15,
-              length2: 12
+              length: 10,
+              length2: 8,
+              minTurnAngle: 90,
             },
             data: pieData,
             // 簡化餅圖動畫設置
