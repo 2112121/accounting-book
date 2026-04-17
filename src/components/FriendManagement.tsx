@@ -385,7 +385,7 @@ const FriendManagement: React.FC<FriendManagementProps> = ({ onClose }) => {
       
       {/* Tab 按鈕 */}
       <div className="mb-4 mt-1">
-        <div className="flex gap-2 overflow-x-auto pb-2 px-1 no-scrollbar">
+        <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 no-scrollbar">
           {tabs.map((tab) => (
             <button
               key={tab.id}
