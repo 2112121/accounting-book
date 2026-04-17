@@ -982,35 +982,37 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
             )}
           
             <div className="mb-5 transform transition-all duration-300 hover:translate-y-[-2px] hover:shadow-md rounded-xl p-4 border border-gray-100">
-              <div className="flex justify-between items-start">
-                <div>
-                  <div className="flex items-center mb-2">
-                    <h3 className="text-lg font-bold text-gray-800 tracking-wide">{selectedTransaction.title}</h3>
-                    <div className="bg-[#F0EAFA] text-[#8A5DC8] text-xs font-medium px-3 py-1 rounded-full ml-2 shadow-sm">
+              <div className="flex justify-between items-start gap-2">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center flex-wrap gap-1 mb-2">
+                    <h3 className="text-lg font-bold text-gray-800 tracking-wide truncate">{selectedTransaction.title}</h3>
+                    <div className="bg-[#F0EAFA] text-[#8A5DC8] text-xs font-medium px-2 py-0.5 rounded-full shadow-sm whitespace-nowrap shrink-0">
                       分帳群組
                     </div>
                   </div>
-                  <p className="text-gray-500 text-xs flex items-center">
-                    <i className="far fa-calendar-alt mr-1.5 text-[#A487C3]"></i>
-                    創建時間: {formatDate(selectedTransaction.created)}
-                  </p>
+                  {selectedTransaction.created && selectedTransaction.created.getFullYear() > 2000 && (
+                    <p className="text-gray-500 text-xs flex items-center">
+                      <i className="far fa-calendar-alt mr-1.5 text-[#A487C3]"></i>
+                      創建時間: {formatDate(selectedTransaction.created)}
+                    </p>
+                  )}
                 </div>
-                
+
                 {/* 操作按鈕 - 所有成員都可見 */}
-                <div className="flex gap-2">
+                <div className="flex flex-col gap-1.5 shrink-0">
                   {/* 編輯按鈕 */}
                   <button
                     onClick={handleEditGroup}
-                    className="text-white bg-[#A487C3] hover:bg-[#8A5DC8] px-3 py-1.5 rounded-lg flex items-center text-xs shadow-md transition-all duration-300 transform hover:translate-y-[-2px]"
+                    className="text-white bg-[#A487C3] hover:bg-[#8A5DC8] px-3 py-1.5 rounded-lg flex items-center text-xs shadow-md transition-all duration-300 whitespace-nowrap"
                   >
                     <i className="fas fa-edit mr-1.5"></i>
                     編輯群組
                   </button>
-                  
+
                   {/* 刪除按鈕 */}
                   <button
                     onClick={() => setShowDeleteConfirm(true)}
-                    className="text-white bg-gradient-to-r from-red-400 to-red-500 hover:from-red-500 hover:to-red-600 px-3 py-1.5 rounded-lg flex items-center text-xs shadow-md transition-all duration-300 transform hover:translate-y-[-2px]"
+                    className="text-white bg-gradient-to-r from-red-400 to-red-500 hover:from-red-500 hover:to-red-600 px-3 py-1.5 rounded-lg flex items-center text-xs shadow-md transition-all duration-300 whitespace-nowrap"
                     disabled={deleting}
                   >
                     <i className="fas fa-trash-alt mr-1.5"></i>
@@ -2065,22 +2067,20 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
                     key="transfer-expense"
                     className="flex items-center justify-between bg-white p-3 rounded-xl shadow-sm border border-green-100 animate-[fadeInRight_0.4s_ease-out] transform transition-all duration-300 hover:shadow-md hover:translate-x-1"
                   >
-                    <div className="flex items-center">
-                      <div className="w-9 h-9 rounded-full bg-green-100 flex items-center justify-center overflow-hidden mr-3 border border-green-200 shadow-inner">
+                    <div className="flex items-center min-w-0">
+                      <div className="w-9 h-9 shrink-0 rounded-full bg-green-100 flex items-center justify-center overflow-hidden mr-3 border border-green-200 shadow-inner">
                         <i className="fas fa-wallet text-green-600 text-sm"></i>
                       </div>
-                      <div>
-                        <div className="font-medium text-gray-800">
-                          我的應付款
-                        </div>
-                        <div className="text-xs text-gray-500 flex items-center">
+                      <div className="min-w-0">
+                        <div className="font-medium text-gray-800 whitespace-nowrap">我的應付款</div>
+                        <div className="text-xs text-gray-500 flex items-center whitespace-nowrap">
                           <i className="fas fa-coins text-green-500 mr-1.5"></i>
                           總額 {totalOwed.toFixed(0)}元
                         </div>
                       </div>
                     </div>
-                    
-                    <div className="flex gap-2">
+
+                    <div className="flex gap-2 shrink-0 ml-2">
                       <button
                         onClick={() => {
                           // 導航到消費明細並設置新增支出
@@ -2107,7 +2107,7 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
                           }
                           window.location.href = `/?action=add-expense&amount=${totalOwed.toFixed(0)}&category=其他&notes=${encodeURIComponent(`分帳應付款：${selectedTransaction?.title || '群組支出'}`)}${dateParam}`;
                         }}
-                        className="px-3 py-1.5 bg-gradient-to-r from-green-500 to-green-600 text-white text-xs rounded-lg hover:from-green-600 hover:to-green-700 transition-colors flex items-center font-medium shadow-sm hover:shadow"
+                        className="px-3 py-1.5 bg-gradient-to-r from-green-500 to-green-600 text-white text-xs rounded-lg hover:from-green-600 hover:to-green-700 transition-colors flex items-center font-medium shadow-sm hover:shadow whitespace-nowrap shrink-0"
                       >
                         <i className="fas fa-file-invoice-dollar mr-1.5"></i>
                         新增支出紀錄
