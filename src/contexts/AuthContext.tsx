@@ -449,54 +449,49 @@ export function AuthProvider({ children }: AuthProviderProps) {
       }
       
       
-      // 使用Promise.all並行獲取所有排行榜數據
-      const leaderboards = await Promise.all(leaderboardIds.map(async (lbId: string) => {
-        const leaderboardRef = doc(db, "leaderboards", lbId);
-        const leaderboardDoc = await getDoc(leaderboardRef);
-        
-        if (!leaderboardDoc.exists()) {
-          return null;
-        }
-        
+      // 批次查詢所有排行榜（一次請求取代 N 次 getDoc）
+      const BATCH_SIZE = 30; // Firestore 'in' 最多 30 個值
+      let allLeaderboardDocs: any[] = [];
+      for (let i = 0; i < leaderboardIds.length; i += BATCH_SIZE) {
+        const batch = leaderboardIds.slice(i, i + BATCH_SIZE);
+        const snap = await getDocs(
+          query(collection(db, "leaderboards"), where(documentId(), "in", batch))
+        );
+        snap.forEach(d => allLeaderboardDocs.push(d));
+      }
+
+      const validLeaderboards: Leaderboard[] = allLeaderboardDocs.map(leaderboardDoc => {
         const lbData = leaderboardDoc.data();
-        
-        // 轉換日期
-        let startDate = lbData.startDate;
-        let endDate = lbData.endDate;
-        
-        if (startDate && typeof startDate.toDate === 'function') {
-          startDate = startDate.toDate();
-        }
-        
-        if (endDate && typeof endDate.toDate === 'function') {
-          endDate = endDate.toDate();
-        }
-        
-        let createdAt = new Date();
-        if (lbData.createdAt && typeof lbData.createdAt.toDate === 'function') {
-          createdAt = lbData.createdAt.toDate();
-        }
-        
-        const leaderboard: Leaderboard = {
+
+        const startDate = lbData.startDate && typeof lbData.startDate.toDate === 'function'
+          ? lbData.startDate.toDate() : lbData.startDate;
+        const endDate = lbData.endDate && typeof lbData.endDate.toDate === 'function'
+          ? lbData.endDate.toDate() : lbData.endDate;
+        const createdAt = lbData.createdAt && typeof lbData.createdAt.toDate === 'function'
+          ? lbData.createdAt.toDate() : new Date();
+
+        return {
           id: leaderboardDoc.id,
           name: lbData.name,
           createdBy: lbData.createdBy,
           members: lbData.members || [],
-          createdAt: createdAt,
+          createdAt,
           timeRange: lbData.timeRange,
-          startDate: startDate,
-          endDate: endDate
-        };
-        
-        // 每次加載排行榜都強制更新成員的消費總額
-        await updateLeaderboardMemberExpenses(leaderboard);
-        
-        return leaderboard;
-      }));
-      
-      // 過濾掉null值（即不存在的排行榜）
-      const validLeaderboards = leaderboards.filter(lb => lb !== null) as Leaderboard[];
-      
+          startDate,
+          endDate,
+        } as Leaderboard;
+      });
+
+      // 背景同步成員消費數據，不阻塞回傳
+      setTimeout(() => {
+        validLeaderboards.forEach(lb => {
+          const now = new Date();
+          if (new Date(lb.endDate) >= now) {
+            updateLeaderboardMemberExpenses(lb).catch(() => {});
+          }
+        });
+      }, 2000);
+
       return validLeaderboards;
   }
   
