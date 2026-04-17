@@ -166,15 +166,6 @@ const chartRef = useRef<HTMLDivElement>(null);
     const now = new Date();
     // 直接重置時間為當天0點0分0秒，保留原始時區信息
     now.setHours(0, 0, 0, 0);
-    // 輸出完整日期信息用於調試
-      日期對象: now.toString(),
-      ISO格式: now.toISOString(),
-      本地日期: now.toLocaleDateString("zh-TW"),
-      時間戳: now.getTime(),
-      年: now.getFullYear(),
-      月: now.getMonth() + 1,
-      日: now.getDate(),
-    });
     return now;
   };
 
@@ -347,16 +338,6 @@ const chartRef = useRef<HTMLDivElement>(null);
           
           const matchesCurrentMonth = (expYear === currentYear && expMonth === currentMonth);
           
-          // 打印詳細信息用於調試
-            原始日期值: String(expense.date),
-            解析後日期: expDate.toISOString(),
-            年份: expYear === currentYear ? '✓' : '✗',
-            月份: expMonth === currentMonth ? '✓' : '✗',
-            匹配當月: matchesCurrentMonth ? '✓' : '✗',
-            類別: typeof expense.category === 'string' ? expense.category : expense.category?.name,
-            金額: expense.amount,
-            說明: expense.notes
-          });
           
           // 只添加匹配當月的支出
           if (matchesCurrentMonth) {

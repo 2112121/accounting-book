@@ -247,14 +247,6 @@ const BudgetSetting: React.FC<BudgetSettingProps> = ({ onClose }) => {
       }
     } catch (error) {
       
-      // 記錄詳細錯誤信息
-      if (error instanceof Error) {
-          名稱: error.name,
-          訊息: error.message,
-          堆疊: error.stack
-        });
-      }
-      
       setError('無法加載預算設置，請稍後再試。');
     } finally {
       setLoading(false);
@@ -834,14 +826,6 @@ const BudgetSetting: React.FC<BudgetSettingProps> = ({ onClose }) => {
       }
       
     } catch (error) {
-      
-      // 詳細記錄錯誤信息
-      if (error instanceof Error) {
-          名稱: error.name,
-          訊息: error.message,
-          堆疊: error.stack
-        });
-      }
       
       // 根據錯誤類型提供更具體的錯誤訊息
       let errorMessage = '無法保存預算設置，請稍後再試。';

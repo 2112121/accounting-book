@@ -499,15 +499,6 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
         isGroupMember = groupData.memberIds.includes(currentUser.uid);
       }
       
-        isCreator,
-        isGroupMember,
-        currentUserId: currentUser.uid,
-        createdBy: groupData.createdBy,
-        hasMembers: !!groupData.members,
-        hasParticipants: !!groupData.participants,
-        hasMemberIds: !!groupData.memberIds
-      });
-      
       // 如果既不是創建者也不是成員，則拒絕刪除操作
       if (!isCreator && !isGroupMember) {
         throw new Error('只有群組成員或創建者才能刪除群組');
@@ -755,15 +746,6 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
         collection(db, 'groupExpenses'),
         where('groupId', '==', groupId)
       );
-      
-      // 打印完整的查詢條件用於調試
-        collection: 'groupExpenses',
-        where: {
-          field: 'groupId',
-          operator: '==',
-          value: groupId
-        }
-      }));
       
       const expensesSnapshot = await getDocs(expensesQuery);
       

@@ -107,12 +107,6 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess, initialMode = 'login' 
             throw regErrorInner; // 其他錯誤直接重新拋出
           }
         } catch (regError: any) {
-            code: regError.code,
-            message: regError.message,
-            isEmailInUseError: regError.isEmailInUseError,
-            stack: regError.stack
-          });
-          
           // 明確處理電子郵件已被使用的情況
           const isEmailInUse = regError.code === 'auth/email-already-in-use' || 
                                regError.isEmailInUseError || 
@@ -138,11 +132,6 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSuccess, initialMode = 'login' 
           setPassword('');
           setSuccessfulOperation(true); // 設置成功標記而不是直接調用 onSuccess
         } catch (loginError: any) {
-            code: loginError.code,
-            message: loginError.message,
-            stack: loginError.stack,
-            error: loginError
-          });
           setError(getFirebaseErrorMessage(loginError.code) || '登入失敗，請稍後再試');
           // 在任何錯誤情況下都不調用 onSuccess
         }

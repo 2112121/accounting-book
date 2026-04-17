@@ -565,16 +565,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const actualEndDate = new Date(endDate);
     actualEndDate.setHours(23, 59, 59, 999);
     
-      排行榜ID: leaderboard.id,
-      排行榜名稱: leaderboard.name,
-      開始日期: startDate.toLocaleDateString(),
-      結束日期: endDate.toLocaleDateString(),
-      查詢結束日期: isOngoing ? '當前日期' : actualEndDate.toLocaleString(),
-      時間範圍類型: leaderboard.timeRange,
-      是否進行中: isOngoing ? '是' : '否',
-      是否已結束: now > endDateOnly ? '是' : '否',
-      當前時間: new Date().toLocaleString()
-    });
     
     try {
       // 獲取所有成員的ID
@@ -632,10 +622,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
             where("date", "<=", endTimestamp)
           );
         }
-        
-          `userId IN [${batch.join(', ')}], date >= ${startDate.toLocaleDateString()}` : 
-          `userId IN [${batch.join(', ')}], date 範圍 ${startDate.toLocaleDateString()} - ${actualEndDate.toLocaleString()}`);
-        
+
         const querySnapshot = await getDocs(q);
         
         // 處理查詢結果

@@ -73,7 +73,7 @@ const GroupInviteNotification: React.FC = () => {
           }
         });
       }
-    }, (error) => {
+    }, (_error) => {
     });
 
     // 在組件卸載時取消監聽

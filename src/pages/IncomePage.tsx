@@ -856,10 +856,6 @@ const IncomePage: React.FC = () => {
       lastDayOfWeek.setDate(firstDayOfWeek.getDate() + 6);
       lastDayOfWeek.setHours(23, 59, 59, 999);
       
-        開始: firstDayOfWeek.toISOString(),
-        結束: lastDayOfWeek.toISOString()
-      });
-      
       return incomes.filter(income => {
         const incomeDate = new Date(income.date);
         return incomeDate >= firstDayOfWeek && incomeDate <= lastDayOfWeek;
@@ -877,10 +873,6 @@ const IncomePage: React.FC = () => {
       const lastDayOfLastWeek = new Date(firstDayOfLastWeek);
       lastDayOfLastWeek.setDate(firstDayOfLastWeek.getDate() + 6);
       lastDayOfLastWeek.setHours(23, 59, 59, 999);
-      
-        開始: firstDayOfLastWeek.toISOString(),
-        結束: lastDayOfLastWeek.toISOString()
-      });
       
       return incomes.filter(income => {
         const incomeDate = new Date(income.date);

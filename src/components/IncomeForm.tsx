@@ -159,7 +159,7 @@ const IncomeForm: React.FC<IncomeFormProps> = ({
       } else {
         throw new Error("無法獲取匯率數據");
       }
-    } catch (error) {
+    } catch (_error) {
       setError("獲取匯率失敗，請稍後再試");
       return null;
     } finally {
@@ -264,17 +264,8 @@ const IncomeForm: React.FC<IncomeFormProps> = ({
           ? additionalNote
           : "";
 
-        amount: finalAmount,
-        category,
-        date,
-        notes: finalNotes,
-        originalAmount: selectedCurrency !== "TWD" ? numAmount : undefined,
-        originalCurrency:
-          selectedCurrency !== "TWD" ? selectedCurrency : undefined,
-      });
-
       // 提交數據 - 使用轉換後的數字和更新的備註
-      const result = await onSave({
+      const _result = await onSave({
         amount: finalAmount,
         category,
         date,
@@ -295,7 +286,7 @@ const IncomeForm: React.FC<IncomeFormProps> = ({
 
       // 重置提交狀態
       setIsSubmitting(false);
-    } catch (err) {
+    } catch (_err) {
       setError("提交表單時出現錯誤，請稍後再試");
       setIsSubmitting(false);
     }

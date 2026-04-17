@@ -221,7 +221,7 @@ const BudgetNotification: React.FC = () => {
             }
           }
         }
-      } catch (error) {
+      } catch (_error) {
       }
     };
     
@@ -305,7 +305,7 @@ const BudgetNotification: React.FC = () => {
             }
           }
         }
-      } catch (error) {
+      } catch (_error) {
       }
     };
     

@@ -71,7 +71,7 @@ const ExpenseGroupForm: React.FC<ExpenseGroupFormProps> = ({
       setLoading(true);
       const friendsList = await getFriends();
       setFriends(friendsList);
-    } catch (error) {
+    } catch (_error) {
       setError('無法加載好友列表');
     } finally {
       setLoading(false);
@@ -210,11 +210,7 @@ const ExpenseGroupForm: React.FC<ExpenseGroupFormProps> = ({
       
       // 清理數據中的所有undefined值
       const cleanedData = cleanUndefinedValues(groupData);
-      
-        if (value === undefined) return '<<undefined>>';
-        return value;
-      }));
-      
+
       // 創建群組文檔 - 只包含當前用戶作為成員
       const groupRef = await addDoc(collection(db, 'expenseGroups'), cleanedData);
       

@@ -23,18 +23,17 @@ import '@fontsource/quicksand'
 // 這裡刪除舊的ErrorBoundary類，使用從組件導入的版本
 
 // 處理未捕獲的錯誤
-window.addEventListener('error', (event) => {
-  
+window.addEventListener('error', (_event) => {
   // 儲存當前狀態
   try {
     localStorage.setItem('app_crashed', 'true');
     localStorage.setItem('crash_time', new Date().toISOString());
-  } catch (e) {
+  } catch (_e) {
   }
 });
 
 // 處理未處理的Promise錯誤
-window.addEventListener('unhandledrejection', (event) => {
+window.addEventListener('unhandledrejection', (_event) => {
 });
 
 // 增強數據備份與恢復邏輯
@@ -76,32 +75,31 @@ window.addEventListener('beforeunload', () => {
         // 創建一個應急備份
         localStorage.setItem(`last_userState_${userId}`, currentExpenses);
       }
-    } catch (error) {
+    } catch (_error) {
     }
   }
 });
 
 // 應用崩潰防護機制
-window.addEventListener('error', (event) => {
-  
+window.addEventListener('error', (_event) => {
   // 獲取當前用戶ID
   const auth = getAuth();
   const currentUser = auth.currentUser;
-  
+
   if (currentUser && currentUser.uid) {
     try {
       // 標記故障發生
       localStorage.setItem('app_crashed', 'true');
-      
+
       // 觸發額外備份
       const userId = currentUser.uid;
       const currentExpenses = localStorage.getItem(`expenses_${userId}`);
-      
+
       if (currentExpenses) {
         // 創建額外的崩潰備份
         localStorage.setItem(`crash_backup_${userId}`, currentExpenses);
       }
-    } catch (error) {
+    } catch (_error) {
       // 即使這裡出錯也不要阻止應用繼續運行
     }
   }

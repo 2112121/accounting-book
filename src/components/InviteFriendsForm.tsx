@@ -62,19 +62,20 @@ const InviteFriendsForm: React.FC<InviteFriendsFormProps> = ({
         
         setExistingMembers(memberIds);
       }
-    } catch (error) {
+    } catch (_error) {
+      // ignore
     } finally {
       setLoading(false);
     }
   };
-  
+
   // 加載好友列表
   const loadFriends = async () => {
     try {
       setLoading(true);
       const friendsList = await getFriends();
       setFriends(friendsList);
-    } catch (error) {
+    } catch (_error) {
       setError('無法加載好友列表');
     } finally {
       setLoading(false);

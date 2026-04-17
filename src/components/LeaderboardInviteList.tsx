@@ -26,7 +26,7 @@ const LeaderboardInviteList: React.FC<LeaderboardInviteListProps> = ({ onClose }
       setError(null);
       const invitesList = await getLeaderboardInvites();
       setInvites(invitesList);
-    } catch (err) {
+    } catch (_err) {
       setError('獲取排行榜邀請時出錯，請稍後再試');
     } finally {
       setLoading(false);

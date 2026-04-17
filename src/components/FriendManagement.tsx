@@ -68,7 +68,7 @@ const FriendManagement: React.FC<FriendManagementProps> = ({ onClose }) => {
       setLoading(true);
       const friendsList = await getFriends();
       setFriends(friendsList);
-    } catch (error) {
+    } catch (_error) {
       setError('載入好友列表失敗');
     } finally {
       setLoading(false);
@@ -81,7 +81,8 @@ const FriendManagement: React.FC<FriendManagementProps> = ({ onClose }) => {
     try {
       const requests = await getFriendRequests();
       setFriendRequests(requests);
-    } catch (error) {
+    } catch (_error) {
+      // ignore
     }
   };
 
@@ -96,7 +97,8 @@ const FriendManagement: React.FC<FriendManagementProps> = ({ onClose }) => {
       for (const request of requests) {
         getRecipientInfo(request.to);
       }
-    } catch (error) {
+    } catch (_error) {
+      // ignore
     }
   };
 
@@ -121,7 +123,8 @@ const FriendManagement: React.FC<FriendManagementProps> = ({ onClose }) => {
           }
         }));
       }
-    } catch (error) {
+    } catch (_error) {
+      // ignore
     }
   };
 
@@ -211,13 +214,13 @@ const FriendManagement: React.FC<FriendManagementProps> = ({ onClose }) => {
       setLoading(true);
       await acceptFriendRequest(requestId);
       setSuccess('已接受好友請求');
-      
+
       // 更新好友請求列表和好友列表
       loadFriendRequests();
       loadFriends();
-      
+
       setTimeout(() => setSuccess(''), 3000);
-    } catch (error) {
+    } catch (_error) {
       setError('接受好友請求失敗');
     } finally {
       setLoading(false);
@@ -235,7 +238,7 @@ const FriendManagement: React.FC<FriendManagementProps> = ({ onClose }) => {
       
       setSuccess('已拒絕好友請求');
       setTimeout(() => setSuccess(''), 3000);
-    } catch (error) {
+    } catch (_error) {
       setError('拒絕好友請求失敗');
     } finally {
       setLoading(false);
@@ -254,7 +257,7 @@ const FriendManagement: React.FC<FriendManagementProps> = ({ onClose }) => {
         
         setSuccess('好友已移除');
         setTimeout(() => setSuccess(''), 3000);
-      } catch (error) {
+      } catch (_error) {
         setError('移除好友失敗');
       } finally {
         setLoading(false);
@@ -267,7 +270,7 @@ const FriendManagement: React.FC<FriendManagementProps> = ({ onClose }) => {
     navigator.clipboard.writeText(myFriendCode).then(() => {
       setSuccess('好友碼已複製到剪貼簿');
       setTimeout(() => setSuccess(''), 3000);
-    }, (err) => {
+    }, (_err) => {
       setError('複製失敗，請手動複製');
     });
   };

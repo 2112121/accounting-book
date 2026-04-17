@@ -19,7 +19,7 @@ export class ErrorBoundary extends Component<Props, State> {
     return { hasError: true, error };
   }
 
-  componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
+  componentDidCatch(error: Error, _errorInfo: ErrorInfo): void {
     
     // 觸發全局錯誤事件，以便main.tsx中的錯誤處理器可以創建數據備份
     const errorEvent = new ErrorEvent('error', {

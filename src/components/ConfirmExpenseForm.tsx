@@ -222,9 +222,8 @@ const ConfirmExpenseForm: React.FC<ConfirmExpenseFormProps> = ({
           
           return;
         }
-      } else {
       }
-      
+
       // 如果在expenseGroups找不到，嘗試從splitTransactions集合中查找
       const splitRef = doc(db, 'splitTransactions', groupId);
       const splitSnapshot = await getDoc(splitRef);
@@ -257,9 +256,8 @@ const ConfirmExpenseForm: React.FC<ConfirmExpenseFormProps> = ({
           
           return;
         }
-      } else {
       }
-      
+
       // 如果從群組文檔無法獲取，嘗試從群組支出集合中推斷
       const expensesRef = collection(db, 'groupExpenses');
       const q = query(expensesRef, where('groupId', '==', groupId), limit(5));
@@ -320,9 +318,8 @@ const ConfirmExpenseForm: React.FC<ConfirmExpenseFormProps> = ({
             return;
           }
         }
-      } else {
       }
-      
+
       // 如果還是無法獲取成員，嘗試用當前用戶作為第一個成員
       if (currentUser) {
         setMembers([{
@@ -339,7 +336,7 @@ const ConfirmExpenseForm: React.FC<ConfirmExpenseFormProps> = ({
         // 最後的後備方案
         setError('無法載入分帳群組成員。請檢查群組設置或重新登入。');
       }
-    } catch (err) {
+    } catch (_err) {
       setError('加載分帳群組成員時發生錯誤，請稍後再試。');
     }
   };
@@ -664,20 +661,9 @@ const ConfirmExpenseForm: React.FC<ConfirmExpenseFormProps> = ({
         const isPercentageValid = Math.abs(totalPercentage - 100) < 1;  // 允許1%以内的誤差
         setValidSplitAmount(isPercentageValid && isAmountValid);
       
-        // 診斷日誌
-          totalPercentage, 
-          totalSplitAmount, 
-          targetAmount, 
-          remaining, 
-          isPercentageValid, 
-          isAmountValid,
-          finalValid: isPercentageValid && isAmountValid
-        });
       }
     } else {
       setValidSplitAmount(isAmountValid);
-      
-      // 診斷日誌
     }
   }, [members, multipleSelection, totalAmount, selectedExpense, splitMethod, error]);
   

@@ -66,9 +66,10 @@ const GroupExpenseForm: React.FC<GroupExpenseFormProps> = ({
         try {
           const groupRef = doc(db, 'expenseGroups', groupId);
           groupDoc = await getDoc(groupRef);
-        } catch (error) {
+        } catch (_error) {
+          // ignore, fallback below
         }
-        
+
         // 如果 expenseGroups 中找不到，嘗試從 splitTransactions 集合中加載
         if (!groupDoc || !groupDoc.exists()) {
           const splitRef = doc(db, 'splitTransactions', groupId);
@@ -100,14 +101,13 @@ const GroupExpenseForm: React.FC<GroupExpenseFormProps> = ({
             const userMember = groupMembers.find((member: GroupMember) => member.userId === currentUser.uid);
             if (userMember) {
               setCurrentUserInfo(userMember);
-            } else {
             }
           }
           
         } else {
           setError('無法找到群組資訊');
         }
-      } catch (error) {
+      } catch (_error) {
         setError('無法加載群組資訊');
       }
     };
@@ -210,12 +210,7 @@ const GroupExpenseForm: React.FC<GroupExpenseFormProps> = ({
       
       // 清理數據中的undefined值
       const cleanedData = cleanUndefinedValues(expenseData);
-      
-      // 記錄準備保存的數據，檢查是否有 undefined 值
-        if (value === undefined) return '<<undefined>>';
-        return value;
-      }));
-      
+
       try {
         // 檢查資料庫連接狀態
         
@@ -244,12 +239,12 @@ const GroupExpenseForm: React.FC<GroupExpenseFormProps> = ({
           setDate(new Date());
         }
         
-      } catch (dbError) {
+      } catch (_dbError) {
         setError('儲存支出記錄失敗，請稍後再試');
         setLoading(false);
       }
-      
-    } catch (error) {
+
+    } catch (_error) {
       setError('無法處理支出，請稍後再試');
       setLoading(false);
     } finally {

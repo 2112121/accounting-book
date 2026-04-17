@@ -76,10 +76,7 @@ const LeaderboardForm: React.FC<LeaderboardFormProps> = ({ onClose }) => {
   // 使用 useEffect 監聽事件
   useEffect(() => {
     // 統一的處理函數，無論通過哪種事件觸發
-    const handleReturnToManager = (event?: Event) => {
-        "LeaderboardForm 準備顯示排行榜管理頁面",
-        event?.type || "手動調用",
-      );
+    const handleReturnToManager = (_event?: Event) => {
 
       // 確保返回到排行榜列表視圖
       setActiveTab("leaderboards");
@@ -106,8 +103,6 @@ const LeaderboardForm: React.FC<LeaderboardFormProps> = ({ onClose }) => {
 
       // 檢查是否有全局標誌需要顯示排行榜管理
       if ((window as any).__shouldShowLeaderboardManager) {
-          "檢測到全局標誌__shouldShowLeaderboardManager，執行返回操作",
-        );
         handleReturnToManager();
         // 清除標誌
         (window as any).__shouldShowLeaderboardManager = false;

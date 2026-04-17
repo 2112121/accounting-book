@@ -340,12 +340,7 @@ const BudgetProgressBars: React.FC = () => {
       
       if (budgetDoc.exists()) {
         const data = budgetDoc.data();
-          有budgetItems: !!data.budgetItems, 
-          有simplifiedItems: !!data.simplifiedItems,
-          項目數量: data.budgetItems?.length || data.simplifiedItems?.length || 0,
-          是否有舊版格式: !data.budgetItems && !data.simplifiedItems && !!data.period
-        });
-        
+
         // 獲取預算項目
         let items: BudgetItem[] = [];
         
@@ -654,12 +649,6 @@ const BudgetProgressBars: React.FC = () => {
         };
         
         return expense;
-      });
-      
-      // 輸出類別統計信息
-        總處理數量: categoryStats.totalProcessed,
-        格式統計: categoryStats.byFormat,
-        類別分布: categoryStats.byCategory
       });
       
       setExpenses(expensesData);

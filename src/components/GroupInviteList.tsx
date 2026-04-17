@@ -84,7 +84,7 @@ const GroupInviteList: React.FC<GroupInviteListProps> = ({ onClose }) => {
       });
       
       setInvites(invitesList);
-    } catch (err) {
+    } catch (_err) {
       setError('獲取邀請時出錯，請稍後再試');
     } finally {
       setLoading(false);
@@ -108,8 +108,8 @@ const GroupInviteList: React.FC<GroupInviteListProps> = ({ onClose }) => {
         throw new Error('邀請不存在');
       }
       
-      const inviteData = inviteDoc.data();
-      
+      const _inviteData = inviteDoc.data();
+
       // 獲取群組文檔
       const groupRef = doc(db, 'expenseGroups', groupId);
       const groupDoc = await getDoc(groupRef);
@@ -199,7 +199,7 @@ const GroupInviteList: React.FC<GroupInviteListProps> = ({ onClose }) => {
       // 更新邀請列表
       setInvites(prev => prev.filter(invite => invite.id !== inviteId));
       setSuccessMessage(`已拒絕加入「${groupName}」分帳群組`);
-    } catch (err) {
+    } catch (_err) {
       setError('拒絕邀請時出錯，請稍後再試');
     } finally {
       // 移除處理中標記
