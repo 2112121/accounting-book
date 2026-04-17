@@ -1,5 +1,5 @@
 ﻿// The exported code uses Tailwind CSS. Install Tailwind CSS in your dev environment to ensure all styles work.
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import * as echarts from "echarts";
 import ExpenseForm from "./components/ExpenseForm";
 import LoginForm from "./components/LoginForm";
@@ -54,62 +54,89 @@ interface Expense {
   recurringEndDate?: string;
 }
 
-const App: React.FC = () => {
-  const formatDateKey = (date: Date) => {
-    const normalized = new Date(date);
-    normalized.setHours(0, 0, 0, 0);
-    return `${normalized.getFullYear()}-${String(normalized.getMonth() + 1).padStart(2, "0")}-${String(normalized.getDate()).padStart(2, "0")}`;
-  };
+interface LoanNotificationItem {
+  id: string;
+  loanType?: "lend" | "borrow" | string;
+  counterpartyName?: string;
+  amount?: number;
+  dueDate?: Timestamp;
+  read?: boolean;
+}
 
-  const getLastDayOfMonth = (year: number, monthIndex: number) =>
-    new Date(year, monthIndex + 1, 0).getDate();
+interface LeaderboardEndedNotificationItem {
+  id: string;
+  read?: boolean;
+}
 
-  const getNextRecurringDate = (
-    from: Date,
-    period: "daily" | "weekly" | "monthly" | "yearly",
-    anchorDateValue?: string | Date,
-  ): Date => {
-    const baseDate = new Date(from);
-    baseDate.setHours(0, 0, 0, 0);
+interface AxisTooltipParam {
+  axisValue: string;
+  data?: number;
+  value?: number | string;
+}
 
-    const anchorDate = anchorDateValue ? new Date(anchorDateValue) : new Date(baseDate);
-    anchorDate.setHours(0, 0, 0, 0);
+declare global {
+  interface Window {
+    initializeAppData?: () => Promise<void>;
+    __shouldShowLeaderboardManager?: boolean;
+  }
+}
 
-    if (period === "daily") {
-      const next = new Date(baseDate);
-      next.setDate(next.getDate() + 1);
-      return next;
-    }
+const formatDateKey = (date: Date) => {
+  const normalized = new Date(date);
+  normalized.setHours(0, 0, 0, 0);
+  return `${normalized.getFullYear()}-${String(normalized.getMonth() + 1).padStart(2, "0")}-${String(normalized.getDate()).padStart(2, "0")}`;
+};
 
-    if (period === "weekly") {
-      const next = new Date(baseDate);
-      next.setDate(next.getDate() + 7);
-      return next;
-    }
+const getLastDayOfMonth = (year: number, monthIndex: number) =>
+  new Date(year, monthIndex + 1, 0).getDate();
 
-    if (period === "monthly") {
-      const targetMonthIndex = baseDate.getMonth() + 1;
-      const targetYear = baseDate.getFullYear() + Math.floor(targetMonthIndex / 12);
-      const normalizedMonthIndex = targetMonthIndex % 12;
-      const targetDay = Math.min(
-        anchorDate.getDate(),
-        getLastDayOfMonth(targetYear, normalizedMonthIndex),
-      );
-      return new Date(targetYear, normalizedMonthIndex, targetDay);
-    }
+const getNextRecurringDate = (
+  from: Date,
+  period: "daily" | "weekly" | "monthly" | "yearly",
+  anchorDateValue?: string | Date,
+): Date => {
+  const baseDate = new Date(from);
+  baseDate.setHours(0, 0, 0, 0);
 
-    const targetYear = baseDate.getFullYear() + 1;
-    const targetMonthIndex = anchorDate.getMonth();
+  const anchorDate = anchorDateValue ? new Date(anchorDateValue) : new Date(baseDate);
+  anchorDate.setHours(0, 0, 0, 0);
+
+  if (period === "daily") {
+    const next = new Date(baseDate);
+    next.setDate(next.getDate() + 1);
+    return next;
+  }
+
+  if (period === "weekly") {
+    const next = new Date(baseDate);
+    next.setDate(next.getDate() + 7);
+    return next;
+  }
+
+  if (period === "monthly") {
+    const targetMonthIndex = baseDate.getMonth() + 1;
+    const targetYear = baseDate.getFullYear() + Math.floor(targetMonthIndex / 12);
+    const normalizedMonthIndex = targetMonthIndex % 12;
     const targetDay = Math.min(
       anchorDate.getDate(),
-      getLastDayOfMonth(targetYear, targetMonthIndex),
+      getLastDayOfMonth(targetYear, normalizedMonthIndex),
     );
-    return new Date(targetYear, targetMonthIndex, targetDay);
-  };
+    return new Date(targetYear, normalizedMonthIndex, targetDay);
+  }
 
-  const buildRecurringExpenseDocId = (recurringRuleId: string, date: Date) =>
-    `recurring_${recurringRuleId}_${formatDateKey(date)}`;
+  const targetYear = baseDate.getFullYear() + 1;
+  const targetMonthIndex = anchorDate.getMonth();
+  const targetDay = Math.min(
+    anchorDate.getDate(),
+    getLastDayOfMonth(targetYear, targetMonthIndex),
+  );
+  return new Date(targetYear, targetMonthIndex, targetDay);
+};
 
+const buildRecurringExpenseDocId = (recurringRuleId: string, date: Date) =>
+  `recurring_${recurringRuleId}_${formatDateKey(date)}`;
+
+const App: React.FC = () => {
   const [showExpenseForm, setShowExpenseForm] = useState(false);
   const [showLoginForm, setShowLoginForm] = useState(false);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
@@ -123,10 +150,10 @@ const App: React.FC = () => {
   const [showLeaderboardViewer, setShowLeaderboardViewer] = useState(false);
   const [notificationCount, setNotificationCount] = useState(0);
   const [leaderboardEndedNotifications, setLeaderboardEndedNotifications] =
-    useState<any[]>([]);
+    useState<LeaderboardEndedNotificationItem[]>([]);
   // 添加借貸到期通知狀態
-  const [loanDueNotifications, setLoanDueNotifications] = useState<any[]>([]);
-  const [loanOverdueNotifications, setLoanOverdueNotifications] = useState<any[]>([]);
+  const [loanDueNotifications, setLoanDueNotifications] = useState<LoanNotificationItem[]>([]);
+  const [loanOverdueNotifications, setLoanOverdueNotifications] = useState<LoanNotificationItem[]>([]);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null); // 正在編輯的支出
   const [successMessage, setSuccessMessage] = useState("記帳成功！"); // 自定義成功訊息
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null); // 選中的支出類別
@@ -371,7 +398,7 @@ const chartRef = useRef<HTMLDivElement>(null);
   }, [selectedDateOption]);
 
   // 圓餅圖初始化函數 - 移到useEffect外部
-  const createEmptyPieChart = () => {
+  const createEmptyPieChart = useCallback(() => {
 
     if (!chartRef.current) {
       return;
@@ -447,10 +474,10 @@ const chartRef = useRef<HTMLDivElement>(null);
       chart.setOption(option);
       chartInstanceRef.current = chart;
     } catch (_e) { /* noop */ }
-  };
+  }, []);
 
   // 簡化圓餅圖初始化流程，確保圖表能夠顯示
-  const initPieChart = () => {
+  const initPieChart = useCallback(() => {
 
     if (!chartRef.current) {
       return;
@@ -705,7 +732,7 @@ const chartRef = useRef<HTMLDivElement>(null);
       // 出錯時顯示空圖表
       createEmptyPieChart();
     }
-  };
+  }, [createEmptyPieChart, expenses, pieChartMode, pieChartMonth]);
 
   // 修改重置函數，確保圖表重置時保留圖例選擇狀態
   const resetCategorySelection = () => {
@@ -744,7 +771,7 @@ const chartRef = useRef<HTMLDivElement>(null);
   };
 
   // 每日趨勢圖初始化函數 - 移到useEffect外部
-  const createEmptyDailyChart = () => {
+  const createEmptyDailyChart = useCallback(() => {
     if (!dailyChartRef.current) {
       return;
     }
@@ -765,7 +792,7 @@ const chartRef = useRef<HTMLDivElement>(null);
         // 刪除標題配置
         tooltip: {
           trigger: "axis",
-          formatter: function (params: any) {
+          formatter: function (params: AxisTooltipParam[]) {
             return `${params[0].axisValue}<br/>支出金額: NT$${params[0].data}`;
           },
           confine: true,
@@ -810,10 +837,10 @@ const chartRef = useRef<HTMLDivElement>(null);
       // 設置實例後再保存
       setDailyChartInstance(chart);
     } catch (_e) { /* noop */ }
-  };
+  }, [dailyChartInstance]);
 
   // 每日趨勢圖初始化函數
-  const initDailyChart = () => {
+  const initDailyChart = useCallback(() => {
 
     if (!dailyChartRef.current) {
       return;
@@ -904,7 +931,7 @@ const chartRef = useRef<HTMLDivElement>(null);
         // 刪除標題配置
         tooltip: {
           trigger: "axis",
-          formatter: function (params: any) {
+          formatter: function (params: AxisTooltipParam[]) {
             const value = params[0].value;
             return `${params[0].axisValue}<br/>支出金額: NT$${value}`;
           },
@@ -953,7 +980,7 @@ const chartRef = useRef<HTMLDivElement>(null);
       // 出錯時顯示空圖表
       createEmptyDailyChart();
     }
-  };
+  }, [createEmptyDailyChart, dailyChartInstance, expenses]);
 
   // 完全重寫的數據初始化邏輯
   useEffect(() => {
@@ -1117,7 +1144,7 @@ const chartRef = useRef<HTMLDivElement>(null);
     };
 
     // 使initializeAppData可以在組件內部調用
-    (window as any).initializeAppData = initializeAppData;
+    window.initializeAppData = initializeAppData;
 
     // 執行初始化
         if (currentUser) {
@@ -1146,7 +1173,7 @@ const chartRef = useRef<HTMLDivElement>(null);
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [currentUser]);
+  }, [currentUser, initDailyChart, initPieChart]);
 
   // 當用戶未登入時，自動顯示登入界面
   useEffect(() => {
@@ -1156,7 +1183,7 @@ const chartRef = useRef<HTMLDivElement>(null);
       // 當用戶登入成功後，關閉登入表單
       setShowLoginForm(false);
     }
-  }, [currentUser]);
+  }, [currentUser, initDailyChart, initPieChart]);
 
   // 根據類別獲取對應的圖標
   const getCategoryIcon = (category: string): string => {
@@ -1336,7 +1363,7 @@ const chartRef = useRef<HTMLDivElement>(null);
         handleForceDataRecovery,
       );
     };
-  }, [currentUser]);
+  }, [currentUser, initDailyChart, initPieChart]);
 
   // 啟動時自動補產定期支出帳目
   useEffect(() => {
@@ -1419,7 +1446,10 @@ const chartRef = useRef<HTMLDivElement>(null);
             nextDate > recurringEndDate;
 
           if (latestGenerated > lastDate || shouldDeactivate) {
-            const updatePayload: Record<string, any> = {};
+            const updatePayload: Partial<{
+              lastGeneratedDate: string;
+              isActive: boolean;
+            }> = {};
 
             if (latestGenerated > lastDate) {
               updatePayload.lastGeneratedDate = formatDateKey(latestGenerated);
@@ -2149,7 +2179,7 @@ const chartRef = useRef<HTMLDivElement>(null);
       window.removeEventListener("resize", handleResize);
       window.removeEventListener("expenses-changed", handleExpensesChanged);
     };
-  }, [expenses, pieChartMode, pieChartMonth]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [initPieChart]);
 
   // 追蹤上一個 selectedCategory，用來判斷容器寬度是否真的改變
   const prevSelectedCategoryRef = useRef<string | null>(undefined as unknown as null);
@@ -2218,7 +2248,7 @@ const chartRef = useRef<HTMLDivElement>(null);
       window.removeEventListener("resize", handleResize);
       window.removeEventListener("expenses-changed", handleExpensesChanged);
     };
-  }, [expenses, dailyChartRef.current]);
+  }, [dailyChartInstance, initDailyChart]);
 
   // 篩選當前選中日期的消費 - 完全重寫確保日期比較正確
   const getFilteredExpenses = () => {
@@ -2355,7 +2385,7 @@ const chartRef = useRef<HTMLDivElement>(null);
           );
 
           const notificationsSnapshot = await getDocs(q);
-          const endedNotifications: any[] = [];
+          const endedNotifications: LeaderboardEndedNotificationItem[] = [];
 
           notificationsSnapshot.forEach((doc) => {
             endedNotifications.push({
@@ -2375,7 +2405,7 @@ const chartRef = useRef<HTMLDivElement>(null);
           );
           
           const loanDueSnapshot = await getDocs(loanDueQuery);
-          const dueNotifications: any[] = [];
+          const dueNotifications: LoanNotificationItem[] = [];
           
           loanDueSnapshot.forEach((doc) => {
             dueNotifications.push({
@@ -2395,7 +2425,7 @@ const chartRef = useRef<HTMLDivElement>(null);
           );
           
           const loanOverdueSnapshot = await getDocs(loanOverdueQuery);
-          const overdueNotifications: any[] = [];
+          const overdueNotifications: LoanNotificationItem[] = [];
           
           loanOverdueSnapshot.forEach((doc) => {
             overdueNotifications.push({
@@ -2467,9 +2497,9 @@ const chartRef = useRef<HTMLDivElement>(null);
     // 檢查是否有全局變量標記
     if (
       typeof window !== "undefined" &&
-      (window as any).__shouldShowLeaderboardManager
+      window.__shouldShowLeaderboardManager
     ) {
-      (window as any).__shouldShowLeaderboardManager = false;
+      window.__shouldShowLeaderboardManager = false;
     }
 
     setShowLeaderboardForm(true);
@@ -4469,8 +4499,8 @@ const chartRef = useRef<HTMLDivElement>(null);
                                 {notification.loanType === 'lend' ? '借出給' : '借入自'} {notification.counterpartyName}
                               </div>
                               <div className="text-xs text-gray-500">
-                                金額: {formatAmount(notification.amount)} | 
-                                到期日: {new Date(notification.dueDate.seconds * 1000).toLocaleDateString()}
+                                金額: {formatAmount(notification.amount ?? 0)} | 
+                                到期日: {notification.dueDate ? new Date(notification.dueDate.seconds * 1000).toLocaleDateString() : "未設定"}
                               </div>
                             </div>
                             <button
@@ -4536,8 +4566,8 @@ const chartRef = useRef<HTMLDivElement>(null);
                                 {notification.loanType === 'lend' ? '借出給' : '借入自'} {notification.counterpartyName}
                               </div>
                               <div className="text-xs text-gray-500">
-                                金額: {formatAmount(notification.amount)} | 
-                                到期日: {new Date(notification.dueDate.seconds * 1000).toLocaleDateString()}
+                                金額: {formatAmount(notification.amount ?? 0)} | 
+                                到期日: {notification.dueDate ? new Date(notification.dueDate.seconds * 1000).toLocaleDateString() : "未設定"}
                               </div>
                             </div>
                             <button

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+﻿import React, { useEffect, useState } from "react";
 import {
   addDoc,
   collection,
@@ -477,7 +477,7 @@ const RecurringExpenseManagement: React.FC<RecurringExpenseManagementProps> = ({
                     </div>
                     <p className="mt-2 text-sm text-gray-600">
                       開始日：{rule.startDate}
-                      {rule.endDate ? `　結束日：${rule.endDate}` : "　無結束日"}
+                      {rule.endDate ? ` 結束日：${rule.endDate}` : " 無結束日"}
                     </p>
                     <p className="mt-1 text-sm text-gray-600">
                       下次將產生：{renderNextDueDate(rule)}
@@ -503,3 +503,4 @@ const RecurringExpenseManagement: React.FC<RecurringExpenseManagementProps> = ({
 };
 
 export default RecurringExpenseManagement;
+
