@@ -474,7 +474,7 @@ const BudgetProgressBars: React.FC = () => {
         setBudgetItems([]);
       }
     } catch (_err) {
-      throw err;
+      throw _err;
     }
   };
   
@@ -649,7 +649,7 @@ const BudgetProgressBars: React.FC = () => {
       
       setExpenses(expensesData);
     } catch (_err) {
-      throw err;
+      throw _err;
     }
   };
   

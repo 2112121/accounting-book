@@ -216,7 +216,7 @@ const LoanManagement: React.FC<LoanManagementProps> = ({ onClose, initialParams 
       setInitialFormValues(null); // 清除初始值
       loadLoans();
     } catch (_error) {
-      throw error;
+      throw _error;
     }
   };
   
@@ -280,7 +280,7 @@ const LoanManagement: React.FC<LoanManagementProps> = ({ onClose, initialParams 
       // 如果還款後狀態變為已還清，更新逾期借貸數
       updateOverdueLoansCount();
     } catch (_error) {
-      throw error;
+      throw _error;
     }
   };
   

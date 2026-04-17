@@ -741,7 +741,7 @@ const LeaderboardForm: React.FC<LeaderboardFormProps> = ({ onClose }) => {
           setCustomEndDate(new Date());
         } catch (_error) {
           setError(
-            `創建排行榜失敗: ${error instanceof Error ? error.message : "未知錯誤"}`,
+            `創建排行榜失敗: ${_error instanceof Error ? _error.message : "未知錯誤"}`,
           );
           setIsLoading(false);
           return;
@@ -810,7 +810,7 @@ const LeaderboardForm: React.FC<LeaderboardFormProps> = ({ onClose }) => {
             return friend.nickname; // 返回成功邀請的好友暱稱
           } catch (_error) {
             throw new Error(
-              `發送邀請給 ${friend.nickname} 失敗: ${error instanceof Error ? error.message : "未知錯誤"}`,
+              `發送邀請給 ${friend.nickname} 失敗: ${_error instanceof Error ? _error.message : "未知錯誤"}`,
             );
           }
         });
@@ -828,7 +828,7 @@ const LeaderboardForm: React.FC<LeaderboardFormProps> = ({ onClose }) => {
       );
     } catch (_error) {
       setError(
-        `發送邀請失敗: ${error instanceof Error ? error.message : "未知錯誤"}`,
+        `發送邀請失敗: ${_error instanceof Error ? _error.message : "未知錯誤"}`,
       );
     } finally {
       setIsLoading(false);

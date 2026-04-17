@@ -205,7 +205,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       return userCredential.user;
     } catch (_error) {
       // 重新拋出錯誤給調用者處理
-      throw error;
+      throw _error;
     }
   }
 
@@ -214,7 +214,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     try {
       await signOut(auth);
     } catch (_error) {
-      throw error;
+      throw _error;
     }
   }
 
@@ -385,7 +385,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       await Promise.all(updatePromises);
       
     } catch (_error) {
-      throw error;
+      throw _error;
     }
   }
   
@@ -425,7 +425,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       return downloadURL;
       */
     } catch (_error) {
-      throw new Error(`更新頭像失敗: ${error instanceof Error ? error.message : '未知錯誤'}`);
+      throw new Error(`更新頭像失敗: ${_error instanceof Error ? _error.message : '未知錯誤'}`);
     }
   }
   
@@ -992,7 +992,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       
       return results;
     } catch (_error) {
-      throw error;
+      throw _error;
     }
   }
 
@@ -1392,7 +1392,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       
       return invites;
     } catch (_error) {
-      throw error;
+      throw _error;
     }
   }
 
@@ -1456,7 +1456,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       });
       
     } catch (_error) {
-      throw error;
+      throw _error;
     }
   }
 
@@ -1486,7 +1486,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       });
       
     } catch (_error) {
-      throw error;
+      throw _error;
     }
   }
 
@@ -1537,7 +1537,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       await updateLeaderboardMemberExpenses(leaderboard);
       
     } catch (_error) {
-      throw error;
+      throw _error;
     }
   }
 
@@ -1571,7 +1571,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setUserProfileColor(colorCode);
       
     } catch (_error) {
-      throw error;
+      throw _error;
     }
   }
 

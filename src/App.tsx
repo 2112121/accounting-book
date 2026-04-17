@@ -980,8 +980,8 @@ const chartRef = useRef<HTMLDivElement>(null);
 
       } catch (_error) {
         // 顯示更詳細的錯誤信息
-        if (error instanceof Error) {
-          setError(`讀取消費明細失敗: ${error.message}`);
+        if (_error instanceof Error) {
+          setError(`讀取消費明細失敗: ${_error.message}`);
         } else {
           setError("讀取消費明細失敗，請檢查控制檯日誌");
         }
@@ -1615,7 +1615,8 @@ const chartRef = useRef<HTMLDivElement>(null);
           });
           
           const leaderboardDocs = await Promise.all(leaderboardPromises);
-          
+          let updatedLeaderboardCount = 0;
+
           // 篩選出進行中的排行榜並立即更新
           const now = new Date();
           const expenseDate = expenseData.date instanceof Timestamp 
@@ -1692,12 +1693,12 @@ const chartRef = useRef<HTMLDivElement>(null);
 
           return { docId: expenseRef.id, splitDocId };
         } catch (_error) {
-          throw error; // 重新拋出以便外部捕獲
+          throw _error; // 重新拋出以便外部捕獲
         }
       });
       return result;
     } catch (_error) {
-      throw error; // 重新拋出以便外部捕獲和處理
+      throw _error; // 重新拋出以便外部捕獲和處理
     }
   };
 
@@ -2098,6 +2099,8 @@ useEffect(() => {
       const firstDayOfLastWeek = new Date(today);
       firstDayOfLastWeek.setDate(today.getDate() - (currentDay - 1) - 7);
       firstDayOfLastWeek.setHours(0, 0, 0, 0);
+      const lastDayOfLastWeek = new Date(firstDayOfLastWeek);
+      lastDayOfLastWeek.setDate(firstDayOfLastWeek.getDate() + 6);
       lastDayOfLastWeek.setHours(23, 59, 59, 999);
 
       return expenses.filter(expense => {

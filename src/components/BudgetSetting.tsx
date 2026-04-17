@@ -411,7 +411,7 @@ const BudgetSetting: React.FC<BudgetSettingProps> = ({ onClose }) => {
       }, 3000);
     } catch (_error) {
       // 拋出錯誤而不是設置錯誤狀態，這樣調用方可以處理錯誤
-      throw error;
+      throw _error;
     } finally {
       setLoading(false);
     }
@@ -816,8 +816,8 @@ const BudgetSetting: React.FC<BudgetSettingProps> = ({ onClose }) => {
       // 根據錯誤類型提供更具體的錯誤訊息
       let errorMessage = '無法保存預算設置，請稍後再試。';
       
-      if (error instanceof Error) {
-        const errorText = error.message.toLowerCase();
+      if (_error instanceof Error) {
+        const errorText = _error.message.toLowerCase();
         
         if (errorText.includes('permission-denied')) {
           errorMessage = '權限不足，無法保存預算設置。請確保您已登入並重新整理頁面後再試。';
@@ -840,7 +840,7 @@ const BudgetSetting: React.FC<BudgetSettingProps> = ({ onClose }) => {
         } else if (errorText.includes('aborted')) {
           errorMessage = '操作被中止，請再試一次。';
         } else {
-          errorMessage = `保存失敗: ${error.message}`;
+          errorMessage = `保存失敗: ${_error.message}`;
         }
       }
       
