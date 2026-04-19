@@ -269,29 +269,17 @@ const BudgetProgressBars: React.FC = () => {
       });
     };
 
-    // 監聽支出新增事件
-    const handleExpenseAdded = () => {
+    // 監聽支出變動事件（新增、刪除、更新）
+    const handleExpensesChanged = () => {
       loadExpenses().catch(() => { /* noop */ });
     };
 
-    // 也設置一個定時自動刷新，確保數據始終最新
-    const intervalId = setInterval(() => {
-      loadBudgetAndExpenses();
-    }, 60000); // 每分鐘刷新一次
-
-    // 添加事件監聽器
     window.addEventListener('refreshBudgetProgress', handleRefreshBudgetProgress);
-    window.addEventListener('expenseAdded', handleExpenseAdded);
-    window.addEventListener('expenseDeleted', handleExpenseAdded); // 使用相同的處理函數
-    window.addEventListener('expenseUpdated', handleExpenseAdded); // 使用相同的處理函數
-    
+    window.addEventListener('expenses-changed', handleExpensesChanged);
+
     return () => {
-      // 移除事件監聽器
       window.removeEventListener('refreshBudgetProgress', handleRefreshBudgetProgress);
-      window.removeEventListener('expenseAdded', handleExpenseAdded);
-      window.removeEventListener('expenseDeleted', handleExpenseAdded);
-      window.removeEventListener('expenseUpdated', handleExpenseAdded);
-      clearInterval(intervalId); // 清除定時器
+      window.removeEventListener('expenses-changed', handleExpensesChanged);
     };
   }, [currentUser]);
   
