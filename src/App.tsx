@@ -631,25 +631,21 @@ const chartRef = useRef<HTMLDivElement>(null);
           confine: true,
         },
         legend: {
-          // 當選中類別時，隱藏圖例
           show: true,
           orient: "horizontal",
           left: "center",
           bottom: 0,
-          padding: [8, 0, 0, 0],
-          itemWidth: 14,
-          itemHeight: 14,
-          itemGap: 20,
+          padding: [16, 0, 0, 0],
+          itemWidth: 12,
+          itemHeight: 12,
+          itemGap: 16,
           formatter: function (name: string) {
-            if (name.length > 4) {
-              return name.substring(0, 4) + "...";
-            }
             return name;
           },
           data: Object.keys(categorySum),
           textStyle: {
             color: "#6E6E6E",
-            fontSize: 12,
+            fontSize: 11,
           },
         },
         color: [
@@ -677,8 +673,8 @@ const chartRef = useRef<HTMLDivElement>(null);
           {
             name: "支出金額",
             type: "pie",
-            radius: ["30%", "60%"],
-            center: ["50%", "40%"],
+            radius: ["28%", "52%"],
+            center: ["50%", "36%"],
             avoidLabelOverlap: true,
             selectedMode: false,
             emphasis: {
@@ -692,14 +688,17 @@ const chartRef = useRef<HTMLDivElement>(null);
             },
             label: {
               show: true,
-              formatter: "{b}\n{d}%",
+              formatter: function(params: any) {
+                const pct = Math.round(params.percent * 10) / 10;
+                return `${params.name}\n${pct}%`;
+              },
               fontSize: 11,
             },
             labelLine: {
               show: true,
               smooth: true,
-              length: 15,
-              length2: 12,
+              length: 12,
+              length2: 10,
             },
             data: pieData,
             // 簡化餅圖動畫設置
@@ -3265,7 +3264,7 @@ const chartRef = useRef<HTMLDivElement>(null);
                   <div
                     ref={chartRef}
                     style={{
-                      height: "300px",
+                      height: "340px",
                       width: "100%",
                       display: "flex",
                       justifyContent: "center",
