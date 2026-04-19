@@ -167,6 +167,7 @@ const RecurringExpenseManagement: React.FC<RecurringExpenseManagementProps> = ({
   const [editValues, setEditValues] = useState<{
     amount: string; category: string; notes: string;
     period: RecurringPeriod; startDate: string; endDate: string;
+    originalLastGeneratedDate: string; originalStartDate: string; originalPeriod: RecurringPeriod;
   } | null>(null);
 
   const loadRules = async () => {
@@ -240,6 +241,9 @@ const RecurringExpenseManagement: React.FC<RecurringExpenseManagementProps> = ({
       period: rule.period,
       startDate: rule.startDate,
       endDate: rule.endDate || "",
+      originalLastGeneratedDate: rule.lastGeneratedDate,
+      originalStartDate: rule.startDate,
+      originalPeriod: rule.period,
     });
   };
 
@@ -271,7 +275,12 @@ const RecurringExpenseManagement: React.FC<RecurringExpenseManagementProps> = ({
     setSuccess("");
 
     try {
-      const previousOccurrence = getPreviousRecurringDate(editValues.startDate, editValues.period);
+      const startDateOrPeriodChanged =
+        editValues.startDate !== editValues.originalStartDate ||
+        editValues.period !== editValues.originalPeriod;
+      const lastGeneratedDate = startDateOrPeriodChanged
+        ? formatDateKey(getPreviousRecurringDate(editValues.startDate, editValues.period))
+        : editValues.originalLastGeneratedDate;
       await updateDoc(doc(db, "recurringExpenses", ruleId), {
         amount: numericAmount,
         category: editValues.category,
@@ -279,7 +288,7 @@ const RecurringExpenseManagement: React.FC<RecurringExpenseManagementProps> = ({
         period: editValues.period,
         startDate: editValues.startDate,
         endDate: editValues.endDate || null,
-        lastGeneratedDate: formatDateKey(previousOccurrence),
+        lastGeneratedDate,
         updatedAt: Timestamp.now(),
       });
 
