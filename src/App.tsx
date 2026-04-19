@@ -1523,12 +1523,6 @@ const chartRef = useRef<HTMLDivElement>(null);
         1500,
       );
 
-      // 非同步更新圖表
-      setTimeout(
-        () => window.dispatchEvent(new Event("expenses-changed")),
-        100,
-      );
-
       // 使用 Firestore 事務同步更新消費記錄和排行榜數據
       let savedExpenseId: string | null = null;
       try {
@@ -1674,6 +1668,8 @@ const chartRef = useRef<HTMLDivElement>(null);
         } catch (_recErr) { /* noop */ }
       }
 
+      // Firestore 寫入完成後才通知預算概覽更新
+      setTimeout(() => window.dispatchEvent(new Event("expenses-changed")), 200);
       return true;
     } catch (_error) {
       setError("添加支出失敗，請稍後再試");
@@ -2091,7 +2087,8 @@ const chartRef = useRef<HTMLDivElement>(null);
       
       // 重置編輯狀態
       setEditingExpense(null);
-      
+      // Firestore 寫入完成後才通知預算概覽更新
+      setTimeout(() => window.dispatchEvent(new Event("expenses-changed")), 200);
       return true;
     } catch (_error) {
       alert("更新支出記錄時出現錯誤，請稍後再試");
