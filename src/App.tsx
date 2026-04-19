@@ -1326,11 +1326,6 @@ const chartRef = useRef<HTMLDivElement>(null);
       } finally { /* noop */ }
     };
 
-    // 如果用戶已登入，執行數據恢復
-    if (currentUser) {
-      recoverDataAfterRefresh();
-    }
-
     // 監聽強制數據恢復事件
     const handleForceDataRecovery = () => {
       recoverDataAfterRefresh();
