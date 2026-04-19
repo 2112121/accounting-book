@@ -255,7 +255,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
       let additionalNote: string = "";
 
       if (selectedCurrency === "TWD") {
-        finalAmount = numAmount;
+        finalAmount = Math.round(numAmount);
       } else {
         // 確保有有效的轉換金額
         if (!convertedAmount) {
