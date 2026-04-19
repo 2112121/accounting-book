@@ -211,6 +211,38 @@ const RecurringExpenseManagement: React.FC<RecurringExpenseManagementProps> = ({
           return bTime - aTime;
         });
 
+      // 修復因編輯 bug 導致 lastGeneratedDate 被錯誤重置的規則
+      const today = formatDateKey(new Date());
+      const repairPromises = nextRules.map(async (rule) => {
+        const nextDue = formatDateKey(
+          getNextRecurringDate(new Date(rule.lastGeneratedDate), rule.period, rule.startDate)
+        );
+        // 只修復「下次產生日 <= 今天但規則起始日 <= 今天」且可能已有更新紀錄的規則
+        if (nextDue <= today) {
+          const expSnap = await getDocs(
+            query(
+              collection(db, "expenses"),
+              where("recurringRuleId", "==", rule.id),
+              where("userId", "==", currentUser.uid),
+            )
+          );
+          if (!expSnap.empty) {
+            const dates = expSnap.docs
+              .map((d) => d.data().recurringInstanceDate as string)
+              .filter(Boolean)
+              .sort();
+            const latestDate = dates[dates.length - 1];
+            if (latestDate && latestDate > rule.lastGeneratedDate) {
+              await updateDoc(doc(db, "recurringExpenses", rule.id), {
+                lastGeneratedDate: latestDate,
+              });
+              rule.lastGeneratedDate = latestDate;
+            }
+          }
+        }
+      });
+      await Promise.all(repairPromises);
+
       setRules(nextRules);
     } catch (_error) {
       setError("載入定期費用規則失敗，請稍後再試");
