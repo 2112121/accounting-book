@@ -212,13 +212,13 @@ const RecurringExpenseManagement: React.FC<RecurringExpenseManagementProps> = ({
         });
 
       // 修復因編輯 bug 導致 lastGeneratedDate 被錯誤重置的規則
-      const today = formatDateKey(new Date());
-      const repairPromises = nextRules.map(async (rule) => {
-        const nextDue = formatDateKey(
-          getNextRecurringDate(new Date(rule.lastGeneratedDate), rule.period, rule.startDate)
-        );
-        // 只修復「下次產生日 <= 今天但規則起始日 <= 今天」且可能已有更新紀錄的規則
-        if (nextDue <= today) {
+      // bug 的特徵：lastGeneratedDate 恰好等於 getPreviousRecurringDate(startDate, period)
+      const corruptedRules = nextRules.filter((rule) => {
+        const bugValue = formatDateKey(getPreviousRecurringDate(rule.startDate, rule.period));
+        return rule.lastGeneratedDate === bugValue;
+      });
+      if (corruptedRules.length > 0) {
+        const repairPromises = corruptedRules.map(async (rule) => {
           const expSnap = await getDocs(
             query(
               collection(db, "expenses"),
@@ -239,9 +239,9 @@ const RecurringExpenseManagement: React.FC<RecurringExpenseManagementProps> = ({
               rule.lastGeneratedDate = latestDate;
             }
           }
-        }
-      });
-      await Promise.all(repairPromises);
+        });
+        await Promise.all(repairPromises);
+      }
 
       setRules(nextRules);
     } catch (_error) {
