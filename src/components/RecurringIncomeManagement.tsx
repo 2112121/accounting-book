@@ -16,6 +16,7 @@ type RecurringPeriod = "daily" | "weekly" | "monthly" | "yearly";
 
 interface RecurringIncomeManagementProps {
   onClose: () => void;
+  embedded?: boolean;
 }
 
 interface RecurringRule {
@@ -144,6 +145,7 @@ const getPreviousRecurringDate = (
 
 const RecurringIncomeManagement: React.FC<RecurringIncomeManagementProps> = ({
   onClose,
+  embedded = false,
 }) => {
   const { currentUser } = useAuth();
   const [rules, setRules] = useState<RecurringRule[]>([]);
@@ -419,21 +421,23 @@ const RecurringIncomeManagement: React.FC<RecurringIncomeManagementProps> = ({
 
   return (
     <div className="p-5">
-      <div className="sticky top-0 z-20 -mx-5 mb-4 flex items-start justify-between bg-white px-5 pb-4 pt-1">
-        <div>
-          <h2 className="text-2xl font-bold text-[#4EA8DE]">定期收入管理</h2>
-          <p className="text-sm text-gray-500 mt-1">
-            薪資等固定收入自動計入；加薪/降薪改金額、離職可停止
-          </p>
+      {!embedded && (
+        <div className="sticky top-0 z-20 -mx-5 mb-4 flex items-start justify-between bg-white px-5 pb-4 pt-1">
+          <div>
+            <h2 className="text-2xl font-bold text-[#4EA8DE]">定期收入管理</h2>
+            <p className="text-sm text-gray-500 mt-1">
+              薪資等固定收入自動計入；加薪/降薪改金額、離職可停止
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="mt-1 shrink-0 text-white hover:text-white bg-[#4EA8DE] hover:bg-[#3D97CD] w-8 h-8 flex items-center justify-center border border-[#F5F5F5] rounded-full shadow-sm hover:shadow-md transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-white"
+          >
+            <i className="fas fa-times"></i>
+          </button>
         </div>
-        <button
-          type="button"
-          onClick={onClose}
-          className="mt-1 shrink-0 text-white hover:text-white bg-[#4EA8DE] hover:bg-[#3D97CD] w-8 h-8 flex items-center justify-center border border-[#F5F5F5] rounded-full shadow-sm hover:shadow-md transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-white"
-        >
-          <i className="fas fa-times"></i>
-        </button>
-      </div>
+      )}
 
       <div className="mb-5 rounded-xl border border-[#CDE8F8] bg-[#F2FAFF] p-4">
         <p className="text-sm text-gray-700 leading-6">

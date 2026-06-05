@@ -1735,6 +1735,12 @@ const chartRef = useRef<HTMLDivElement>(null);
     setShowEntryModal(true);
   };
 
+  // 開啟「固定收支管理」統一彈窗
+  const openRecurringManagement = (type: "expense" | "income") => {
+    setRecurringManagementType(type);
+    setShowRecurringManagement(true);
+  };
+
   // 當用戶未登入時，自動顯示登入界面
   useEffect(() => {
     if (!currentUser) {
@@ -3401,8 +3407,11 @@ const chartRef = useRef<HTMLDivElement>(null);
   
   // 添加預算設置狀態
   const [showBudgetSetting, setShowBudgetSetting] = useState(false);
-  const [showRecurringExpenseManagement, setShowRecurringExpenseManagement] = useState(false);
-  const [showRecurringIncomeManagement, setShowRecurringIncomeManagement] = useState(false);
+  const [showRecurringManagement, setShowRecurringManagement] = useState(false);
+  const [recurringManagementType, setRecurringManagementType] = useState<"expense" | "income">("expense");
+  // 保留舊 alias 讓 FAB 隱藏條件不壞
+  const showRecurringExpenseManagement = showRecurringManagement && recurringManagementType === "expense";
+  const showRecurringIncomeManagement = showRecurringManagement && recurringManagementType === "income";
   const [showSplitExpenseForm, setShowSplitExpenseForm] = useState(false); // 添加好友分帳表單狀態
   
   // 處理顯示預算設置表單的事件
@@ -3841,10 +3850,10 @@ const chartRef = useRef<HTMLDivElement>(null);
 
             <button
               className="flex-1 py-3 bg-[#4EA8DE] hover:bg-[#3D97CD] text-white rounded-xl shadow-sm hover:shadow-md flex items-center justify-center gap-1.5 text-sm font-medium transition-all duration-300 whitespace-nowrap"
-              onClick={() => setShowRecurringIncomeManagement(true)}
+              onClick={() => openRecurringManagement("expense")}
             >
-              <i className="fas fa-coins"></i>
-              <span>定期收入</span>
+              <i className="fas fa-arrows-rotate"></i>
+              <span>固定收支</span>
             </button>
           </div>
           
@@ -4609,7 +4618,7 @@ const chartRef = useRef<HTMLDivElement>(null);
                   <button 
                     onClick={() => {
                       setShowSidebar(false);
-                      setShowRecurringExpenseManagement(true);
+                      openRecurringManagement("expense");
                     }}
   className="flex items-center gap-3 w-full p-3 text-left text-white bg-[#C6B2DD] hover:bg-[#D8CAEB] rounded-lg mb-2 relative shadow-sm transition-all duration-300 sidebar-menu-item sidebar-menu-item-6 tilt-hover ripple-effect"
   style={{opacity: 1, transform: 'none'}}
@@ -4617,7 +4626,7 @@ const chartRef = useRef<HTMLDivElement>(null);
   <div className="w-8 h-8 rounded-full bg-white bg-opacity-20 flex items-center justify-center backdrop-blur-sm">
     <i className="fas fa-arrows-rotate text-white"></i>
   </div>
-  <span>定期費用管理</span>
+  <span>固定收支管理</span>
                   </button>
 
 {/* 添加預算設置選項 */}
@@ -5497,36 +5506,79 @@ const chartRef = useRef<HTMLDivElement>(null);
         </div>
       )}
 
-      {/* 定期費用管理表單 */}
-      {showRecurringExpenseManagement && (
+      {/* 固定收支管理（統一彈窗） */}
+      {showRecurringManagement && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
-          onClick={() => setShowRecurringExpenseManagement(false)}
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 animate-fadeIn"
+          onClick={() => setShowRecurringManagement(false)}
         >
           <div
-            className="bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
+            className="relative bg-white rounded-xl shadow-lg w-full max-w-lg max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
+            style={{ animation: "slideUpIn 0.4s cubic-bezier(0.175,0.885,0.32,1.275) both" }}
           >
-            <RecurringExpenseManagement
-              onClose={() => setShowRecurringExpenseManagement(false)}
-            />
-          </div>
-        </div>
-      )}
-
-      {/* 定期收入管理 */}
-      {showRecurringIncomeManagement && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
-          onClick={() => setShowRecurringIncomeManagement(false)}
-        >
-          <div
-            className="bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <RecurringIncomeManagement
-              onClose={() => setShowRecurringIncomeManagement(false)}
-            />
+            {/* header */}
+            <div className="sticky top-0 z-20 bg-white px-5 pt-4 pb-3">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-xl font-bold text-gray-800">固定收支管理</h2>
+                <button
+                  onClick={() => setShowRecurringManagement(false)}
+                  className="w-7 h-7 flex items-center justify-center rounded-full text-white bg-gray-400 hover:bg-gray-500 transition-all focus:outline-none"
+                >
+                  <i className="fas fa-times text-sm"></i>
+                </button>
+              </div>
+              {/* iOS 滑動 tab */}
+              <div style={{
+                position: "relative", display: "flex",
+                background: recurringManagementType === "expense" ? "#E07A8D" : "#4EA8DE",
+                borderRadius: "999px", padding: "3px",
+                transition: "background 0.3s ease",
+              }}>
+                <div style={{
+                  position: "absolute", top: "3px", bottom: "3px", left: "3px",
+                  width: "calc(50% - 3px)", borderRadius: "999px",
+                  background: "white",
+                  transform: recurringManagementType === "income" ? "translateX(100%)" : "translateX(0)",
+                  transition: "transform 0.3s cubic-bezier(0.4,0,0.2,1)",
+                  boxShadow: "0 1px 4px rgba(0,0,0,0.12)",
+                }} />
+                <button
+                  type="button"
+                  onClick={() => setRecurringManagementType("expense")}
+                  style={{
+                    position: "relative", zIndex: 1, flex: 1, padding: "8px 0",
+                    background: "none", border: "none", outline: "none", boxShadow: "none",
+                    cursor: "pointer", fontSize: "14px", fontWeight: 600,
+                    color: recurringManagementType === "expense" ? "#E07A8D" : "rgba(255,255,255,0.9)",
+                    transition: "color 0.3s ease",
+                  }}
+                >支出</button>
+                <button
+                  type="button"
+                  onClick={() => setRecurringManagementType("income")}
+                  style={{
+                    position: "relative", zIndex: 1, flex: 1, padding: "8px 0",
+                    background: "none", border: "none", outline: "none", boxShadow: "none",
+                    cursor: "pointer", fontSize: "14px", fontWeight: 600,
+                    color: recurringManagementType === "income" ? "#4EA8DE" : "rgba(255,255,255,0.9)",
+                    transition: "color 0.3s ease",
+                  }}
+                >收入</button>
+              </div>
+            </div>
+            {/* 內容 */}
+            {recurringManagementType === "expense" ? (
+              <RecurringExpenseManagement
+                onClose={() => setShowRecurringManagement(false)}
+                embedded
+              />
+            ) : (
+              <RecurringIncomeManagement
+                onClose={() => setShowRecurringManagement(false)}
+                embedded
+              />
+            )}
           </div>
         </div>
       )}
