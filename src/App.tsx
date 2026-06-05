@@ -4158,8 +4158,16 @@ const chartRef = useRef<HTMLDivElement>(null);
                 </h2>
               </div>
 
-              {/* 全部/支出/收入 切換 */}
-              <div className="flex gap-2 mb-3">
+              {/* 全部/支出/收入 切換 - 滑動 tab */}
+              <div style={{ position: "relative", display: "flex", background: "#efefef", borderRadius: "999px", padding: "3px", marginBottom: "12px" }}>
+                <div style={{
+                  position: "absolute", top: "3px", bottom: "3px", left: "3px",
+                  width: "calc(33.333% - 2px)", borderRadius: "999px",
+                  background: historyMode === 'all' ? '#6b7280' : historyMode === 'expense' ? '#E07A8D' : '#4EA8DE',
+                  transform: historyMode === 'all' ? 'translateX(0)' : historyMode === 'expense' ? 'translateX(100%)' : 'translateX(200%)',
+                  transition: "transform 0.3s cubic-bezier(0.4,0,0.2,1), background 0.3s ease",
+                  boxShadow: "0 1px 4px rgba(0,0,0,0.12)",
+                }} />
                 {([
                   { key: 'all', label: '全部' },
                   { key: 'expense', label: '支出' },
@@ -4167,19 +4175,16 @@ const chartRef = useRef<HTMLDivElement>(null);
                 ] as const).map(({ key, label }) => (
                   <button
                     key={key}
+                    type="button"
                     onClick={() => setHistoryMode(key)}
-                    className={`px-3 py-1 text-xs rounded-full font-medium transition-colors ${
-                      historyMode === key
-                        ? key === 'income'
-                          ? 'bg-[#4EA8DE] text-white'
-                          : key === 'expense'
-                            ? 'bg-[#E07A8D] text-white'
-                            : 'bg-gray-700 text-white'
-                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                    }`}
-                  >
-                    {label}
-                  </button>
+                    style={{
+                      position: "relative", zIndex: 1, flex: 1, padding: "6px 0",
+                      background: "none", border: "none", outline: "none", boxShadow: "none",
+                      cursor: "pointer", fontSize: "12px", fontWeight: 600,
+                      color: historyMode === key ? "#fff" : "#999",
+                      transition: "color 0.3s ease",
+                    }}
+                  >{label}</button>
                 ))}
               </div>
 
