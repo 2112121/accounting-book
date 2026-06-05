@@ -599,7 +599,7 @@ const RecurringExpenseManagement: React.FC<RecurringExpenseManagementProps> = ({
                     <button
                       type="button"
                       onClick={() => editingRuleId === rule.id ? cancelInlineEdit() : openInlineEdit(rule)}
-                      className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${editingRuleId === rule.id ? "bg-gray-100 text-gray-500 hover:bg-gray-200" : "bg-[#FEF0F2] text-[#E07A8D] hover:bg-[#F5B8C4]"}`}
+                      className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${editingRuleId === rule.id ? "bg-gray-100 text-gray-500 hover:bg-gray-200" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}
                     >
                       {editingRuleId === rule.id ? "取消" : "編輯"}
                     </button>
