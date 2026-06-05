@@ -354,7 +354,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
         </h2>
         <button 
           onClick={onCancel}
-          className="text-white hover:text-white bg-[#A487C3] hover:bg-[#8A5DC8] w-7 h-7 flex items-center justify-center border border-[#F5F5F5] rounded-full shadow-sm hover:shadow-md transition-all"
+          className="text-white hover:text-white bg-[#E07A8D] hover:bg-[#C8566A] w-7 h-7 flex items-center justify-center border border-[#F5F5F5] rounded-full shadow-sm hover:shadow-md transition-all"
           aria-label="關閉表單"
         >
           <i className="fas fa-times text-sm"></i>
@@ -392,7 +392,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               placeholder="輸入金額"
-              className="w-full pl-[4.5rem] pr-12 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#A487C3] focus:border-[#A487C3] text-sm text-gray-800"
+              className="w-full pl-[4.5rem] pr-12 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E07A8D] focus:border-[#E07A8D] text-sm text-gray-800"
               required
               step="0.01"
               min="0"
@@ -402,7 +402,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
               <button
                 type="button"
                 onClick={() => setShowCalculator(true)}
-                className="p-1.5 bg-gray-100 hover:bg-gray-200 rounded-md text-[#A487C3] hover:text-[#8A5DC8] transition-all flex items-center justify-center shadow-sm"
+                className="p-1.5 bg-gray-100 hover:bg-gray-200 rounded-md text-[#E07A8D] hover:text-[#C8566A] transition-all flex items-center justify-center shadow-sm"
                 title="打開計算機"
               >
                 <i className="fas fa-calculator"></i>
@@ -413,11 +413,11 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
           {/* 提示說明 - 移到貨幣選擇器下面 */}
           <div className="mt-1 space-y-1">
             <div className="text-xs text-gray-500 flex items-center">
-              <i className="fas fa-info-circle mr-1.5 text-[#A487C3]"></i>
+              <i className="fas fa-info-circle mr-1.5 text-[#E07A8D]"></i>
               <span>點擊左側按鈕可切換貨幣，右側按鈕可開啟計算機</span>
             </div>
             <div className="text-xs text-gray-500 flex items-center">
-              <i className="fas fa-money-bill-wave mr-1.5 text-[#A487C3]"></i>
+              <i className="fas fa-money-bill-wave mr-1.5 text-[#E07A8D]"></i>
               <span>所有支出均以新台幣(NT$)記錄於系統中</span>
             </div>
           </div>
@@ -427,7 +427,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
             <div className="mt-1 bg-white border border-gray-200 rounded-lg shadow-lg p-2 z-10 relative max-h-48 overflow-y-auto animate-fadeIn" style={{boxShadow: '0 4px 20px rgba(0,0,0,0.1)'}}>
               <div className="pb-2 mb-2 border-b border-gray-100 px-1">
                 <h4 className="text-xs font-medium text-gray-700 flex items-center">
-                  <i className="fas fa-money-bill-wave text-[#A487C3] mr-1.5"></i>
+                  <i className="fas fa-money-bill-wave text-[#E07A8D] mr-1.5"></i>
                   選擇貨幣
                 </h4>
               </div>
@@ -439,7 +439,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
                       onClick={() => handleCurrencyChange(currency.code)}
                       className={`w-full text-xs py-2 px-2 rounded-md text-left flex flex-col ${
                         selectedCurrency === currency.code
-                          ? "bg-gradient-to-r from-[#A487C3] to-[#8A5DC8] text-white font-bold border border-[#8A5DC8]"
+                          ? "bg-gradient-to-r from-[#E07A8D] to-[#C8566A] text-white font-bold border border-[#C8566A]"
                           : "bg-white text-gray-700 hover:bg-gray-50 border border-gray-200"
                       } transition-all duration-200 hover:shadow-sm`}
                     >
@@ -461,7 +461,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
             <div className="mt-1 text-xs text-gray-600 flex items-center bg-blue-50 p-1.5 rounded-md">
               {isConverting ? (
                 <span className="flex items-center">
-                  <div className="w-3 h-3 border-t-2 border-b-2 border-[#A487C3] rounded-full animate-spin mr-1.5"></div>
+                  <div className="w-3 h-3 border-t-2 border-b-2 border-[#E07A8D] rounded-full animate-spin mr-1.5"></div>
                   <span>轉換中...</span>
                 </span>
               ) : (
@@ -501,7 +501,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
                 onClick={() => setCategory(cat.name)}
                 className={`flex flex-col items-center justify-center p-1.5 rounded-lg text-xs transition-all ${
                   category === cat.name
-                    ? "bg-[#F0EAFA] text-[#A487C3] font-medium shadow-sm border border-[#D8CAE9]"
+                    ? "bg-[#FEF0F2] text-[#E07A8D] font-medium shadow-sm border border-[#F5B8C4]"
                     : "bg-white text-gray-600 hover:bg-gray-50 border border-gray-200"
                 }`}
               >
@@ -516,7 +516,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
         <div className="border border-gray-200 rounded-lg p-3 bg-gray-50">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <i className="fas fa-redo text-[#A487C3] text-sm"></i>
+                <i className="fas fa-redo text-[#E07A8D] text-sm"></i>
                 <span className="text-sm font-semibold text-gray-800">定期重複</span>
               </div>
               <button
@@ -524,8 +524,8 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
                 onClick={() => setIsRecurring(prev => !prev)}
                 className="relative w-12 h-6 rounded-full transition-all duration-300 focus:outline-none border-2"
                 style={{
-                  backgroundColor: isRecurring ? '#A487C3' : '#ffffff',
-                  borderColor: isRecurring ? '#A487C3' : '#d1d5db',
+                  backgroundColor: isRecurring ? '#E07A8D' : '#ffffff',
+                  borderColor: isRecurring ? '#E07A8D' : '#d1d5db',
                   WebkitTapHighlightColor: 'transparent',
                 }}
               >
@@ -550,7 +550,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
                       key={value}
                       type="button"
                       onClick={() => setRecurringPeriod(value)}
-                      className={`py-1.5 rounded-lg text-xs font-medium transition-all border ${recurringPeriod === value ? 'bg-[#A487C3] text-white border-[#A487C3]' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}
+                      className={`py-1.5 rounded-lg text-xs font-medium transition-all border ${recurringPeriod === value ? 'bg-[#E07A8D] text-white border-[#E07A8D]' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}
                     >
                       {label}
                     </button>
@@ -558,7 +558,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
                   <button
                     type="button"
                     onClick={() => setRecurringPeriod('daily')}
-                    className={`order-first py-1.5 rounded-lg text-xs font-medium transition-all border ${recurringPeriod === 'daily' ? 'bg-[#A487C3] text-white border-[#A487C3]' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}
+                    className={`order-first py-1.5 rounded-lg text-xs font-medium transition-all border ${recurringPeriod === 'daily' ? 'bg-[#E07A8D] text-white border-[#E07A8D]' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}
                   >
                     每日
                   </button>
@@ -573,7 +573,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
                     min={date || getTodayDate()}
                     value={recurringEndDate}
                     onChange={(e) => setRecurringEndDate(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#A487C3] focus:border-[#A487C3] text-sm text-gray-800 bg-white"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E07A8D] focus:border-[#E07A8D] text-sm text-gray-800 bg-white"
                   />
                 </div>
               </div>
@@ -590,7 +590,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
             id="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#A487C3] focus:border-[#A487C3] text-sm text-gray-800"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E07A8D] focus:border-[#E07A8D] text-sm text-gray-800"
             required
           />
         </div>
@@ -604,7 +604,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
             id="notes"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#A487C3] focus:border-[#A487C3] text-sm text-gray-800"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#E07A8D] focus:border-[#E07A8D] text-sm text-gray-800"
             placeholder="輸入備註"
             rows={2}
           />
@@ -622,7 +622,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
           <button
             type="submit"
             disabled={isSubmitting}
-            className="flex-1 py-2 px-4 bg-[#A487C3] hover:bg-[#9678B6] text-white rounded-lg transition-colors text-sm font-medium disabled:opacity-70 disabled:cursor-not-allowed"
+            className="flex-1 py-2 px-4 bg-[#E07A8D] hover:bg-[#C8566A] text-white rounded-lg transition-colors text-sm font-medium disabled:opacity-70 disabled:cursor-not-allowed"
           >
             {isSubmitting ? (
               <div className="flex items-center justify-center">
