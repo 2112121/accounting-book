@@ -4704,24 +4704,29 @@ const chartRef = useRef<HTMLDivElement>(null);
             <div className="p-6" style={{animation: 'fadeIn 0.5s 0.2s both', position: 'relative', zIndex: 10}}>
               {/* 收入/支出 切換 tab（編輯模式鎖定，不可切換） */}
               {!editingExpense && !editingIncome && (
-                <div style={{ position: "relative", display: "flex", background: "#efefef", borderRadius: "999px", padding: "3px", marginBottom: "20px" }}>
+                <div style={{
+                  position: "relative", display: "flex",
+                  background: entryType === "expense" ? "#E07A8D" : "#4EA8DE",
+                  borderRadius: "999px", padding: "3px", marginBottom: "20px",
+                  transition: "background 0.3s ease",
+                }}>
                   <div style={{
                     position: "absolute", top: "3px", bottom: "3px", left: "3px",
                     width: "calc(50% - 3px)", borderRadius: "999px",
-                    background: entryType === "expense" ? "#E07A8D" : "#4EA8DE",
+                    background: "white",
                     transform: entryType === "income" ? "translateX(100%)" : "translateX(0)",
-                    transition: "transform 0.28s cubic-bezier(0.4,0,0.2,1), background 0.3s ease",
-                    boxShadow: "0 2px 6px rgba(0,0,0,0.18)",
+                    transition: "transform 0.3s cubic-bezier(0.4,0,0.2,1)",
+                    boxShadow: "0 1px 4px rgba(0,0,0,0.12)",
                   }} />
                   <button
                     type="button"
                     onClick={() => setEntryType("expense")}
                     style={{
                       position: "relative", zIndex: 1, flex: 1, padding: "9px 0",
-                      background: "none", border: "none", cursor: "pointer",
-                      fontSize: "14px", fontWeight: 600, borderRadius: "999px",
-                      color: entryType === "expense" ? "#fff" : "#999",
-                      transition: "color 0.28s ease",
+                      background: "none", border: "none", outline: "none", boxShadow: "none",
+                      cursor: "pointer", fontSize: "14px", fontWeight: 600,
+                      color: entryType === "expense" ? "#E07A8D" : "rgba(255,255,255,0.9)",
+                      transition: "color 0.3s ease",
                     }}
                   >支出</button>
                   <button
@@ -4729,10 +4734,10 @@ const chartRef = useRef<HTMLDivElement>(null);
                     onClick={() => setEntryType("income")}
                     style={{
                       position: "relative", zIndex: 1, flex: 1, padding: "9px 0",
-                      background: "none", border: "none", cursor: "pointer",
-                      fontSize: "14px", fontWeight: 600, borderRadius: "999px",
-                      color: entryType === "income" ? "#fff" : "#999",
-                      transition: "color 0.28s ease",
+                      background: "none", border: "none", outline: "none", boxShadow: "none",
+                      cursor: "pointer", fontSize: "14px", fontWeight: 600,
+                      color: entryType === "income" ? "#4EA8DE" : "rgba(255,255,255,0.9)",
+                      transition: "color 0.3s ease",
                     }}
                   >收入</button>
                 </div>
