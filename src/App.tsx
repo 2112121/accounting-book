@@ -5593,17 +5593,17 @@ const chartRef = useRef<HTMLDivElement>(null);
             </div>
           </div>
 
-          {/* 新增支出按鈕 */}
+          {/* 記一筆按鈕 */}
           <div className="group relative">
             <button
               onClick={() => openEntry("expense")}
               className="h-12 w-12 rounded-full bg-gradient-to-r from-[#E07A8D] to-[#F09CA7] shadow-xl flex items-center justify-center text-white opacity-75 hover:opacity-100 active:scale-95 transition-all duration-300 focus:outline-none"
-              aria-label="新增支出"
+              aria-label="記一筆"
             >
               <i className="fas fa-plus text-xl sm:text-2xl"></i>
             </button>
             <div className="absolute -top-10 right-0 bg-[#333333] text-white text-xs px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap shadow-md">
-              新增支出
+              記一筆
             </div>
           </div>
         </div>
