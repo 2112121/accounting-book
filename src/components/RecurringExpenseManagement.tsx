@@ -430,7 +430,7 @@ const RecurringExpenseManagement: React.FC<RecurringExpenseManagementProps> = ({
       {!embedded && (
         <div className="sticky top-0 z-20 -mx-5 mb-4 flex items-start justify-between bg-white px-5 pb-4 pt-1">
           <div>
-            <h2 className="text-2xl font-bold text-[#A487C3]">定期費用管理</h2>
+            <h2 className="text-2xl font-bold text-[#E07A8D]">定期費用管理</h2>
             <p className="text-sm text-gray-500 mt-1">
               管理規則本身，不會直接新增或刪除現有支出
             </p>
@@ -438,14 +438,14 @@ const RecurringExpenseManagement: React.FC<RecurringExpenseManagementProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="mt-1 shrink-0 text-white hover:text-white bg-[#A487C3] hover:bg-[#8A5DC8] w-8 h-8 flex items-center justify-center border border-[#F5F5F5] rounded-full shadow-sm hover:shadow-md transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-white"
+            className="mt-1 shrink-0 text-white hover:text-white bg-[#E07A8D] hover:bg-[#C8566A] w-8 h-8 flex items-center justify-center border border-[#F5F5F5] rounded-full shadow-sm hover:shadow-md transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-white"
           >
             <i className="fas fa-times"></i>
           </button>
         </div>
       )}
 
-      <div className="mb-5 rounded-xl border border-[#E6DDF3] bg-[#FBF8FF] p-4">
+      <div className="mb-5 rounded-xl border border-[#F5B8C4] bg-[#FEF0F2] p-4">
         <p className="text-sm text-gray-700 leading-6">
           每月與每年規則會以開始日期作為基準日。若該月份沒有對應日期（例如 31 號遇到二月），系統會自動調整至該月最後一天，並在下個有該日期的月份恢復原始日期。
         </p>
@@ -467,7 +467,7 @@ const RecurringExpenseManagement: React.FC<RecurringExpenseManagementProps> = ({
               step="1"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#A487C3] focus:outline-none focus:ring-2 focus:ring-[#E6DDF3]"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#E07A8D] focus:outline-none focus:ring-2 focus:ring-[#F5B8C4]"
               placeholder="例如 1200"
               required
             />
@@ -478,7 +478,7 @@ const RecurringExpenseManagement: React.FC<RecurringExpenseManagementProps> = ({
             <select
               value={category}
               onChange={(e) => setCategory(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#A487C3] focus:outline-none focus:ring-2 focus:ring-[#E6DDF3]"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#E07A8D] focus:outline-none focus:ring-2 focus:ring-[#F5B8C4]"
             >
               {categories.map((item) => (
                 <option key={item} value={item}>
@@ -498,7 +498,7 @@ const RecurringExpenseManagement: React.FC<RecurringExpenseManagementProps> = ({
                   onClick={() => setPeriod(item)}
                   className={`rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
                     period === item
-                      ? "border-[#A487C3] bg-[#A487C3] text-white"
+                      ? "border-[#E07A8D] bg-[#E07A8D] text-white"
                       : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
                   }`}
                 >
@@ -514,7 +514,7 @@ const RecurringExpenseManagement: React.FC<RecurringExpenseManagementProps> = ({
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#A487C3] focus:outline-none focus:ring-2 focus:ring-[#E6DDF3]"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#E07A8D] focus:outline-none focus:ring-2 focus:ring-[#F5B8C4]"
               required
             />
           </div>
@@ -526,7 +526,7 @@ const RecurringExpenseManagement: React.FC<RecurringExpenseManagementProps> = ({
               min={startDate}
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#A487C3] focus:outline-none focus:ring-2 focus:ring-[#E6DDF3]"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#E07A8D] focus:outline-none focus:ring-2 focus:ring-[#F5B8C4]"
             />
           </div>
 
@@ -536,7 +536,7 @@ const RecurringExpenseManagement: React.FC<RecurringExpenseManagementProps> = ({
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={2}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#A487C3] focus:outline-none focus:ring-2 focus:ring-[#E6DDF3]"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#E07A8D] focus:outline-none focus:ring-2 focus:ring-[#F5B8C4]"
               placeholder="例如房租、訂閱費、保險"
             />
           </div>
@@ -545,7 +545,7 @@ const RecurringExpenseManagement: React.FC<RecurringExpenseManagementProps> = ({
         <button
           type="submit"
           disabled={saving}
-          className="w-full rounded-xl bg-[#A487C3] px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-[#9576B7] disabled:cursor-not-allowed disabled:opacity-70"
+          className="w-full rounded-xl bg-[#E07A8D] px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-[#C8566A] disabled:cursor-not-allowed disabled:opacity-70"
         >
           {saving ? "建立中..." : "新增定期費用規則"}
         </button>
@@ -557,7 +557,7 @@ const RecurringExpenseManagement: React.FC<RecurringExpenseManagementProps> = ({
           <button
             type="button"
             onClick={loadRules}
-            className="relative flex h-9 w-9 items-center justify-center rounded-full border border-[#D8CAE9] bg-white text-transparent transition-colors hover:bg-[#F7F1FD] after:absolute after:inset-0 after:flex after:items-center after:justify-center after:text-base after:text-[#A487C3] after:content-['↻'] hover:after:text-[#8F6FB2]"
+            className="relative flex h-9 w-9 items-center justify-center rounded-full border border-[#D8CAE9] bg-white text-transparent transition-colors hover:bg-[#FEF0F2] after:absolute after:inset-0 after:flex after:items-center after:justify-center after:text-base after:text-[#E07A8D] after:content-['↻'] hover:after:text-[#C8566A]"
             aria-label="重新整理定期規則"
             title="重新整理"
           >
@@ -576,12 +576,12 @@ const RecurringExpenseManagement: React.FC<RecurringExpenseManagementProps> = ({
         ) : (
           <div className="space-y-3">
             {rules.map((rule) => (
-              <div key={rule.id} className={`rounded-2xl border bg-white shadow-sm transition-all ${editingRuleId === rule.id ? "border-[#A487C3]" : "border-gray-100"}`}>
+              <div key={rule.id} className={`rounded-2xl border bg-white shadow-sm transition-all ${editingRuleId === rule.id ? "border-[#E07A8D]" : "border-gray-100"}`}>
                 {/* 顯示模式 */}
                 <div className="flex items-start justify-between gap-3 p-4">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="rounded-full bg-[#F1E8FB] px-2.5 py-1 text-xs font-medium text-[#A487C3]">
+                      <span className="rounded-full bg-[#FEF0F2] px-2.5 py-1 text-xs font-medium text-[#E07A8D]">
                         {periodLabels[rule.period]}
                       </span>
                       <span className="text-sm font-semibold text-gray-800">{rule.category}</span>
@@ -599,7 +599,7 @@ const RecurringExpenseManagement: React.FC<RecurringExpenseManagementProps> = ({
                     <button
                       type="button"
                       onClick={() => editingRuleId === rule.id ? cancelInlineEdit() : openInlineEdit(rule)}
-                      className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${editingRuleId === rule.id ? "bg-gray-100 text-gray-500 hover:bg-gray-200" : "bg-[#F1E8FB] text-[#A487C3] hover:bg-[#E6DDF3]"}`}
+                      className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${editingRuleId === rule.id ? "bg-gray-100 text-gray-500 hover:bg-gray-200" : "bg-[#FEF0F2] text-[#E07A8D] hover:bg-[#F5B8C4]"}`}
                     >
                       {editingRuleId === rule.id ? "取消" : "編輯"}
                     </button>
@@ -619,7 +619,7 @@ const RecurringExpenseManagement: React.FC<RecurringExpenseManagementProps> = ({
                 {editingRuleId === rule.id && editValues && (
                   <form
                     onSubmit={(e) => handleUpdateRule(e, rule.id)}
-                    className="border-t border-[#E6DDF3] px-4 pb-4 pt-3 space-y-3"
+                    className="border-t border-[#F5B8C4] px-4 pb-4 pt-3 space-y-3"
                   >
                     <div className="grid grid-cols-2 gap-3">
                       <div className="col-span-2">
@@ -628,7 +628,7 @@ const RecurringExpenseManagement: React.FC<RecurringExpenseManagementProps> = ({
                           type="number" min="1" step="1" required
                           value={editValues.amount}
                           onChange={(e) => setEditValues({ ...editValues, amount: e.target.value })}
-                          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#A487C3] focus:outline-none focus:ring-2 focus:ring-[#E6DDF3]"
+                          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#E07A8D] focus:outline-none focus:ring-2 focus:ring-[#F5B8C4]"
                         />
                       </div>
                       <div className="col-span-2">
@@ -636,7 +636,7 @@ const RecurringExpenseManagement: React.FC<RecurringExpenseManagementProps> = ({
                         <select
                           value={editValues.category}
                           onChange={(e) => setEditValues({ ...editValues, category: e.target.value })}
-                          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#A487C3] focus:outline-none focus:ring-2 focus:ring-[#E6DDF3]"
+                          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#E07A8D] focus:outline-none focus:ring-2 focus:ring-[#F5B8C4]"
                         >
                           {categories.map((item) => <option key={item} value={item}>{item}</option>)}
                         </select>
@@ -648,7 +648,7 @@ const RecurringExpenseManagement: React.FC<RecurringExpenseManagementProps> = ({
                             <button
                               key={item} type="button"
                               onClick={() => setEditValues({ ...editValues, period: item })}
-                              className={`rounded-lg border px-2 py-2 text-xs font-medium transition-colors ${editValues.period === item ? "border-[#A487C3] bg-[#A487C3] text-white" : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50"}`}
+                              className={`rounded-lg border px-2 py-2 text-xs font-medium transition-colors ${editValues.period === item ? "border-[#E07A8D] bg-[#E07A8D] text-white" : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50"}`}
                             >
                               {periodLabels[item]}
                             </button>
@@ -661,7 +661,7 @@ const RecurringExpenseManagement: React.FC<RecurringExpenseManagementProps> = ({
                           type="date" required
                           value={editValues.startDate}
                           onChange={(e) => setEditValues({ ...editValues, startDate: e.target.value })}
-                          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#A487C3] focus:outline-none focus:ring-2 focus:ring-[#E6DDF3]"
+                          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#E07A8D] focus:outline-none focus:ring-2 focus:ring-[#F5B8C4]"
                         />
                       </div>
                       <div>
@@ -671,7 +671,7 @@ const RecurringExpenseManagement: React.FC<RecurringExpenseManagementProps> = ({
                           min={editValues.startDate}
                           value={editValues.endDate}
                           onChange={(e) => setEditValues({ ...editValues, endDate: e.target.value })}
-                          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#A487C3] focus:outline-none focus:ring-2 focus:ring-[#E6DDF3]"
+                          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#E07A8D] focus:outline-none focus:ring-2 focus:ring-[#F5B8C4]"
                         />
                       </div>
                       <div className="col-span-2">
@@ -680,7 +680,7 @@ const RecurringExpenseManagement: React.FC<RecurringExpenseManagementProps> = ({
                           type="text"
                           value={editValues.notes}
                           onChange={(e) => setEditValues({ ...editValues, notes: e.target.value })}
-                          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#A487C3] focus:outline-none focus:ring-2 focus:ring-[#E6DDF3]"
+                          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#E07A8D] focus:outline-none focus:ring-2 focus:ring-[#F5B8C4]"
                           placeholder="例如房租、訂閱費、保險"
                         />
                       </div>
@@ -688,7 +688,7 @@ const RecurringExpenseManagement: React.FC<RecurringExpenseManagementProps> = ({
                     <button
                       type="submit"
                       disabled={saving}
-                      className="w-full rounded-xl bg-[#A487C3] px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#9576B7] disabled:opacity-70"
+                      className="w-full rounded-xl bg-[#E07A8D] px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#C8566A] disabled:opacity-70"
                     >
                       {saving ? "儲存中..." : "儲存變更"}
                     </button>
