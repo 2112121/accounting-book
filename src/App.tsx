@@ -3966,7 +3966,7 @@ const chartRef = useRef<HTMLDivElement>(null);
                         setPieChartMode('selected');
                       }}
                       className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-                      onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                      onClick={(e: React.MouseEvent) => { setPieChartMode('selected'); e.stopPropagation(); }}
                     />
                   </div>
                   <button
