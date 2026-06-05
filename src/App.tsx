@@ -4704,28 +4704,28 @@ const chartRef = useRef<HTMLDivElement>(null);
             <div className="p-6" style={{animation: 'fadeIn 0.5s 0.2s both', position: 'relative', zIndex: 10}}>
               {/* 收入/支出 切換 tab（編輯模式鎖定，不可切換） */}
               {!editingExpense && !editingIncome && (
-                <div className="flex gap-2 mb-4 p-1 bg-gray-100 rounded-xl">
+                <div className="flex mb-5 rounded-full overflow-hidden border border-gray-200">
                   <button
                     type="button"
                     onClick={() => setEntryType("expense")}
-                    className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all ${
+                    className={`flex-1 py-2.5 text-sm font-semibold transition-all ${
                       entryType === "expense"
-                        ? "bg-[#E07A8D] text-white shadow-sm"
-                        : "text-gray-500 hover:text-gray-700"
+                        ? "bg-[#E07A8D] text-white"
+                        : "bg-white text-gray-400 hover:bg-gray-50"
                     }`}
                   >
-                    <i className="fas fa-minus-circle mr-1.5"></i>支出
+                    支出
                   </button>
                   <button
                     type="button"
                     onClick={() => setEntryType("income")}
-                    className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all ${
+                    className={`flex-1 py-2.5 text-sm font-semibold transition-all border-l border-gray-200 ${
                       entryType === "income"
-                        ? "bg-[#4EA8DE] text-white shadow-sm"
-                        : "text-gray-500 hover:text-gray-700"
+                        ? "bg-[#4EA8DE] text-white border-l-transparent"
+                        : "bg-white text-gray-400 hover:bg-gray-50"
                     }`}
                   >
-                    <i className="fas fa-plus-circle mr-1.5"></i>收入
+                    收入
                   </button>
                 </div>
               )}
