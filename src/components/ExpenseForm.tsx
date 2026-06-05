@@ -349,7 +349,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
   return (
     <div className="p-3">
       <div className="sticky top-0 z-20 -mx-3 mb-3 flex justify-between items-center bg-white px-3 pb-3 pt-1">
-        <h2 className="text-xl font-bold text-[#333333]">
+        <h2 className="text-xl font-bold text-[#E07A8D]">
           {expense ? "編輯支出" : "新增支出"}
         </h2>
         <button 
