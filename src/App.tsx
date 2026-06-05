@@ -4159,12 +4159,12 @@ const chartRef = useRef<HTMLDivElement>(null);
               </div>
 
               {/* 全部/支出/收入 切換 - 滑動 tab */}
-              <div style={{ position: "relative", display: "flex", background: "#efefef", borderRadius: "999px", padding: "3px", marginBottom: "12px" }}>
+              <div style={{ position: "relative", display: "inline-flex", background: "#efefef", borderRadius: "999px", padding: "3px", marginBottom: "12px" }}>
                 <div style={{
                   position: "absolute", top: "3px", bottom: "3px", left: "3px",
-                  width: "calc(33.333% - 2px)", borderRadius: "999px",
+                  width: "52px", borderRadius: "999px",
                   background: historyMode === 'all' ? '#6b7280' : historyMode === 'expense' ? '#E07A8D' : '#4EA8DE',
-                  transform: historyMode === 'all' ? 'translateX(0)' : historyMode === 'expense' ? 'translateX(100%)' : 'translateX(200%)',
+                  transform: historyMode === 'all' ? 'translateX(0)' : historyMode === 'expense' ? 'translateX(52px)' : 'translateX(104px)',
                   transition: "transform 0.3s cubic-bezier(0.4,0,0.2,1), background 0.3s ease",
                   boxShadow: "0 1px 4px rgba(0,0,0,0.12)",
                 }} />
@@ -4178,7 +4178,7 @@ const chartRef = useRef<HTMLDivElement>(null);
                     type="button"
                     onClick={() => setHistoryMode(key)}
                     style={{
-                      position: "relative", zIndex: 1, flex: 1, padding: "6px 0",
+                      position: "relative", zIndex: 1, width: "52px", padding: "6px 0",
                       background: "none", border: "none", outline: "none", boxShadow: "none",
                       cursor: "pointer", fontSize: "12px", fontWeight: 600,
                       color: historyMode === key ? "#fff" : "#999",
