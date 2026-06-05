@@ -217,7 +217,8 @@ const App: React.FC = () => {
   const [successMessage, setSuccessMessage] = useState("記帳成功！"); // 自定義成功訊息
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null); // 選中的支出類別
   const [pieChartMode, setPieChartMode] = useState<'current' | 'selected' | 'all'>('current'); // 圓餅圖顯示模式
-  const [analysisMode, setAnalysisMode] = useState<'expense' | 'income'>('expense'); // 分析區塊：支出/收入
+  const [analysisMode, setAnalysisMode] = useState<'expense' | 'income'>('expense'); // 分析圓餅圖：支出/收入
+  const [analysisDailyMode, setAnalysisDailyMode] = useState<'expense' | 'income'>('expense'); // 每日趨勢：支出/收入（獨立）
   const [historyMode, setHistoryMode] = useState<'all' | 'expense' | 'income'>('all'); // 歷史明細：全部/支出/收入
   const [pieChartMonth, setPieChartMonth] = useState<string>(
     new Date().toISOString().slice(0, 7) // 默認為當前月份，格式為 YYYY-MM
@@ -3887,39 +3888,21 @@ const chartRef = useRef<HTMLDivElement>(null);
           {/* 預算進度條區域 - 移到支出分析區塊上方 */}
           {currentUser && <BudgetProgressBars />}
 
-          {/* 分析區塊：支出/收入 切換 */}
-          <div className="flex gap-2 mb-4 p-1 bg-white rounded-xl shadow-sm w-fit">
-            <button
-              type="button"
-              onClick={() => setAnalysisMode("expense")}
-              className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-all ${
-                analysisMode === "expense"
-                  ? "bg-[#3AA6B9] text-white shadow-sm"
-                  : "text-gray-500 hover:text-gray-700"
-              }`}
-            >
-              支出分析
-            </button>
-            <button
-              type="button"
-              onClick={() => setAnalysisMode("income")}
-              className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-all ${
-                analysisMode === "income"
-                  ? "bg-[#4EA8DE] text-white shadow-sm"
-                  : "text-gray-500 hover:text-gray-700"
-              }`}
-            >
-              收入分析
-            </button>
-          </div>
 
-          {analysisMode === "income" && <IncomeAnalysis incomes={incomes} />}
+          {analysisMode === "income" && <IncomeAnalysis incomes={incomes} onSwitchMode={setAnalysisMode} showSection="pieOnly" />}
 
           {/* 支出分析卡片 */}
           {analysisMode === "expense" && (<>
           <div className="relative bg-white bg-opacity-95 backdrop-blur-sm rounded-xl shadow-md border-l-4 border-[#3AA6B9] p-5 mb-6 hover:shadow-lg transition-all duration-300">
             <div className="mb-4">
-              <h2 className="text-lg font-bold text-[#3AA6B9] mb-2">支出分析</h2>
+              <div className="flex items-center justify-between mb-2">
+                <h2 className="text-lg font-bold text-[#3AA6B9]">支出分析</h2>
+                <div style={{ position:"relative", display:"inline-flex", background:"#E07A8D", borderRadius:"999px", padding:"3px" }}>
+                  <div style={{ position:"absolute", top:"3px", bottom:"3px", left:"3px", width:"calc(50% - 3px)", borderRadius:"999px", background:"white", boxShadow:"0 1px 4px rgba(0,0,0,0.12)" }} />
+                  <button type="button" onClick={() => setAnalysisMode("expense")} style={{ position:"relative", zIndex:1, width:"44px", padding:"5px 0", background:"none", border:"none", outline:"none", cursor:"pointer", fontSize:"12px", fontWeight:600, color:"#E07A8D", transition:"color 0.3s" }}>支出</button>
+                  <button type="button" onClick={() => setAnalysisMode("income")} style={{ position:"relative", zIndex:1, width:"44px", padding:"5px 0", background:"none", border:"none", outline:"none", cursor:"pointer", fontSize:"12px", fontWeight:600, color:"rgba(255,255,255,0.9)", transition:"color 0.3s" }}>收入</button>
+                </div>
+              </div>
               <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
                   <button 
@@ -4106,32 +4089,34 @@ const chartRef = useRef<HTMLDivElement>(null);
             </div>
 </div>
 
-          {/* 每日消費長條圖 */}
-          <div className="bg-white bg-opacity-95 backdrop-blur-sm rounded-xl shadow-md border-l-4 border-elora-mint p-5 mb-6 hover:shadow-lg transition-all duration-300">
-            <h2 className="text-lg font-bold text-[#6BBFA0] mb-4">
-              每日消費趨勢
-            </h2>
-            {expenses && expenses.length > 0 ? (
-              <div
-                ref={dailyChartRef}
-                style={{ height: "300px" }}
-                key={`daily-chart-${expenses.length}`}
-              ></div>
-            ) : (
-              <div className="text-center py-8 text-gray-500 h-[300px] flex flex-col items-center justify-center">
-                <i className="fas fa-chart-bar text-3xl mb-2 text-elora-mint opacity-40"></i>
-                <p className="mb-3">沒有任何消費明細</p>
-                <button 
-                  className="px-4 py-2 bg-[#E07A8D] hover:bg-[#F09CA7] text-white rounded-lg text-sm shadow-sm hover:shadow-md transition-all duration-300 ripple-effect floating"
-                  onClick={() => openEntry("expense")}
-                >
-                  <i className="fas fa-plus-circle mr-2"></i>
-                  新增消費明細
-                </button>
-</div>
-)}
-          </div>
           </>)}
+
+          {/* 每日消費趨勢卡片 - 獨立滑動按鈕，與圓餅圖無關 */}
+          <div className="bg-white bg-opacity-95 backdrop-blur-sm rounded-xl shadow-md border-l-4 border-elora-mint p-5 mb-6 hover:shadow-lg transition-all duration-300">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-[#6BBFA0]">每日趨勢</h2>
+              <div style={{ position:"relative", display:"inline-flex", background: analysisDailyMode==="expense" ? "#E07A8D" : "#4EA8DE", borderRadius:"999px", padding:"3px", transition:"background 0.3s ease" }}>
+                <div style={{ position:"absolute", top:"3px", bottom:"3px", left:"3px", width:"calc(50% - 3px)", borderRadius:"999px", background:"white", boxShadow:"0 1px 4px rgba(0,0,0,0.12)", transform: analysisDailyMode==="income" ? "translateX(100%)" : "translateX(0)", transition:"transform 0.3s cubic-bezier(0.4,0,0.2,1)" }} />
+                <button type="button" onClick={() => setAnalysisDailyMode("expense")} style={{ position:"relative", zIndex:1, width:"44px", padding:"5px 0", background:"none", border:"none", outline:"none", boxShadow:"none", cursor:"pointer", fontSize:"12px", fontWeight:600, color: analysisDailyMode==="expense" ? "#E07A8D" : "rgba(255,255,255,0.9)", transition:"color 0.3s ease" }}>支出</button>
+                <button type="button" onClick={() => setAnalysisDailyMode("income")} style={{ position:"relative", zIndex:1, width:"44px", padding:"5px 0", background:"none", border:"none", outline:"none", boxShadow:"none", cursor:"pointer", fontSize:"12px", fontWeight:600, color: analysisDailyMode==="income" ? "#4EA8DE" : "rgba(255,255,255,0.9)", transition:"color 0.3s ease" }}>收入</button>
+              </div>
+            </div>
+            {analysisDailyMode === "expense" ? (
+              expenses && expenses.length > 0 ? (
+                <div ref={dailyChartRef} style={{ height:"300px" }} key={`daily-chart-${expenses.length}`}></div>
+              ) : (
+                <div className="text-center py-8 text-gray-500 h-[300px] flex flex-col items-center justify-center">
+                  <i className="fas fa-chart-bar text-3xl mb-2 text-elora-mint opacity-40"></i>
+                  <p className="mb-3">沒有任何消費明細</p>
+                  <button className="px-4 py-2 bg-[#E07A8D] hover:bg-[#F09CA7] text-white rounded-lg text-sm shadow-sm hover:shadow-md transition-all duration-300 ripple-effect floating" onClick={() => openEntry("expense")}>
+                    <i className="fas fa-plus-circle mr-2"></i>新增消費明細
+                  </button>
+                </div>
+              )
+            ) : (
+              <IncomeAnalysis incomes={incomes} showSection="dailyOnly" noCardWrapper />
+            )}
+          </div>
 
           {/* 今日支出 - 放在每日消費趨勢下方 */}
           <div id="expense-details" className="bg-white bg-opacity-95 rounded-xl shadow-md border-l-4 border-elora-pink p-4 sm:p-5 mb-6">

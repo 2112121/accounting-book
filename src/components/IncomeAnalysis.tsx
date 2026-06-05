@@ -17,6 +17,9 @@ interface Income {
 
 interface IncomeAnalysisProps {
   incomes: Income[];
+  onSwitchMode?: (mode: 'expense' | 'income') => void;
+  showSection?: 'both' | 'pieOnly' | 'dailyOnly';
+  noCardWrapper?: boolean;
 }
 
 const incomeCategories = [
@@ -56,7 +59,7 @@ const CHART_COLORS = [
   "#FF8B64", "#C0C6E8", "#9CC3D5", "#FFB3B3", "#D8BBFF",
 ];
 
-const IncomeAnalysis: React.FC<IncomeAnalysisProps> = ({ incomes }) => {
+const IncomeAnalysis: React.FC<IncomeAnalysisProps> = ({ incomes, onSwitchMode, showSection = 'both', noCardWrapper = false }) => {
   const chartRef = useRef<HTMLDivElement>(null);
   const chartInstanceRef = useRef<echarts.ECharts | null>(null);
   const dailyChartRef = useRef<HTMLDivElement>(null);
@@ -394,9 +397,18 @@ const IncomeAnalysis: React.FC<IncomeAnalysisProps> = ({ incomes }) => {
   return (
     <>
       {/* 收入分析卡片 */}
-      <div className="relative bg-white bg-opacity-95 backdrop-blur-sm rounded-xl shadow-md border-l-4 border-[#4EA8DE] p-5 mb-6 hover:shadow-lg transition-all duration-300">
+      {showSection !== 'dailyOnly' && <div className="relative bg-white bg-opacity-95 backdrop-blur-sm rounded-xl shadow-md border-l-4 border-[#4EA8DE] p-5 mb-6 hover:shadow-lg transition-all duration-300">
         <div className="mb-4">
-          <h2 className="text-lg font-bold text-[#4EA8DE] mb-2">收入分析</h2>
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-lg font-bold text-[#4EA8DE]">收入分析</h2>
+            {onSwitchMode && (
+              <div style={{ position:"relative", display:"inline-flex", background: "#4EA8DE", borderRadius:"999px", padding:"3px" }}>
+                <div style={{ position:"absolute", top:"3px", bottom:"3px", right:"3px", width:"calc(50% - 3px)", borderRadius:"999px", background:"white", boxShadow:"0 1px 4px rgba(0,0,0,0.12)" }} />
+                <button type="button" onClick={() => onSwitchMode('expense')} style={{ position:"relative", zIndex:1, width:"44px", padding:"5px 0", background:"none", border:"none", outline:"none", cursor:"pointer", fontSize:"12px", fontWeight:600, color:"rgba(255,255,255,0.9)", transition:"color 0.3s" }}>支出</button>
+                <button type="button" onClick={() => onSwitchMode('income')} style={{ position:"relative", zIndex:1, width:"44px", padding:"5px 0", background:"none", border:"none", outline:"none", cursor:"pointer", fontSize:"12px", fontWeight:600, color:"#4EA8DE", transition:"color 0.3s" }}>收入</button>
+              </div>
+            )}
+          </div>
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <button
@@ -540,26 +552,39 @@ const IncomeAnalysis: React.FC<IncomeAnalysisProps> = ({ incomes }) => {
             </div>
           )}
         </div>
-      </div>
+      </div>}
 
       {/* 每日收入趨勢卡片 */}
-      <div className="bg-white bg-opacity-95 rounded-xl shadow-md border-l-4 border-[#6BBFA0] p-5 mb-6">
-        <div className="mb-4">
-          <h2 className="text-lg font-bold text-[#6BBFA0]">每日收入趨勢</h2>
-        </div>
-        {incomes && incomes.length > 0 ? (
-          <div ref={dailyChartRef} style={{ height: "260px", width: "100%" }} />
+      {showSection !== 'pieOnly' && (noCardWrapper ? (
+        incomes && incomes.length > 0 ? (
+          <div ref={dailyChartRef} style={{ height: "300px", width: "100%" }} />
         ) : (
-          <div className="flex items-center justify-center h-[260px]">
+          <div className="flex items-center justify-center h-[300px]">
             <div className="text-center">
-              <div className="mb-4">
-                <i className="fas fa-chart-bar text-gray-300 text-4xl"></i>
-              </div>
+              <i className="fas fa-chart-bar text-gray-300 text-4xl mb-4"></i>
               <p className="text-gray-500">暫無收入數據</p>
             </div>
           </div>
-        )}
-      </div>
+        )
+      ) : (
+        <div className="bg-white bg-opacity-95 rounded-xl shadow-md border-l-4 border-[#6BBFA0] p-5 mb-6">
+          <div className="mb-4">
+            <h2 className="text-lg font-bold text-[#6BBFA0]">每日收入趨勢</h2>
+          </div>
+          {incomes && incomes.length > 0 ? (
+            <div ref={dailyChartRef} style={{ height: "260px", width: "100%" }} />
+          ) : (
+            <div className="flex items-center justify-center h-[260px]">
+              <div className="text-center">
+                <div className="mb-4">
+                  <i className="fas fa-chart-bar text-gray-300 text-4xl"></i>
+                </div>
+                <p className="text-gray-500">暫無收入數據</p>
+              </div>
+            </div>
+          )}
+        </div>
+      ))}
     </>
   );
 };
