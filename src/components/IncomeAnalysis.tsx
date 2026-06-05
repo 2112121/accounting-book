@@ -242,6 +242,8 @@ const IncomeAnalysis: React.FC<IncomeAnalysisProps> = ({ incomes, onSwitchMode, 
             name: "每日收入",
             type: "bar",
             data: [0, 0, 0, 0, 0, 0, 0],
+            barMaxWidth: 24,
+            barCategoryGap: "45%",
             itemStyle: {
               color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
                 { offset: 0, color: "#4EA8DE" },
@@ -329,6 +331,8 @@ const IncomeAnalysis: React.FC<IncomeAnalysisProps> = ({ incomes, onSwitchMode, 
             name: "每日收入",
             type: "bar",
             data: seriesData,
+            barMaxWidth: isMobile ? 18 : 24,
+            barCategoryGap: isMobile ? "55%" : "45%",
             itemStyle: {
               color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
                 { offset: 0, color: "#4EA8DE" },
