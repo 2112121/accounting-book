@@ -4704,35 +4704,37 @@ const chartRef = useRef<HTMLDivElement>(null);
             <div className="p-6" style={{animation: 'fadeIn 0.5s 0.2s both', position: 'relative', zIndex: 10}}>
               {/* 收入/支出 切換 tab（編輯模式鎖定，不可切換） */}
               {!editingExpense && !editingIncome && (
-                <div className="relative flex bg-gray-100 rounded-full p-1 mb-5">
-                  {/* 滑動 pill */}
-                  <div
-                    className="absolute inset-y-1 rounded-full shadow-sm transition-all duration-300 ease-in-out"
-                    style={{
-                      left: "4px",
-                      width: "calc(50% - 4px)",
-                      background: entryType === "expense" ? "#E07A8D" : "#4EA8DE",
-                      transform: entryType === "income" ? "translateX(100%)" : "translateX(0)",
-                    }}
-                  />
+                <div style={{ position: "relative", display: "flex", background: "#efefef", borderRadius: "999px", padding: "3px", marginBottom: "20px" }}>
+                  <div style={{
+                    position: "absolute", top: "3px", bottom: "3px", left: "3px",
+                    width: "calc(50% - 3px)", borderRadius: "999px",
+                    background: entryType === "expense" ? "#E07A8D" : "#4EA8DE",
+                    transform: entryType === "income" ? "translateX(100%)" : "translateX(0)",
+                    transition: "transform 0.28s cubic-bezier(0.4,0,0.2,1), background 0.3s ease",
+                    boxShadow: "0 2px 6px rgba(0,0,0,0.18)",
+                  }} />
                   <button
                     type="button"
                     onClick={() => setEntryType("expense")}
-                    className={`relative z-10 flex-1 py-2 text-sm font-semibold transition-colors duration-300 ${
-                      entryType === "expense" ? "text-white" : "text-gray-500"
-                    }`}
-                  >
-                    支出
-                  </button>
+                    style={{
+                      position: "relative", zIndex: 1, flex: 1, padding: "9px 0",
+                      background: "none", border: "none", cursor: "pointer",
+                      fontSize: "14px", fontWeight: 600, borderRadius: "999px",
+                      color: entryType === "expense" ? "#fff" : "#999",
+                      transition: "color 0.28s ease",
+                    }}
+                  >支出</button>
                   <button
                     type="button"
                     onClick={() => setEntryType("income")}
-                    className={`relative z-10 flex-1 py-2 text-sm font-semibold transition-colors duration-300 ${
-                      entryType === "income" ? "text-white" : "text-gray-500"
-                    }`}
-                  >
-                    收入
-                  </button>
+                    style={{
+                      position: "relative", zIndex: 1, flex: 1, padding: "9px 0",
+                      background: "none", border: "none", cursor: "pointer",
+                      fontSize: "14px", fontWeight: 600, borderRadius: "999px",
+                      color: entryType === "income" ? "#fff" : "#999",
+                      transition: "color 0.28s ease",
+                    }}
+                  >收入</button>
                 </div>
               )}
 
