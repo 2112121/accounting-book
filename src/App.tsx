@@ -4140,21 +4140,17 @@ const chartRef = useRef<HTMLDivElement>(null);
               
               <div className="mb-3">
                 <h2 className="text-xl font-bold text-elora-pink">
-                  {selectedDateOption === "today"
-                    ? "今日消費明細"
-                    : selectedDateOption === "yesterday"
-                      ? "昨日消費明細"
-                      : selectedDateOption === "month"
-                        ? "本月消費明細"
-                        : selectedDateOption === "this_week"
-                          ? "本週消費明細"
-                          : selectedDateOption === "last_week"
-                            ? "上週消費明細"
-                            : selectedDateOption === "month_select"
-                              ? `${selectedMonth.split('-')[0]}年${String(selectedMonth.split('-')[1]).padStart(2, '0')}月消費明細`
-                              : selectedDateOption === "earlier"
-                                ? format(selectedDate, "yyyy年M月d日") + " 消費明細"
-                                : "全部消費明細"}
+                  {(() => {
+                    const suffix = historyMode === 'income' ? '收入明細' : historyMode === 'expense' ? '支出明細' : '收支明細';
+                    if (selectedDateOption === "today") return `今日${suffix}`;
+                    if (selectedDateOption === "yesterday") return `昨日${suffix}`;
+                    if (selectedDateOption === "month") return `本月${suffix}`;
+                    if (selectedDateOption === "this_week") return `本週${suffix}`;
+                    if (selectedDateOption === "last_week") return `上週${suffix}`;
+                    if (selectedDateOption === "month_select") return `${selectedMonth.split('-')[0]}年${String(selectedMonth.split('-')[1]).padStart(2, '0')}月${suffix}`;
+                    if (selectedDateOption === "earlier") return `${format(selectedDate, "yyyy年M月d日")} ${suffix}`;
+                    return `全部${suffix}`;
+                  })()}
                 </h2>
               </div>
 
@@ -4446,28 +4442,24 @@ const chartRef = useRef<HTMLDivElement>(null);
               <div className="text-center py-8 text-gray-500 flex flex-col items-center justify-center h-[200px]">
                 <i className="fas fa-receipt text-3xl mb-2 text-gray-300"></i>
                 <p className="mb-3">
-                  {selectedDateOption === "today"
-                    ? "今天還沒有記錄任何消費"
-                    : selectedDateOption === "yesterday"
-                      ? "昨天沒有消費記錄"
-                      : selectedDateOption === "month"
-                        ? "本月沒有消費記錄"
-                        : selectedDateOption === "month_select"
-                          ? `${selectedMonth.split('-')[0]}年${String(selectedMonth.split('-')[1]).padStart(2, '0')}月沒有消費記錄`
-                          : selectedDateOption === "this_week"
-                            ? "本週沒有消費記錄"
-                            : selectedDateOption === "last_week"
-                              ? "上週沒有消費記錄"
-                              : selectedDateOption === "all"
-                                ? "沒有任何消費記錄"
-                                : `${format(selectedDate, "yyyy年M月d日")} 沒有消費記錄`}
+                  {(() => {
+                    const label = historyMode === 'income' ? '收入' : historyMode === 'expense' ? '支出' : '記錄';
+                    if (selectedDateOption === "today") return `今天還沒有${label}記錄`;
+                    if (selectedDateOption === "yesterday") return `昨天沒有${label}記錄`;
+                    if (selectedDateOption === "month") return `本月沒有${label}記錄`;
+                    if (selectedDateOption === "month_select") return `${selectedMonth.split('-')[0]}年${String(selectedMonth.split('-')[1]).padStart(2, '0')}月沒有${label}記錄`;
+                    if (selectedDateOption === "this_week") return `本週沒有${label}記錄`;
+                    if (selectedDateOption === "last_week") return `上週沒有${label}記錄`;
+                    if (selectedDateOption === "all") return `沒有任何${label}`;
+                    return `${format(selectedDate, "yyyy年M月d日")} 沒有${label}記錄`;
+                  })()}
                 </p>
-                <button 
-                  className="px-4 py-2 bg-[#E07A8D] hover:bg-[#F09CA7] text-white rounded-lg text-sm shadow-sm hover:shadow-md transition-all duration-300 ripple-effect floating"
-                  onClick={() => openEntry("expense")}
+                <button
+                  className={`px-4 py-2 text-white rounded-lg text-sm shadow-sm hover:shadow-md transition-all duration-300 ripple-effect floating ${historyMode === 'income' ? 'bg-[#4EA8DE] hover:bg-[#3D97CD]' : 'bg-[#E07A8D] hover:bg-[#F09CA7]'}`}
+                  onClick={() => openEntry(historyMode === 'income' ? 'income' : 'expense')}
                 >
                   <i className="fas fa-plus-circle mr-2"></i>
-                  新增消費明細
+                  {historyMode === 'income' ? '新增收入' : '新增消費明細'}
 </button>
 </div>
             )}
