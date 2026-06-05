@@ -499,7 +499,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
                 type="button"
                 key={cat.id}
                 onClick={() => setCategory(cat.name)}
-                className={`flex flex-col items-center justify-center p-1.5 rounded-lg text-xs transition-all ${
+                className={`flex flex-col items-center justify-center p-1.5 rounded-lg text-xs transition-all focus:outline-none ${
                   category === cat.name
                     ? "bg-[#FEF0F2] text-[#E07A8D] font-medium shadow-sm border border-[#F5B8C4]"
                     : "bg-white text-gray-600 hover:bg-gray-50 border border-gray-200"

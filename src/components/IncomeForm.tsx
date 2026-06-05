@@ -499,7 +499,7 @@ const IncomeForm: React.FC<IncomeFormProps> = ({
                 type="button"
                 key={cat.id}
                 onClick={() => setCategory(cat.name)}
-                className={`flex flex-col items-center justify-center p-1.5 rounded-lg text-xs transition-all ${
+                className={`flex flex-col items-center justify-center p-1.5 rounded-lg text-xs transition-all focus:outline-none ${
                   category === cat.name
                     ? "bg-[#EBF6FF] text-[#4EA8DE] font-medium shadow-sm border border-[#B8E3FF]"
                     : "bg-white text-gray-600 hover:bg-gray-50 border border-gray-200"
