@@ -2808,6 +2808,26 @@ const chartRef = useRef<HTMLDivElement>(null);
     };
   }, [initDailyChart]);
 
+  // 切回支出圓餅圖時重新初始化（容器從 DOM 消失再出現，需等一幀）
+  useEffect(() => {
+    if (analysisMode === "expense") {
+      const t = setTimeout(() => {
+        if (chartRef.current) initPieChart();
+      }, 50);
+      return () => clearTimeout(t);
+    }
+  }, [analysisMode, initPieChart]);
+
+  // 切回支出每日趨勢時重新初始化
+  useEffect(() => {
+    if (analysisDailyMode === "expense") {
+      const t = setTimeout(() => {
+        if (dailyChartRef.current) initDailyChart();
+      }, 50);
+      return () => clearTimeout(t);
+    }
+  }, [analysisDailyMode, initDailyChart]);
+
   // 篩選當前選中日期的消費 - 完全重寫確保日期比較正確
   const getFilteredExpenses = () => {
 
