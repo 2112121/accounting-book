@@ -2,6 +2,9 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import * as echarts from "echarts";
 import ExpenseForm from "./components/ExpenseForm";
+import IncomeForm from "./components/IncomeForm";
+import IncomeAnalysis from "./components/IncomeAnalysis";
+import RecurringIncomeManagement from "./components/RecurringIncomeManagement";
 import LoginForm from "./components/LoginForm";
 import ProfileForm from "./components/ProfileForm";
 import { useAuth } from "./contexts/AuthContext";
@@ -53,6 +56,57 @@ interface Expense {
   recurringPeriod?: string;
   recurringEndDate?: string;
 }
+
+// 收入類型定義
+interface Income {
+  id: string;
+  amount: number;
+  category: {
+    id: string;
+    name: string;
+    icon: string;
+  };
+  date: Date;
+  notes: string;
+  userId: string;
+  recurringPeriod?: string;
+  recurringEndDate?: string;
+}
+
+// 收入類別列表（與 IncomeForm / 舊 IncomePage 一致）
+const incomeCategories = [
+  { id: "salary", name: "薪資", icon: "fa-money-bill-wave" },
+  { id: "bonus", name: "獎金", icon: "fa-gift" },
+  { id: "investment", name: "投資", icon: "fa-chart-line" },
+  { id: "sidejob", name: "副業", icon: "fa-briefcase" },
+  { id: "gift", name: "禮金", icon: "fa-envelope" },
+  { id: "sponsorship", name: "包養", icon: "fa-heart" },
+  { id: "subsidy", name: "補貼", icon: "fa-hand-holding-usd" },
+  { id: "insurance", name: "保險理賠", icon: "fa-shield-alt" },
+  { id: "other", name: "其他", icon: "fa-question" },
+];
+
+// 取得收入類別圖示
+const getIncomeCategoryIcon = (categoryName: string): string => {
+  const category = incomeCategories.find((cat) => cat.name === categoryName);
+  return category ? category.icon : "fa-question";
+};
+
+// 取得收入類別顏色
+const getIncomeCategoryColor = (category: string): string => {
+  const categoryColors: Record<string, string> = {
+    薪資: "#4EA8DE",
+    獎金: "#6BBFA0",
+    投資: "#90F1EF",
+    副業: "#FAC6CD",
+    禮金: "#E6CEAC",
+    包養: "#FF8CAB",
+    補貼: "#A3D9A5",
+    保險理賠: "#7CD5F3",
+    其他: "#A487C3",
+  };
+  return categoryColors[category] || "#4EA8DE";
+};
 
 interface LoanNotificationItem {
   id: string;
@@ -136,8 +190,13 @@ const getNextRecurringDate = (
 const buildRecurringExpenseDocId = (recurringRuleId: string, date: Date) =>
   `recurring_${recurringRuleId}_${formatDateKey(date)}`;
 
+const buildRecurringIncomeDocId = (recurringRuleId: string, date: Date) =>
+  `recurring_income_${recurringRuleId}_${formatDateKey(date)}`;
+
 const App: React.FC = () => {
-  const [showExpenseForm, setShowExpenseForm] = useState(false);
+  // 記一筆彈窗：單一入口 + 收入/支出 tab 切換
+  const [showEntryModal, setShowEntryModal] = useState(false);
+  const [entryType, setEntryType] = useState<"expense" | "income">("expense");
   const [showLoginForm, setShowLoginForm] = useState(false);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [showSidebar, setShowSidebar] = useState(false);
@@ -158,6 +217,8 @@ const App: React.FC = () => {
   const [successMessage, setSuccessMessage] = useState("記帳成功！"); // 自定義成功訊息
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null); // 選中的支出類別
   const [pieChartMode, setPieChartMode] = useState<'current' | 'selected' | 'all'>('current'); // 圓餅圖顯示模式
+  const [analysisMode, setAnalysisMode] = useState<'expense' | 'income'>('expense'); // 分析區塊：支出/收入
+  const [historyMode, setHistoryMode] = useState<'all' | 'expense' | 'income'>('all'); // 歷史明細：全部/支出/收入
   const [pieChartMonth, setPieChartMonth] = useState<string>(
     new Date().toISOString().slice(0, 7) // 默認為當前月份，格式為 YYYY-MM
   );
@@ -172,6 +233,8 @@ const chartRef = useRef<HTMLDivElement>(null);
     userProfileColor,
   } = useAuth();
   const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [incomes, setIncomes] = useState<Income[]>([]);
+  const [editingIncome, setEditingIncome] = useState<Income | null>(null);
   const [error, setError] = useState<string | null>(null);
   // 用於存儲用戶數據緩存的對象
   const [_userDataCache, setUserDataCache] = useState<Record<string, Expense[]>>(
@@ -1177,6 +1240,501 @@ const chartRef = useRef<HTMLDivElement>(null);
     };
   }, [currentUser]); // 圖表函式會隨 expenses 變動，不能放進這裡避免重複初始化
 
+  // ====== 收入：抓取 ======
+  const fetchIncomes = useCallback(async () => {
+    if (!currentUser || !currentUser.uid) {
+      setIncomes([]);
+      return;
+    }
+
+    try {
+      const userId = currentUser.uid;
+      const incomesRef = collection(db, "incomes");
+      const q = query(
+        incomesRef,
+        where("userId", "==", userId),
+        orderBy("date", "desc"),
+      );
+
+      const querySnapshot = await getDocs(q);
+      const fetchedIncomes: Income[] = [];
+
+      querySnapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        if (data.userId !== userId) return;
+        try {
+          let incomeDate: Date;
+          if (data.date && typeof data.date.toDate === "function") {
+            incomeDate = data.date.toDate();
+          } else if (data.date && data.date._seconds) {
+            incomeDate = new Date(data.date._seconds * 1000);
+          } else if (data.date instanceof Date) {
+            incomeDate = data.date;
+          } else if (typeof data.date === "string") {
+            incomeDate = new Date(data.date);
+          } else {
+            incomeDate = new Date();
+          }
+
+          // 標準化為當天 0 點，與支出一致
+          const normalizedDate = new Date(
+            incomeDate.getFullYear(),
+            incomeDate.getMonth(),
+            incomeDate.getDate(),
+            0, 0, 0,
+          );
+
+          fetchedIncomes.push({
+            id: docSnap.id,
+            amount: data.amount,
+            category: {
+              id: data.category,
+              name: data.category,
+              icon: getIncomeCategoryIcon(data.category),
+            },
+            date: normalizedDate,
+            notes: data.notes || "",
+            userId: data.userId,
+            recurringPeriod: data.recurringPeriod,
+            recurringEndDate: data.recurringEndDate,
+          });
+        } catch (_e) { /* noop */ }
+      });
+
+      // date 降序，再 id 降序
+      fetchedIncomes.sort((a, b) => {
+        const dateCompare = b.date.getTime() - a.date.getTime();
+        if (dateCompare !== 0) return dateCompare;
+        return b.id.localeCompare(a.id);
+      });
+
+      setIncomes(fetchedIncomes);
+    } catch (_err) {
+      // 收入錯誤不覆蓋支出的 error 提示，靜默處理
+    }
+  }, [currentUser]);
+
+  useEffect(() => {
+    fetchIncomes();
+    const handleIncomesChanged = () => { fetchIncomes(); };
+    window.addEventListener("incomes-changed", handleIncomesChanged);
+    return () => {
+      window.removeEventListener("incomes-changed", handleIncomesChanged);
+    };
+  }, [fetchIncomes]);
+
+  // ====== 定期收入：規則 upsert / 查找 ======
+  const findRecurringRulesForIncome = async ({
+    sourceIncomeId,
+    userId,
+    category,
+    amount,
+  }: {
+    sourceIncomeId?: string;
+    userId: string;
+    category: string;
+    amount: number;
+  }) => {
+    if (sourceIncomeId) {
+      const sourceSnap = await getDocs(
+        query(
+          collection(db, "recurringIncomes"),
+          where("sourceIncomeId", "==", sourceIncomeId),
+        ),
+      );
+      if (!sourceSnap.empty) {
+        return sourceSnap.docs;
+      }
+    }
+
+    const legacySnap = await getDocs(
+      query(
+        collection(db, "recurringIncomes"),
+        where("userId", "==", userId),
+        where("isActive", "==", true),
+      ),
+    );
+
+    return legacySnap.docs.filter((ruleDoc) => {
+      const data = ruleDoc.data();
+      return data.category === category && data.amount === amount;
+    });
+  };
+
+  const upsertRecurringIncomeRule = async ({
+    sourceIncomeId,
+    userId,
+    amount,
+    category,
+    notes,
+    period,
+    startDate,
+    endDate,
+  }: {
+    sourceIncomeId: string;
+    userId: string;
+    amount: number;
+    category: string;
+    notes: string;
+    period: "daily" | "weekly" | "monthly" | "yearly";
+    startDate: string;
+    endDate?: string;
+  }) => {
+    const existingRules = await findRecurringRulesForIncome({
+      sourceIncomeId,
+      userId,
+      category,
+      amount,
+    });
+
+    if (existingRules.length > 0) {
+      await Promise.all(
+        existingRules.map((ruleDoc) =>
+          updateDoc(doc(db, "recurringIncomes", ruleDoc.id), {
+            userId,
+            sourceIncomeId,
+            amount,
+            category,
+            notes,
+            period,
+            startDate,
+            endDate: endDate || null,
+            lastGeneratedDate: startDate,
+            isActive: true,
+            updatedAt: Timestamp.now(),
+          }),
+        ),
+      );
+      return existingRules[0].id;
+    }
+
+    const recurringRef = await addDoc(collection(db, "recurringIncomes"), {
+      userId,
+      sourceIncomeId,
+      amount,
+      category,
+      notes,
+      period,
+      startDate,
+      endDate: endDate || null,
+      lastGeneratedDate: startDate,
+      isActive: true,
+      createdAt: Timestamp.now(),
+      updatedAt: Timestamp.now(),
+    });
+
+    return recurringRef.id;
+  };
+
+  // ====== 定期收入：啟動時自動補產 ======
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const processRecurringIncomes = async () => {
+      try {
+        const q = query(
+          collection(db, "recurringIncomes"),
+          where("userId", "==", currentUser.uid),
+          where("isActive", "==", true),
+        );
+        const snapshot = await getDocs(q);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        let generatedAny = false;
+
+        for (const docSnap of snapshot.docs) {
+          const rec = docSnap.data();
+          const lastDate = new Date(rec.lastGeneratedDate);
+          lastDate.setHours(0, 0, 0, 0);
+          const recurringEndDate = rec.endDate ? new Date(rec.endDate) : null;
+          if (recurringEndDate && !isNaN(recurringEndDate.getTime())) {
+            recurringEndDate.setHours(0, 0, 0, 0);
+          }
+
+          let nextDate = getNextRecurringDate(
+            lastDate,
+            rec.period,
+            rec.startDate || rec.lastGeneratedDate,
+          );
+          let latestGenerated = lastDate;
+          const generationEndDate =
+            recurringEndDate && !isNaN(recurringEndDate.getTime()) && recurringEndDate < today
+              ? recurringEndDate
+              : today;
+
+          while (nextDate <= generationEndDate) {
+            const recurringInstanceDate = formatDateKey(nextDate);
+            const recurringIncomeRef = doc(
+              db,
+              "incomes",
+              buildRecurringIncomeDocId(docSnap.id, nextDate),
+            );
+
+            await runTransaction(db, async (transaction) => {
+              const existingIncome = await transaction.get(recurringIncomeRef);
+              if (existingIncome.exists()) {
+                return;
+              }
+              transaction.set(recurringIncomeRef, {
+                amount: rec.amount,
+                category: rec.category,
+                notes: rec.notes || "",
+                date: Timestamp.fromDate(nextDate),
+                userId: currentUser.uid,
+                createdAt: Timestamp.now(),
+                recurringPeriod: rec.period,
+                recurringEndDate: rec.endDate || null,
+                recurringRuleId: docSnap.id,
+                recurringSourceIncomeId: rec.sourceIncomeId || null,
+                recurringInstanceDate,
+              });
+              generatedAny = true;
+            });
+
+            latestGenerated = new Date(nextDate);
+            nextDate = getNextRecurringDate(
+              nextDate,
+              rec.period,
+              rec.startDate || rec.lastGeneratedDate,
+            );
+          }
+
+          const shouldDeactivate =
+            !!recurringEndDate &&
+            !isNaN(recurringEndDate.getTime()) &&
+            nextDate > recurringEndDate;
+
+          if (latestGenerated > lastDate || shouldDeactivate) {
+            const updatePayload: Partial<{
+              lastGeneratedDate: string;
+              isActive: boolean;
+            }> = {};
+
+            if (latestGenerated > lastDate) {
+              updatePayload.lastGeneratedDate = formatDateKey(latestGenerated);
+            }
+            if (shouldDeactivate) {
+              updatePayload.isActive = false;
+            }
+
+            await updateDoc(doc(db, "recurringIncomes", docSnap.id), updatePayload);
+          }
+        }
+
+        if (generatedAny) {
+          window.dispatchEvent(new Event("incomes-changed"));
+        }
+      } catch (_err) { /* noop */ }
+    };
+
+    processRecurringIncomes();
+  }, [currentUser]);
+
+  // ====== 收入：新增 / 更新 / 刪除 / 編輯 ======
+  const addIncome = async (incomeData: {
+    amount: number;
+    category: string;
+    date: string;
+    notes: string;
+    isRecurring?: boolean;
+    recurringPeriod?: "daily" | "weekly" | "monthly" | "yearly";
+    recurringEndDate?: string;
+  }): Promise<boolean> => {
+    if (!currentUser) {
+      setShowLoginForm(true);
+      return false;
+    }
+
+    try {
+      const tempId = `temp_${Date.now()}`;
+      const newIncome: Income = {
+        id: tempId,
+        amount: incomeData.amount,
+        category: {
+          id: incomeData.category,
+          name: incomeData.category,
+          icon: getIncomeCategoryIcon(incomeData.category),
+        },
+        date: new Date(incomeData.date),
+        notes: incomeData.notes || "",
+        userId: currentUser.uid,
+      };
+
+      // 立即更新 UI
+      setIncomes((prev) => [newIncome, ...prev]);
+
+      setSuccessMessage("收入記錄已添加！");
+      setShowSuccessMessage(true);
+      if (successMessageTimer.current) {
+        window.clearTimeout(successMessageTimer.current);
+      }
+      successMessageTimer.current = window.setTimeout(
+        () => setShowSuccessMessage(false),
+        1500,
+      );
+
+      const docRef = await addDoc(collection(db, "incomes"), {
+        amount: incomeData.amount,
+        category: incomeData.category,
+        notes: incomeData.notes || "",
+        userId: currentUser.uid,
+        createdAt: new Date(),
+        date: Timestamp.fromDate(new Date(incomeData.date)),
+      });
+
+      // 更新真實 ID
+      setIncomes((prev) =>
+        prev.map((income) =>
+          income.id === tempId ? { ...income, id: docRef.id } : income,
+        ),
+      );
+
+      // 定期收入：建立規則
+      if (incomeData.isRecurring && incomeData.recurringPeriod) {
+        await upsertRecurringIncomeRule({
+          sourceIncomeId: docRef.id,
+          userId: currentUser.uid,
+          amount: incomeData.amount,
+          category: incomeData.category,
+          notes: incomeData.notes || "",
+          period: incomeData.recurringPeriod,
+          startDate: incomeData.date,
+          endDate: incomeData.recurringEndDate,
+        });
+      }
+
+      window.dispatchEvent(new Event("incomes-changed"));
+      return true;
+    } catch (_error) {
+      setError("添加收入記錄失敗，請稍後再試");
+      setTimeout(() => setError(null), 3000);
+      return false;
+    }
+  };
+
+  const updateIncome = async (incomeData: {
+    amount: number;
+    category: string;
+    date: string;
+    notes: string;
+    isRecurring?: boolean;
+    recurringPeriod?: "daily" | "weekly" | "monthly" | "yearly";
+    recurringEndDate?: string;
+  }): Promise<boolean> => {
+    if (!currentUser || !editingIncome) return false;
+
+    try {
+      await updateDoc(doc(db, "incomes", editingIncome.id), {
+        amount: incomeData.amount,
+        category: incomeData.category,
+        date: Timestamp.fromDate(new Date(incomeData.date)),
+        notes: incomeData.notes || "",
+        updatedAt: new Date(),
+      });
+
+      setIncomes((prev) =>
+        prev.map((income) =>
+          income.id === editingIncome.id
+            ? {
+                ...income,
+                amount: incomeData.amount,
+                category: {
+                  id: incomeData.category,
+                  name: incomeData.category,
+                  icon: getIncomeCategoryIcon(incomeData.category),
+                },
+                date: new Date(incomeData.date),
+                notes: incomeData.notes || "",
+              }
+            : income,
+        ),
+      );
+
+      // 定期收入：開啟 → upsert 規則；關閉 → 停用對應規則
+      if (incomeData.isRecurring && incomeData.recurringPeriod) {
+        await upsertRecurringIncomeRule({
+          sourceIncomeId: editingIncome.id,
+          userId: currentUser.uid,
+          amount: incomeData.amount,
+          category: incomeData.category,
+          notes: incomeData.notes || "",
+          period: incomeData.recurringPeriod,
+          startDate: incomeData.date,
+          endDate: incomeData.recurringEndDate,
+        });
+      } else {
+        const rules = await findRecurringRulesForIncome({
+          sourceIncomeId: editingIncome.id,
+          userId: currentUser.uid,
+          category: incomeData.category,
+          amount: incomeData.amount,
+        });
+        await Promise.all(
+          rules.map((ruleDoc) =>
+            updateDoc(doc(db, "recurringIncomes", ruleDoc.id), {
+              isActive: false,
+              updatedAt: Timestamp.now(),
+            }),
+          ),
+        );
+      }
+
+      setSuccessMessage("收入記錄已更新！");
+      setShowSuccessMessage(true);
+      if (successMessageTimer.current) {
+        window.clearTimeout(successMessageTimer.current);
+      }
+      successMessageTimer.current = window.setTimeout(
+        () => setShowSuccessMessage(false),
+        1500,
+      );
+
+      window.dispatchEvent(new Event("incomes-changed"));
+      return true;
+    } catch (_error) {
+      setError("更新收入記錄失敗，請稍後再試");
+      setTimeout(() => setError(null), 3000);
+      return false;
+    }
+  };
+
+  const deleteIncome = async (id: string) => {
+    if (!currentUser) return;
+    if (!window.confirm("確定要刪除這條收入記錄嗎？")) return;
+
+    try {
+      await deleteDoc(doc(db, "incomes", id));
+      setIncomes((prev) => prev.filter((income) => income.id !== id));
+      setSuccessMessage("收入記錄已刪除！");
+      setShowSuccessMessage(true);
+      if (successMessageTimer.current) {
+        window.clearTimeout(successMessageTimer.current);
+      }
+      successMessageTimer.current = window.setTimeout(
+        () => setShowSuccessMessage(false),
+        1500,
+      );
+    } catch (_error) {
+      setError("刪除收入記錄失敗，請稍後再試");
+      setTimeout(() => setError(null), 3000);
+    }
+  };
+
+  const editIncome = (income: Income) => {
+    setEditingIncome(income);
+    setEntryType("income");
+    setShowEntryModal(true);
+  };
+
+  // 開啟「記一筆」彈窗（新增模式）
+  const openEntry = (type: "expense" | "income") => {
+    setEntryType(type);
+    setEditingExpense(null);
+    setEditingIncome(null);
+    setShowEntryModal(true);
+  };
+
   // 當用戶未登入時，自動顯示登入界面
   useEffect(() => {
     if (!currentUser) {
@@ -1922,10 +2480,29 @@ const chartRef = useRef<HTMLDivElement>(null);
     };
   };
 
+  const convertIncomeForForm = (income: Income | null) => {
+    if (!income) return null;
+    return {
+      id: income.id,
+      amount: income.amount,
+      category: income.category.name,
+      date:
+        income.date instanceof Date
+          ? income.date.toISOString().slice(0, 10)
+          : new Date().toISOString().slice(0, 10),
+      notes: income.notes,
+      attachments: [],
+      recurringPeriod: income.recurringPeriod,
+      recurringEndDate: income.recurringEndDate,
+    };
+  };
+
   // 編輯支出記錄
   const editExpense = (expense: Expense) => {
     setEditingExpense(expense);
-    setShowExpenseForm(true);
+    setEditingIncome(null);
+    setEntryType("expense");
+    setShowEntryModal(true);
   };
 
   // 更新支出記錄
@@ -2331,6 +2908,84 @@ const chartRef = useRef<HTMLDivElement>(null);
 
   const filteredTransactions = getFilteredExpenses();
 
+  // 依目前的日期選項判斷某筆日期是否符合（收入與支出共用）
+  const matchesSelectedDate = (d: Date): boolean => {
+    if (selectedDateOption === "all") return true;
+
+    if (selectedDateOption === "month") {
+      const today = new Date();
+      return d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear();
+    }
+
+    if (selectedDateOption === "month_select") {
+      const [year, month] = selectedMonth.split('-').map(Number);
+      return d.getMonth() === month - 1 && d.getFullYear() === year;
+    }
+
+    if (selectedDateOption === "this_week") {
+      const today = new Date();
+      const currentDay = today.getDay() || 7;
+      const firstDayOfWeek = new Date(today);
+      firstDayOfWeek.setDate(today.getDate() - (currentDay - 1));
+      firstDayOfWeek.setHours(0, 0, 0, 0);
+      const lastDayOfWeek = new Date(firstDayOfWeek);
+      lastDayOfWeek.setDate(firstDayOfWeek.getDate() + 6);
+      lastDayOfWeek.setHours(23, 59, 59, 999);
+      return d >= firstDayOfWeek && d <= lastDayOfWeek;
+    }
+
+    if (selectedDateOption === "last_week") {
+      const today = new Date();
+      const currentDay = today.getDay() || 7;
+      const firstDayOfLastWeek = new Date(today);
+      firstDayOfLastWeek.setDate(today.getDate() - (currentDay - 1) - 7);
+      firstDayOfLastWeek.setHours(0, 0, 0, 0);
+      const lastDayOfLastWeek = new Date(firstDayOfLastWeek);
+      lastDayOfLastWeek.setDate(firstDayOfLastWeek.getDate() + 6);
+      lastDayOfLastWeek.setHours(23, 59, 59, 999);
+      return d >= firstDayOfLastWeek && d <= lastDayOfLastWeek;
+    }
+
+    let filterDate: Date;
+    if (selectedDateOption === "today") {
+      filterDate = new Date();
+      filterDate.setHours(0, 0, 0, 0);
+    } else if (selectedDateOption === "yesterday") {
+      filterDate = new Date();
+      filterDate.setHours(0, 0, 0, 0);
+      filterDate.setDate(filterDate.getDate() - 1);
+    } else {
+      filterDate = selectedDate;
+    }
+    return (
+      d.getFullYear() === filterDate.getFullYear() &&
+      d.getMonth() === filterDate.getMonth() &&
+      d.getDate() === filterDate.getDate()
+    );
+  };
+
+  const filteredIncomesForHistory = incomes.filter((income) =>
+    matchesSelectedDate(new Date(income.date)),
+  );
+
+  // 合併的歷史明細項目（依 historyMode 切換）
+  type HistoryItem =
+    | { kind: 'expense'; data: Expense }
+    | { kind: 'income'; data: Income };
+
+  const historyItems: HistoryItem[] = (() => {
+    const expenseItems: HistoryItem[] = filteredTransactions.map((e) => ({ kind: 'expense', data: e }));
+    const incomeItems: HistoryItem[] = filteredIncomesForHistory.map((i) => ({ kind: 'income', data: i }));
+    let list: HistoryItem[];
+    if (historyMode === 'expense') list = expenseItems;
+    else if (historyMode === 'income') list = incomeItems;
+    else list = [...expenseItems, ...incomeItems];
+    return list.sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
+  })();
+
+  const historyExpenseTotal = filteredTransactions.reduce((t, e) => t + e.amount, 0);
+  const historyIncomeTotal = filteredIncomesForHistory.reduce((t, i) => t + i.amount, 0);
+
   // 強制重新渲染組件的函數
   const forceRerender = () => {
   };
@@ -2478,7 +3133,7 @@ const chartRef = useRef<HTMLDivElement>(null);
 
     setShowLeaderboardForm(true);
     setShowSidebar(false);
-    setShowExpenseForm(false);
+    setShowEntryModal(false);
     setShowNotifications(false);
 
     // 其他可能需要關閉的面板
@@ -2747,6 +3402,7 @@ const chartRef = useRef<HTMLDivElement>(null);
   // 添加預算設置狀態
   const [showBudgetSetting, setShowBudgetSetting] = useState(false);
   const [showRecurringExpenseManagement, setShowRecurringExpenseManagement] = useState(false);
+  const [showRecurringIncomeManagement, setShowRecurringIncomeManagement] = useState(false);
   const [showSplitExpenseForm, setShowSplitExpenseForm] = useState(false); // 添加好友分帳表單狀態
   
   // 處理顯示預算設置表單的事件
@@ -2892,8 +3548,9 @@ const chartRef = useRef<HTMLDivElement>(null);
       });
       
       // 自動打開支出表單
-      setShowExpenseForm(true);
-      
+      setEntryType("expense");
+      setShowEntryModal(true);
+
       // 清除URL參數
       window.history.replaceState({}, document.title, window.location.pathname);
     }
@@ -3011,6 +3668,55 @@ const chartRef = useRef<HTMLDivElement>(null);
             </p>
           </div>
           
+          {/* 本月結餘總覽 */}
+          {(() => {
+            const now = new Date();
+            const inThisMonth = (d: Date) =>
+              d.getMonth() === now.getMonth() &&
+              d.getFullYear() === now.getFullYear();
+            const monthIncome = incomes
+              .filter((i) => inThisMonth(new Date(i.date)))
+              .reduce((s, i) => s + i.amount, 0);
+            const monthExpense = expenses
+              .filter((e) => inThisMonth(new Date(e.date)))
+              .reduce((s, e) => s + e.amount, 0);
+            const monthBalance = monthIncome - monthExpense;
+            const fmt = (n: number) =>
+              new Intl.NumberFormat("zh-TW", {
+                style: "currency",
+                currency: "TWD",
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0,
+              }).format(n);
+            return (
+              <div className="grid grid-cols-3 gap-3 mb-6">
+                <div className="bg-white rounded-xl shadow-md border-t-4 border-[#4EA8DE] p-4 text-center">
+                  <p className="text-xs text-gray-500 mb-1">本月收入</p>
+                  <p className="text-lg md:text-xl font-bold text-[#4EA8DE] truncate">
+                    {fmt(monthIncome)}
+                  </p>
+                </div>
+                <div className="bg-white rounded-xl shadow-md border-t-4 border-[#E07A8D] p-4 text-center">
+                  <p className="text-xs text-gray-500 mb-1">本月支出</p>
+                  <p className="text-lg md:text-xl font-bold text-[#E07A8D] truncate">
+                    {fmt(monthExpense)}
+                  </p>
+                </div>
+                <div className="bg-white rounded-xl shadow-md border-t-4 border-[#6BBFA0] p-4 text-center">
+                  <p className="text-xs text-gray-500 mb-1">本月結餘</p>
+                  <p
+                    className={`text-lg md:text-xl font-bold truncate ${
+                      monthBalance >= 0 ? "text-[#6BBFA0]" : "text-[#E07A8D]"
+                    }`}
+                  >
+                    {monthBalance >= 0 ? "+" : "−"}
+                    {fmt(Math.abs(monthBalance))}
+                  </p>
+                </div>
+              </div>
+            );
+          })()}
+
           {/* 添加統計卡片 */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
             {/* 總支出卡片 */}
@@ -3112,12 +3818,12 @@ const chartRef = useRef<HTMLDivElement>(null);
           <div className="mb-8 relative flex gap-2">
             <button
               className="flex-1 py-3 bg-[#E07A8D] hover:bg-[#F09CA7] text-white rounded-xl shadow-sm hover:shadow-md flex items-center justify-center gap-1.5 text-sm font-medium transition-all duration-300 whitespace-nowrap"
-              onClick={() => setShowExpenseForm(true)}
+              onClick={() => openEntry("expense")}
             >
               <i className="fas fa-plus"></i>
-              <span>新增消費</span>
+              <span>記一筆</span>
             </button>
-            
+
             <button
               className="flex-1 py-3 bg-[#6BBFA0] hover:bg-[#5CAA90] text-white rounded-xl shadow-sm hover:shadow-md flex items-center justify-center gap-1.5 text-sm font-medium transition-all duration-300 whitespace-nowrap"
               onClick={() => {
@@ -3130,15 +3836,15 @@ const chartRef = useRef<HTMLDivElement>(null);
               }}
             >
               <i className="fas fa-list-ul"></i>
-              <span>歷史消費</span>
+              <span>歷史明細</span>
             </button>
 
             <button
               className="flex-1 py-3 bg-[#4EA8DE] hover:bg-[#3D97CD] text-white rounded-xl shadow-sm hover:shadow-md flex items-center justify-center gap-1.5 text-sm font-medium transition-all duration-300 whitespace-nowrap"
-              onClick={() => { window.location.href = '/income'; }}
+              onClick={() => setShowRecurringIncomeManagement(true)}
             >
               <i className="fas fa-coins"></i>
-              <span>收入管理</span>
+              <span>定期收入</span>
             </button>
           </div>
           
@@ -3171,8 +3877,37 @@ const chartRef = useRef<HTMLDivElement>(null);
           
           {/* 預算進度條區域 - 移到支出分析區塊上方 */}
           {currentUser && <BudgetProgressBars />}
-          
+
+          {/* 分析區塊：支出/收入 切換 */}
+          <div className="flex gap-2 mb-4 p-1 bg-white rounded-xl shadow-sm w-fit">
+            <button
+              type="button"
+              onClick={() => setAnalysisMode("expense")}
+              className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-all ${
+                analysisMode === "expense"
+                  ? "bg-[#3AA6B9] text-white shadow-sm"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              支出分析
+            </button>
+            <button
+              type="button"
+              onClick={() => setAnalysisMode("income")}
+              className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-all ${
+                analysisMode === "income"
+                  ? "bg-[#4EA8DE] text-white shadow-sm"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              收入分析
+            </button>
+          </div>
+
+          {analysisMode === "income" && <IncomeAnalysis incomes={incomes} />}
+
           {/* 支出分析卡片 */}
+          {analysisMode === "expense" && (<>
           <div className="relative bg-white bg-opacity-95 backdrop-blur-sm rounded-xl shadow-md border-l-4 border-[#3AA6B9] p-5 mb-6 hover:shadow-lg transition-all duration-300">
             <div className="mb-4">
               <h2 className="text-lg font-bold text-[#3AA6B9] mb-2">支出分析</h2>
@@ -3277,7 +4012,7 @@ const chartRef = useRef<HTMLDivElement>(null);
                     <p className="mb-3">沒有任何消費明細</p>
                 <button 
                   className="px-4 py-2 bg-[#E07A8D] hover:bg-[#F09CA7] text-white rounded-lg text-sm shadow-sm hover:shadow-md transition-all duration-300 ripple-effect floating"
-                  onClick={() => setShowExpenseForm(true)}
+                  onClick={() => openEntry("expense")}
                 >
                   <i className="fas fa-plus-circle mr-2"></i>
                   新增消費明細
@@ -3379,7 +4114,7 @@ const chartRef = useRef<HTMLDivElement>(null);
                 <p className="mb-3">沒有任何消費明細</p>
                 <button 
                   className="px-4 py-2 bg-[#E07A8D] hover:bg-[#F09CA7] text-white rounded-lg text-sm shadow-sm hover:shadow-md transition-all duration-300 ripple-effect floating"
-                  onClick={() => setShowExpenseForm(true)}
+                  onClick={() => openEntry("expense")}
                 >
                   <i className="fas fa-plus-circle mr-2"></i>
                   新增消費明細
@@ -3387,7 +4122,8 @@ const chartRef = useRef<HTMLDivElement>(null);
 </div>
 )}
           </div>
-          
+          </>)}
+
           {/* 今日支出 - 放在每日消費趨勢下方 */}
           <div id="expense-details" className="bg-white bg-opacity-95 rounded-xl shadow-md border-l-4 border-elora-pink p-4 sm:p-5 mb-6">
             <div className="flex flex-col mb-4">
@@ -3411,6 +4147,31 @@ const chartRef = useRef<HTMLDivElement>(null);
                                 ? format(selectedDate, "yyyy年M月d日") + " 消費明細"
                                 : "全部消費明細"}
                 </h2>
+              </div>
+
+              {/* 全部/支出/收入 切換 */}
+              <div className="flex gap-2 mb-3">
+                {([
+                  { key: 'all', label: '全部' },
+                  { key: 'expense', label: '支出' },
+                  { key: 'income', label: '收入' },
+                ] as const).map(({ key, label }) => (
+                  <button
+                    key={key}
+                    onClick={() => setHistoryMode(key)}
+                    className={`px-3 py-1 text-xs rounded-full font-medium transition-colors ${
+                      historyMode === key
+                        ? key === 'income'
+                          ? 'bg-[#4EA8DE] text-white'
+                          : key === 'expense'
+                            ? 'bg-[#E07A8D] text-white'
+                            : 'bg-gray-700 text-white'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
               </div>
 
               {/* 日期切換按鈕 - 簡約優雅設計 */}
@@ -3541,27 +4302,42 @@ const chartRef = useRef<HTMLDivElement>(null);
               </div>
             </div>
 
-            <p className="text-gray-500 self-end">
-              總計:{" "}
-              {filteredTransactions.length > 0
-                ? new Intl.NumberFormat("zh-TW", {
-                    style: "currency",
-                    currency: "TWD",
-                    minimumFractionDigits: 0,
-                    maximumFractionDigits: 0,
-                  }).format(
-                    filteredTransactions.reduce(
-                      (total, expense) => total + expense.amount,
-                      0,
-                    ),
-                  )
-                : "$0"}
-            </p>
+            <div className="flex flex-wrap gap-x-4 gap-y-1 justify-end text-sm mb-2">
+              {historyMode !== 'expense' && (
+                <span className="text-[#4EA8DE]">
+                  收入 {new Intl.NumberFormat("zh-TW", { style: "currency", currency: "TWD", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(historyIncomeTotal)}
+                </span>
+              )}
+              {historyMode !== 'income' && (
+                <span className="text-[#E07A8D]">
+                  支出 {new Intl.NumberFormat("zh-TW", { style: "currency", currency: "TWD", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(historyExpenseTotal)}
+                </span>
+              )}
+              {historyMode === 'all' && (
+                <span className={`font-semibold ${historyIncomeTotal - historyExpenseTotal >= 0 ? 'text-[#6BBFA0]' : 'text-[#E07A8D]'}`}>
+                  淨額 {historyIncomeTotal - historyExpenseTotal >= 0 ? '+' : '−'}{new Intl.NumberFormat("zh-TW", { style: "currency", currency: "TWD", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(Math.abs(historyIncomeTotal - historyExpenseTotal))}
+                </span>
+              )}
+            </div>
 
-            {filteredTransactions.length > 0 ? (
+            {historyItems.length > 0 ? (
               <>
               <div className="space-y-4">
-                  {filteredTransactions.map((transaction) => (
+                  {historyItems.map((item) => {
+                    const isIncome = item.kind === 'income';
+                    const transaction = item.data;
+                    const categoryName =
+                      typeof transaction.category === "string"
+                        ? transaction.category
+                        : transaction.category?.name || "未分類";
+                    const catColor = isIncome
+                      ? getIncomeCategoryColor(categoryName)
+                      : getCategoryColor(categoryName);
+                    const catIcon =
+                      typeof transaction.category === "string"
+                        ? (isIncome ? getIncomeCategoryIcon(transaction.category) : getCategoryIcon(transaction.category))
+                        : transaction.category?.icon || "fa-question";
+                    return (
                     <div
                       key={transaction.id}
                       className="rounded-lg border border-gray-100 bg-white p-3.5 transition-all duration-300 hover:shadow-md sm:p-4"
@@ -3570,30 +4346,23 @@ const chartRef = useRef<HTMLDivElement>(null);
                       <div className="flex min-w-0 flex-1 items-start gap-3">
                         <div
                           className="w-10 h-10 shrink-0 rounded-full flex items-center justify-center text-white"
-                          style={{
-                            backgroundColor: getCategoryColor(
-                              typeof transaction.category === "string"
-                                ? transaction.category
-                                : transaction.category?.name || "其他",
-                            ),
-                          }}
+                          style={{ backgroundColor: catColor }}
                         >
-                          <i
-                            className={`fas ${typeof transaction.category === "string" ? getCategoryIcon(transaction.category) : transaction.category?.icon || "fa-question"}`}
-                          ></i>
+                          <i className={`fas ${catIcon}`}></i>
                         </div>
                         <div className="min-w-0 flex-1">
-                          <h3 className="font-medium text-gray-800 truncate">
-                            {typeof transaction.category === "string"
-                              ? transaction.category
-                              : transaction.category?.name || "未分類"}
+                          <h3 className="font-medium text-gray-800 truncate flex items-center gap-1.5">
+                            {categoryName}
+                            {isIncome && (
+                              <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-[#E6F4FC] text-[#4EA8DE]">收入</span>
+                            )}
                           </h3>
                           <p className="text-sm text-gray-500">
                             {transaction.date.toLocaleDateString('zh-TW', { year: 'numeric', month: 'long', day: 'numeric' })}
                           </p>
                           {transaction.recurringPeriod && (
                             <span className="inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 rounded text-[11px] font-medium"
-                              style={{ backgroundColor: '#F0EAFA', color: '#A487C3' }}>
+                              style={{ backgroundColor: isIncome ? '#E6F4FC' : '#F0EAFA', color: isIncome ? '#4EA8DE' : '#A487C3' }}>
                               <i className="fas fa-redo" style={{ fontSize: '9px' }}></i>
                               {{ daily: '每日', weekly: '每週', monthly: '每月', yearly: '每年' }[transaction.recurringPeriod] || transaction.recurringPeriod}
                             </span>
@@ -3602,23 +4371,27 @@ const chartRef = useRef<HTMLDivElement>(null);
                         </div>
                       </div>
                       <div className="flex shrink-0 flex-col items-end gap-2">
-                        <span className="whitespace-nowrap text-right text-base font-bold leading-tight text-[#E07A8D]">
-                          NT$ {transaction.amount.toLocaleString('zh-TW')}
+                        <span className={`whitespace-nowrap text-right text-base font-bold leading-tight ${isIncome ? 'text-[#4EA8DE]' : 'text-[#E07A8D]'}`}>
+                          {isIncome ? '+' : '−'}NT$ {transaction.amount.toLocaleString('zh-TW')}
                         </span>
                         <div className="flex gap-2">
                           <button
-                            onClick={() => editExpense(transaction)}
+                            onClick={() => isIncome ? editIncome(transaction as Income) : editExpense(transaction as Expense)}
                             className="rounded bg-blue-50 p-2 text-xs text-blue-600 hover:bg-blue-100"
-                            title="編輯消費明細"
+                            title="編輯明細"
                           >
                             <i className="fas fa-edit"></i>
                           </button>
                           <button
                             onClick={() => {
-                              deleteExpense(transaction.id);
+                              if (isIncome) {
+                                deleteIncome(transaction.id);
+                              } else {
+                                deleteExpense(transaction.id);
+                              }
                             }}
                             className="rounded bg-red-50 p-2 text-xs text-red-600 hover:bg-red-100"
-                            title="刪除消費明細"
+                            title="刪除明細"
                           >
                             <i className="fas fa-trash-alt"></i>
                           </button>
@@ -3626,22 +4399,32 @@ const chartRef = useRef<HTMLDivElement>(null);
                       </div>
                     </div>
 </div>
-))}
+);
+})}
 </div>
                 <div className="mt-6 pt-4 border-t border-gray-200 flex justify-start">
                   <p className="text-lg font-bold text-gray-800">
-                    總計:{" "}
-                    {new Intl.NumberFormat("zh-TW", {
-                      style: "currency",
-                      currency: "TWD",
-                      minimumFractionDigits: 0,
-                      maximumFractionDigits: 0,
-                    }).format(
-                      filteredTransactions.reduce(
-                        (total, expense) => total + expense.amount,
-                        0,
-                      ),
-                    )}
+                    {historyMode === 'income'
+                      ? '收入合計'
+                      : historyMode === 'expense'
+                        ? '支出合計'
+                        : '淨額'}
+                    :{" "}
+                    {(() => {
+                      const val =
+                        historyMode === 'income'
+                          ? historyIncomeTotal
+                          : historyMode === 'expense'
+                            ? historyExpenseTotal
+                            : historyIncomeTotal - historyExpenseTotal;
+                      const sign = historyMode === 'all' ? (val >= 0 ? '+' : '−') : '';
+                      return sign + new Intl.NumberFormat("zh-TW", {
+                        style: "currency",
+                        currency: "TWD",
+                        minimumFractionDigits: 0,
+                        maximumFractionDigits: 0,
+                      }).format(Math.abs(val));
+                    })()}
                   </p>
                 </div>
               </>
@@ -3667,7 +4450,7 @@ const chartRef = useRef<HTMLDivElement>(null);
                 </p>
                 <button 
                   className="px-4 py-2 bg-[#E07A8D] hover:bg-[#F09CA7] text-white rounded-lg text-sm shadow-sm hover:shadow-md transition-all duration-300 ripple-effect floating"
-                  onClick={() => setShowExpenseForm(true)}
+                  onClick={() => openEntry("expense")}
                 >
                   <i className="fas fa-plus-circle mr-2"></i>
                   新增消費明細
@@ -3902,89 +4685,137 @@ const chartRef = useRef<HTMLDivElement>(null);
 </div>
       )}
       
-      {/* 添加支出表單 */}
-      {showExpenseForm && (
+      {/* 記一筆彈窗：收入/支出 tab 切換 */}
+      {showEntryModal && (
         <div
           className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 animate-fadeIn"
           onClick={() => {
-            setShowExpenseForm(false);
+            setShowEntryModal(false);
             setEditingExpense(null);
+            setEditingIncome(null);
             setExpenseParams(null);
           }}
         >
-          <div 
+          <div
             className="relative bg-white rounded-xl shadow-lg max-w-md w-full max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
             style={{animation: 'slideUpIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) both'}}
           >
             <div className="p-6" style={{animation: 'fadeIn 0.5s 0.2s both', position: 'relative', zIndex: 10}}>
-              <ExpenseForm 
-                onSave={async (data) => {
-                  try {
-                    
-                    // 立即關閉表單，提高用戶體驗
-                    setShowExpenseForm(false);
+              {/* 收入/支出 切換 tab（編輯模式鎖定，不可切換） */}
+              {!editingExpense && !editingIncome && (
+                <div className="flex gap-2 mb-4 p-1 bg-gray-100 rounded-xl">
+                  <button
+                    type="button"
+                    onClick={() => setEntryType("expense")}
+                    className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all ${
+                      entryType === "expense"
+                        ? "bg-[#E07A8D] text-white shadow-sm"
+                        : "text-gray-500 hover:text-gray-700"
+                    }`}
+                  >
+                    <i className="fas fa-minus-circle mr-1.5"></i>支出
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEntryType("income")}
+                    className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all ${
+                      entryType === "income"
+                        ? "bg-[#4EA8DE] text-white shadow-sm"
+                        : "text-gray-500 hover:text-gray-700"
+                    }`}
+                  >
+                    <i className="fas fa-plus-circle mr-1.5"></i>收入
+                  </button>
+                </div>
+              )}
+
+              {entryType === "expense" ? (
+                <ExpenseForm
+                  onSave={async (data) => {
+                    try {
+                      // 立即關閉表單，提高用戶體驗
+                      setShowEntryModal(false);
+                      setEditingExpense(null);
+                      setExpenseParams(null); // 清除初始參數
+
+                      // 直接執行保存操作
+                      let success = false;
+
+                      if (editingExpense) {
+                        success = await updateExpense(data);
+                        if (success) {
+                          setSuccessMessage("支出已更新！");
+                          forceRerender();
+                        }
+                      } else {
+                        success = await addExpense(data);
+                        if (success) {
+                          setSuccessMessage("記帳成功！");
+                          forceRerender();
+                        }
+                      }
+
+                      if (success) {
+                        setShowSuccessMessage(true);
+                        if (successMessageTimer.current) {
+                          window.clearTimeout(successMessageTimer.current);
+                        }
+                        successMessageTimer.current = window.setTimeout(() => {
+                          setShowSuccessMessage(false);
+                        }, 1000);
+                      }
+
+                      return success;
+                    } catch (_error) {
+                      return false;
+                    }
+                  }}
+                  onCancel={() => {
+                    setShowEntryModal(false);
                     setEditingExpense(null);
                     setExpenseParams(null); // 清除初始參數
-                    
-                    // 直接執行保存操作
-                    let success = false;
-                    
-                    if (editingExpense) {
-                      success = await updateExpense(data);
-                      if (success) {
-                        setSuccessMessage("支出已更新！");
-                        // 強制重新渲染
-                        forceRerender();
-                      }
-                    } else {
-                      success = await addExpense(data);
-                      if (success) {
-                        setSuccessMessage("記帳成功！");
-                        // 強制重新渲染
-                        forceRerender();
-                      }
-                    }
-                    
-                    if (success) {
-                      // 顯示成功消息
-                      setShowSuccessMessage(true);
-                      // 設置定時器自動隱藏成功消息
-                      if (successMessageTimer.current) {
-                        window.clearTimeout(successMessageTimer.current);
-                      }
-                      successMessageTimer.current = window.setTimeout(() => {
-                        setShowSuccessMessage(false);
-                      }, 1000);
-                    }
-                    
-                    return success;
-                  } catch (_error) {
-                    return false;
+                  }}
+                  expense={
+                    editingExpense ? convertExpenseForForm(editingExpense) :
+                    expenseParams ? {
+                      id: '',
+                      amount: parseFloat(expenseParams.amount),
+                      category: expenseParams.category,
+                      date: expenseParams.date || new Date().toISOString().slice(0, 10),
+                      notes: expenseParams.notes,
+                      attachments: []
+                    } as any : null
                   }
-                }} 
-                onCancel={() => {
-                  setShowExpenseForm(false);
-                  setEditingExpense(null);
-                  setExpenseParams(null); // 清除初始參數
-                }}
-                expense={
-                  // 優先使用編輯中的支出數據，否則檢查是否有初始參數
-                  editingExpense ? convertExpenseForForm(editingExpense) :
-                  expenseParams ? {
-                    id: '', // 新建支出的id為空
-                    amount: parseFloat(expenseParams.amount),
-                    category: expenseParams.category,
-                    date: expenseParams.date || new Date().toISOString().slice(0, 10),
-                    notes: expenseParams.notes,
-                    attachments: []
-                  } as any : null
-                }
-              />
-</div>
-</div>
-</div>
-)}
+                />
+              ) : (
+                <IncomeForm
+                  onSave={async (data) => {
+                    try {
+                      setShowEntryModal(false);
+                      const wasEditing = !!editingIncome;
+                      if (wasEditing) {
+                        await updateIncome(data);
+                      } else {
+                        await addIncome(data);
+                      }
+                      setEditingIncome(null);
+                      return true as any;
+                    } catch (_error) {
+                      return false as any;
+                    }
+                  }}
+                  onCancel={() => {
+                    setShowEntryModal(false);
+                    setEditingIncome(null);
+                  }}
+                  income={editingIncome ? convertIncomeForForm(editingIncome) : null}
+                />
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 個人資料表單 */}
       {showProfileForm && (
@@ -4670,6 +5501,23 @@ const chartRef = useRef<HTMLDivElement>(null);
         </div>
       )}
 
+      {/* 定期收入管理 */}
+      {showRecurringIncomeManagement && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowRecurringIncomeManagement(false)}
+        >
+          <div
+            className="bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <RecurringIncomeManagement
+              onClose={() => setShowRecurringIncomeManagement(false)}
+            />
+          </div>
+        </div>
+      )}
+
       {/* 預算設置表單 */}
       {showBudgetSetting && (
         <div
@@ -4695,16 +5543,17 @@ const chartRef = useRef<HTMLDivElement>(null);
 
       {/* 固定在右下角的懸浮新增支出按鈕 */}
       {currentUser && 
-        !showSidebar && 
-        !showExpenseForm && 
-        !showLoginForm && 
-        !showProfileForm && 
-        !showLeaderboardForm && 
-        !showFriendManagement && 
-        !showLeaderboardViewer && 
-        !showLoanManagement && 
+        !showSidebar &&
+        !showEntryModal &&
+        !showLoginForm &&
+        !showProfileForm &&
+        !showLeaderboardForm &&
+        !showFriendManagement &&
+        !showLeaderboardViewer &&
+        !showLoanManagement &&
         !showRecurringExpenseManagement &&
-        !showBudgetSetting && 
+        !showRecurringIncomeManagement &&
+        !showBudgetSetting &&
         !showSplitExpenseForm && 
         !showDatePicker && 
         !showMonthPicker && 
@@ -4734,7 +5583,7 @@ const chartRef = useRef<HTMLDivElement>(null);
           {/* 新增支出按鈕 */}
           <div className="group relative">
             <button
-              onClick={() => setShowExpenseForm(true)}
+              onClick={() => openEntry("expense")}
               className="h-12 w-12 rounded-full bg-gradient-to-r from-[#E07A8D] to-[#F09CA7] shadow-xl flex items-center justify-center text-white opacity-75 hover:opacity-100 active:scale-95 transition-all duration-300 focus:outline-none"
               aria-label="新增支出"
             >

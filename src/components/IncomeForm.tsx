@@ -8,6 +8,9 @@ interface IncomeFormProps {
     date: string;
     notes: string;
     attachments?: File[];
+    isRecurring?: boolean;
+    recurringPeriod?: 'daily' | 'weekly' | 'monthly' | 'yearly';
+    recurringEndDate?: string;
   }) => void;
   onCancel: () => void;
   income?: {
@@ -17,6 +20,8 @@ interface IncomeFormProps {
     date: string;
     notes: string;
     attachments?: string[];
+    recurringPeriod?: string;
+    recurringEndDate?: string;
   } | null;
 }
 
@@ -50,6 +55,9 @@ const IncomeForm: React.FC<IncomeFormProps> = ({
   const [notes, setNotes] = useState<string>("");
   const [error, setError] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [isRecurring, setIsRecurring] = useState<boolean>(false);
+  const [recurringPeriod, setRecurringPeriod] = useState<'daily' | 'weekly' | 'monthly' | 'yearly'>('monthly');
+  const [recurringEndDate, setRecurringEndDate] = useState<string>("");
 
   // 貨幣轉換相關狀態
   const [selectedCurrency, setSelectedCurrency] = useState<CurrencyType>("TWD");
@@ -119,6 +127,16 @@ const IncomeForm: React.FC<IncomeFormProps> = ({
       setSelectedCurrency("TWD");
       setConvertedAmount(null);
       setExchangeRate(null);
+      // 初始化定期設定
+      if (income.recurringPeriod) {
+        setIsRecurring(true);
+        setRecurringPeriod(income.recurringPeriod as 'daily' | 'weekly' | 'monthly' | 'yearly');
+        setRecurringEndDate(income.recurringEndDate || "");
+      } else {
+        setIsRecurring(false);
+        setRecurringPeriod('monthly');
+        setRecurringEndDate("");
+      }
     } else {
       // 如果不是編輯模式，重置表單值
       setAmount("");
@@ -131,6 +149,9 @@ const IncomeForm: React.FC<IncomeFormProps> = ({
       setSelectedCurrency("TWD");
       setConvertedAmount(null);
       setExchangeRate(null);
+      setIsRecurring(false);
+      setRecurringPeriod('monthly');
+      setRecurringEndDate("");
     }
   }, [income]);
 
@@ -221,6 +242,11 @@ const IncomeForm: React.FC<IncomeFormProps> = ({
       return;
     }
 
+    if (isRecurring && recurringEndDate && recurringEndDate < date) {
+      setError("定期結束日期不能早於收入日期");
+      return;
+    }
+
     try {
       // 防止重複提交
       if (isSubmitting) {
@@ -270,6 +296,9 @@ const IncomeForm: React.FC<IncomeFormProps> = ({
         category,
         date,
         notes: finalNotes,
+        isRecurring,
+        recurringPeriod: isRecurring ? recurringPeriod : undefined,
+        recurringEndDate: isRecurring && recurringEndDate ? recurringEndDate : undefined,
       });
 
 
@@ -282,6 +311,9 @@ const IncomeForm: React.FC<IncomeFormProps> = ({
         setSelectedCurrency("TWD");
         setConvertedAmount(null);
         setExchangeRate(null);
+        setIsRecurring(false);
+        setRecurringPeriod('monthly');
+        setRecurringEndDate("");
       }
 
       // 重置提交狀態
@@ -478,6 +510,75 @@ const IncomeForm: React.FC<IncomeFormProps> = ({
               </button>
             ))}
           </div>
+        </div>
+
+        {/* 定期收入 */}
+        <div className="border border-gray-200 rounded-lg p-3 bg-gray-50">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <i className="fas fa-redo text-[#4EA8DE] text-sm"></i>
+              <span className="text-sm font-semibold text-gray-800">定期收入</span>
+              <span className="text-xs text-gray-400">(薪資等固定收入自動計入)</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsRecurring((prev) => !prev)}
+              className="relative w-12 h-6 rounded-full transition-all duration-300 focus:outline-none border-2"
+              style={{
+                backgroundColor: isRecurring ? '#4EA8DE' : '#ffffff',
+                borderColor: isRecurring ? '#4EA8DE' : '#d1d5db',
+                WebkitTapHighlightColor: 'transparent',
+              }}
+            >
+              <span
+                className="absolute top-0.5 h-4 w-4 rounded-full shadow-md transition-all duration-300"
+                style={{
+                  left: isRecurring ? '1.5rem' : '0.125rem',
+                  backgroundColor: isRecurring ? '#ffffff' : '#9ca3af',
+                }}
+              />
+            </button>
+          </div>
+          {isRecurring && (
+            <div className="mt-3">
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {([
+                  { value: 'weekly', label: '每週' },
+                  { value: 'monthly', label: '每月' },
+                  { value: 'yearly', label: '每年' },
+                ] as const).map(({ value, label }) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setRecurringPeriod(value)}
+                    className={`py-1.5 rounded-lg text-xs font-medium transition-all border ${recurringPeriod === value ? 'bg-[#4EA8DE] text-white border-[#4EA8DE]' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}
+                  >
+                    {label}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => setRecurringPeriod('daily')}
+                  className={`order-first py-1.5 rounded-lg text-xs font-medium transition-all border ${recurringPeriod === 'daily' ? 'bg-[#4EA8DE] text-white border-[#4EA8DE]' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}
+                >
+                  每日
+                </button>
+              </div>
+              <div className="mt-3">
+                <label htmlFor="recurringEndDate" className="block text-xs font-medium text-gray-600 mb-1">
+                  結束日期 <span className="text-gray-400">(選填，不填則持續重複；離職可在此設定或停用)</span>
+                </label>
+                <input
+                  type="date"
+                  id="recurringEndDate"
+                  min={date || getTodayDate()}
+                  value={recurringEndDate}
+                  onChange={(e) => setRecurringEndDate(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4EA8DE] focus:border-[#4EA8DE] text-sm text-gray-800 bg-white"
+                />
+              </div>
+            </div>
+          )}
         </div>
 
         {/* 日期選擇 */}
