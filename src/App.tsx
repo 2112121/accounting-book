@@ -4159,7 +4159,7 @@ const chartRef = useRef<HTMLDivElement>(null);
               </div>
 
               {/* 全部/支出/收入 切換 - 滑動 tab */}
-              <div style={{ position: "relative", display: "inline-flex", background: "#efefef", borderRadius: "999px", padding: "3px", marginBottom: "12px" }}>
+              <div style={{ position: "relative", display: "inline-flex", alignSelf: "flex-start", background: "#efefef", borderRadius: "999px", padding: "3px", marginBottom: "12px" }}>
                 <div style={{
                   position: "absolute", top: "3px", bottom: "3px", left: "3px",
                   width: "52px", borderRadius: "999px",
