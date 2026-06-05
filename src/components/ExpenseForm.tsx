@@ -348,7 +348,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
 
   return (
     <div className="p-3">
-      <div className="sticky top-0 z-20 -mx-3 mb-3 flex justify-between items-center bg-white px-3 pb-3 pt-1">
+      <div className="flex justify-between items-center mb-3">
         <h2 className="text-xl font-bold text-[#E07A8D]">
           {expense ? "編輯支出" : "新增支出"}
         </h2>
@@ -514,7 +514,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({
 
         {/* 定期重複 */}
         <div className="border border-gray-200 rounded-lg p-3 bg-gray-50">
-            <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <i className="fas fa-redo text-[#E07A8D] text-sm"></i>
                 <span className="text-sm font-semibold text-gray-800">定期重複</span>
