@@ -4704,14 +4704,22 @@ const chartRef = useRef<HTMLDivElement>(null);
             <div className="p-6" style={{animation: 'fadeIn 0.5s 0.2s both', position: 'relative', zIndex: 10}}>
               {/* 收入/支出 切換 tab（編輯模式鎖定，不可切換） */}
               {!editingExpense && !editingIncome && (
-                <div className="flex mb-5 rounded-full overflow-hidden border border-gray-200">
+                <div className="relative flex bg-gray-100 rounded-full p-1 mb-5">
+                  {/* 滑動 pill */}
+                  <div
+                    className="absolute inset-y-1 rounded-full shadow-sm transition-all duration-300 ease-in-out"
+                    style={{
+                      left: "4px",
+                      width: "calc(50% - 4px)",
+                      background: entryType === "expense" ? "#E07A8D" : "#4EA8DE",
+                      transform: entryType === "income" ? "translateX(100%)" : "translateX(0)",
+                    }}
+                  />
                   <button
                     type="button"
                     onClick={() => setEntryType("expense")}
-                    className={`flex-1 py-2.5 text-sm font-semibold transition-all ${
-                      entryType === "expense"
-                        ? "bg-[#E07A8D] text-white"
-                        : "bg-white text-gray-400 hover:bg-gray-50"
+                    className={`relative z-10 flex-1 py-2 text-sm font-semibold transition-colors duration-300 ${
+                      entryType === "expense" ? "text-white" : "text-gray-500"
                     }`}
                   >
                     支出
@@ -4719,10 +4727,8 @@ const chartRef = useRef<HTMLDivElement>(null);
                   <button
                     type="button"
                     onClick={() => setEntryType("income")}
-                    className={`flex-1 py-2.5 text-sm font-semibold transition-all border-l border-gray-200 ${
-                      entryType === "income"
-                        ? "bg-[#4EA8DE] text-white border-l-transparent"
-                        : "bg-white text-gray-400 hover:bg-gray-50"
+                    className={`relative z-10 flex-1 py-2 text-sm font-semibold transition-colors duration-300 ${
+                      entryType === "income" ? "text-white" : "text-gray-500"
                     }`}
                   >
                     收入
