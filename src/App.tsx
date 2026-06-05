@@ -3925,36 +3925,30 @@ const chartRef = useRef<HTMLDivElement>(null);
               </div>
               <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
-                  <button 
-                    className={`text-xs px-2 py-1 rounded-md transition-colors ${pieChartMode === 'current' ? 'bg-[#3AA6B9] text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+                  <button
+                    type="button"
+                    style={{ fontSize:"12px", padding:"4px 8px", borderRadius:"6px", border:"none", outline:"none", cursor:"pointer", transition:"background 0.2s", boxShadow:"none", transform:"none", background: pieChartMode === 'current' ? '#3AA6B9' : '#e5e7eb', color: pieChartMode === 'current' ? '#fff' : '#374151', fontWeight: pieChartMode === 'current' ? 600 : 400 }}
                     onClick={() => setPieChartMode('current')}
                   >
                     當月
                   </button>
                   <div className="relative">
-                    <button 
-                      className={`text-xs px-2 py-1 rounded-md transition-colors flex items-center ${pieChartMode === 'selected' ? 'bg-[#3AA6B9] text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+                    <button
+                      type="button"
+                      style={{ fontSize:"12px", padding:"4px 8px", borderRadius:"6px", border:"none", outline:"none", cursor:"pointer", transition:"background 0.2s", boxShadow:"none", transform:"none", background: pieChartMode === 'selected' ? '#3AA6B9' : '#e5e7eb', color: pieChartMode === 'selected' ? '#fff' : '#374151', fontWeight: pieChartMode === 'selected' ? 600 : 400 }}
                       onClick={(e) => {
-                        // 设置为选择月份模式
                         setPieChartMode('selected');
-                        
-                        // 获取输入元素
                         const inputEl = document.getElementById('pieChartMonthInput') as HTMLInputElement;
                         if (inputEl) {
-                          // 禁止事件冒泡，防止重复触发
                           e.stopPropagation();
-                          
                           try {
-                            // 尝试使用现代API打开日期选择器
                             if (typeof inputEl.showPicker === 'function') {
                               inputEl.showPicker();
                             } else {
-                              // 回退方法：模拟点击
                               inputEl.focus();
                               inputEl.click();
                             }
                           } catch (_err) {
-                            // 备用方法
                             inputEl.focus();
                             inputEl.click();
                           }
@@ -3963,7 +3957,7 @@ const chartRef = useRef<HTMLDivElement>(null);
                     >
                       選擇月份
                     </button>
-                    <input 
+                    <input
                       id="pieChartMonthInput"
                       type="month"
                       value={pieChartMonth}
@@ -3972,13 +3966,12 @@ const chartRef = useRef<HTMLDivElement>(null);
                         setPieChartMode('selected');
                       }}
                       className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-                      onClick={(e: React.MouseEvent) => {
-                        e.stopPropagation(); // 防止事件冒泡
-                      }}
+                      onClick={(e: React.MouseEvent) => e.stopPropagation()}
                     />
                   </div>
                   <button
-                    className={`text-xs px-2 py-1 rounded-md transition-colors ${pieChartMode === 'all' ? 'bg-[#3AA6B9] text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+                    type="button"
+                    style={{ fontSize:"12px", padding:"4px 8px", borderRadius:"6px", border:"none", outline:"none", cursor:"pointer", transition:"background 0.2s", boxShadow:"none", transform:"none", background: pieChartMode === 'all' ? '#3AA6B9' : '#e5e7eb', color: pieChartMode === 'all' ? '#fff' : '#374151', fontWeight: pieChartMode === 'all' ? 600 : 400 }}
                     onClick={() => setPieChartMode('all')}
                   >
                     全部
@@ -3986,8 +3979,9 @@ const chartRef = useRef<HTMLDivElement>(null);
                 </div>
               {selectedCategory && (
                 <button
+                  type="button"
                   onClick={resetCategorySelection}
-                  className="text-xs text-white bg-[#3AA6B9] hover:bg-[#4ABBC9] px-2 py-1 rounded-md flex items-center transition-all duration-300 shrink-0"
+                  style={{ fontSize:"12px", padding:"4px 8px", borderRadius:"6px", border:"none", outline:"none", cursor:"pointer", boxShadow:"none", transform:"none", background:"#3AA6B9", color:"#fff", display:"flex", alignItems:"center", flexShrink:0 }}
                 >
                   <i className="fas fa-arrow-left mr-1"></i> 返回總覽
                 </button>
