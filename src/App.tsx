@@ -3781,7 +3781,7 @@ const chartRef = useRef<HTMLDivElement>(null);
                   <i className="fas fa-wallet text-xl"></i>
                 </div>
               </div>
-              <div className="bg-white bg-opacity-10 px-5 py-2 text-sm">
+              <div className="bg-white bg-opacity-10 px-5 py-2 text-sm flex items-center justify-between">
                 <span>
                   {expenses
                     .filter(expense => {
@@ -3789,10 +3789,24 @@ const chartRef = useRef<HTMLDivElement>(null);
                       const currentMonth = today.getMonth();
                       const currentYear = today.getFullYear();
                       const expenseDate = new Date(expense.date);
-                      return expenseDate.getMonth() === currentMonth && 
+                      return expenseDate.getMonth() === currentMonth &&
                              expenseDate.getFullYear() === currentYear;
                     })
                     .length} 筆本月記錄
+                </span>
+                <span className="text-white text-opacity-90">
+                  日均 {new Intl.NumberFormat("zh-TW", { style: "currency", currency: "TWD", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(
+                    Math.round(
+                      expenses
+                        .filter(expense => {
+                          const today = new Date();
+                          const expenseDate = new Date(expense.date);
+                          return expenseDate.getMonth() === today.getMonth() && expenseDate.getFullYear() === today.getFullYear();
+                        })
+                        .reduce((total, expense) => total + expense.amount, 0)
+                      / new Date().getDate()
+                    )
+                  )}
                 </span>
               </div>
             </div>
