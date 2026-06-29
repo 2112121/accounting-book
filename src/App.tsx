@@ -2475,11 +2475,15 @@ const chartRef = useRef<HTMLDivElement>(null);
     return {
       id: expense.id,
       amount: expense.amount,
-      category: expense.category.name,
+      // category 在 Firestore 可能存成字串或物件，兩種都要能取到正確名稱
+      category:
+        typeof expense.category === "string"
+          ? expense.category
+          : expense.category?.name ?? "",
       date:
         expense.date instanceof Date
-          ? expense.date.toISOString().slice(0, 10)
-          : new Date().toISOString().slice(0, 10),
+          ? formatDateKey(expense.date)
+          : formatDateKey(new Date()),
       notes: expense.notes,
       attachments: [],
       recurringPeriod: expense.recurringPeriod,
@@ -2492,11 +2496,14 @@ const chartRef = useRef<HTMLDivElement>(null);
     return {
       id: income.id,
       amount: income.amount,
-      category: income.category.name,
+      category:
+        typeof income.category === "string"
+          ? income.category
+          : income.category?.name ?? "",
       date:
         income.date instanceof Date
-          ? income.date.toISOString().slice(0, 10)
-          : new Date().toISOString().slice(0, 10),
+          ? formatDateKey(income.date)
+          : formatDateKey(new Date()),
       notes: income.notes,
       attachments: [],
       recurringPeriod: income.recurringPeriod,
@@ -4412,6 +4419,20 @@ const chartRef = useRef<HTMLDivElement>(null);
                           </button>
                           <button
                             onClick={() => {
+                              const typeLabel = isIncome ? "收入" : "支出";
+                              const categoryName =
+                                typeof transaction.category === "string"
+                                  ? transaction.category
+                                  : transaction.category?.name ?? "";
+                              const dateLabel = formatDateKey(transaction.date);
+                              const confirmed = window.confirm(
+                                `確定要刪除這筆${typeLabel}嗎？\n\n` +
+                                  `日期：${dateLabel}\n` +
+                                  `類別：${categoryName}\n` +
+                                  `金額：NT$ ${transaction.amount.toLocaleString("zh-TW")}\n\n` +
+                                  `刪除後無法復原。`,
+                              );
+                              if (!confirmed) return;
                               if (isIncome) {
                                 deleteIncome(transaction.id);
                               } else {
