@@ -146,7 +146,6 @@ const IncomeAnalysis: React.FC<IncomeAnalysisProps> = ({ incomes, onSwitchMode, 
         value: categorySum[category],
       }));
 
-      const isMobile = window.innerWidth < 768;
       const isSelectedMode = selectedCategory !== null;
 
       const option = {
@@ -157,7 +156,7 @@ const IncomeAnalysis: React.FC<IncomeAnalysisProps> = ({ incomes, onSwitchMode, 
           confine: true,
         },
         legend: {
-          show: !isSelectedMode,
+          show: true,
           orient: "horizontal",
           left: "center",
           bottom: 0,
@@ -180,7 +179,7 @@ const IncomeAnalysis: React.FC<IncomeAnalysisProps> = ({ incomes, onSwitchMode, 
             name: "收入金額",
             type: "pie",
             radius: ["30%", "60%"],
-            center: [isSelectedMode ? (isMobile ? "48%" : "45%") : "50%", "45%"],
+            center: ["50%", isSelectedMode ? "40%" : "45%"],
             avoidLabelOverlap: false,
             emphasis: {
               itemStyle: { shadowBlur: 10, shadowOffsetX: 0, shadowColor: "rgba(0, 0, 0, 0.2)" },
@@ -372,12 +371,11 @@ const IncomeAnalysis: React.FC<IncomeAnalysisProps> = ({ incomes, onSwitchMode, 
       const chart = chartInstanceRef.current;
       if (!chart || chart.isDisposed()) return;
       if (containerWidthChanged) chart.resize();
-      const isMobile = window.innerWidth < 768;
       chart.setOption({
         animation: false,
-        legend: { show: !isSelected },
+        legend: { show: true },
         series: [
-          { center: [isSelected ? (isMobile ? "48%" : "45%") : "50%", "45%"] },
+          { center: ["50%", isSelected ? "40%" : "45%"] },
         ],
       });
     }, containerWidthChanged ? 320 : 0);
