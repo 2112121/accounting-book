@@ -203,6 +203,8 @@ const IncomeAnalysis: React.FC<IncomeAnalysisProps> = ({ incomes, onSwitchMode, 
       });
       chart.on('click', (params: any) => {
         if (params.seriesType === 'pie') {
+          chart.dispatchAction({ type: 'downplay', seriesIndex: 0 });
+          chart.dispatchAction({ type: 'highlight', seriesIndex: 0, dataIndex: params.dataIndex });
           setSelectedCategory(params.name);
         }
       });
@@ -348,7 +350,7 @@ const IncomeAnalysis: React.FC<IncomeAnalysisProps> = ({ incomes, onSwitchMode, 
     }
   };
 
-  // 初始化/更新圖表
+  // 初始化/更新圖表（不含 selectedCategory：選類別時不重建圖表）
   useEffect(() => {
     const timer = window.setTimeout(() => {
       initPieChart();
@@ -356,7 +358,31 @@ const IncomeAnalysis: React.FC<IncomeAnalysisProps> = ({ incomes, onSwitchMode, 
     }, 100);
     return () => window.clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [incomes, selectedCategory, chartFilterMode, pieChartMonth, chartsKey]);
+  }, [incomes, chartFilterMode, pieChartMonth, chartsKey]);
+
+  // 選擇類別時只更新既有圖表（容器有 300ms CSS transition，resize 要等它結束）
+  const prevSelectedCategoryRef = useRef<string | null>(null);
+  useEffect(() => {
+    const wasSelected = prevSelectedCategoryRef.current !== null;
+    const isSelected = selectedCategory !== null;
+    const containerWidthChanged = wasSelected !== isSelected;
+    prevSelectedCategoryRef.current = selectedCategory;
+
+    const timer = window.setTimeout(() => {
+      const chart = chartInstanceRef.current;
+      if (!chart || chart.isDisposed()) return;
+      if (containerWidthChanged) chart.resize();
+      const isMobile = window.innerWidth < 768;
+      chart.setOption({
+        animation: false,
+        legend: { show: !isSelected },
+        series: [
+          { center: [isSelected ? (isMobile ? "48%" : "45%") : "50%", "45%"] },
+        ],
+      });
+    }, containerWidthChanged ? 320 : 0);
+    return () => window.clearTimeout(timer);
+  }, [selectedCategory]);
 
   // 卸載時清理
   useEffect(() => {
@@ -458,7 +484,7 @@ const IncomeAnalysis: React.FC<IncomeAnalysisProps> = ({ incomes, onSwitchMode, 
                 <div
                   ref={chartRef}
                   style={{ height: "300px", width: "100%", display: "flex", justifyContent: "center", alignItems: "center" }}
-                  key={`income-pie-${selectedCategory ? "selected" : "overview"}-${chartsKey}`}
+                  key={`income-pie-${chartsKey}`}
                 />
                 {!selectedCategory && (
                   <p className="text-xs text-gray-500 italic mt-1">
