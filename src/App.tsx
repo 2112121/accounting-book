@@ -2865,6 +2865,12 @@ const chartRef = useRef<HTMLDivElement>(null);
     setAnchorDate((current) => shiftPeriod(dateGranularity, current, delta));
   };
 
+  // 翻遠了要能一鍵回來；已經在當期（或全部／自訂）就不顯示
+  const goToToday = () => setAnchorDate(startOfDay(new Date()));
+  const showTodayShortcut =
+    dateGranularity !== "all" && !isLatestPeriod(dateGranularity, anchorDate);
+  const todayShortcutLabel = formatPeriodLabel(dateGranularity, startOfDay(new Date()));
+
   // 依目前單位開對應的選擇器（日與週都用日期選擇器）
   const openPeriodPicker = () => {
     if (dateGranularity === "custom") {
@@ -4165,6 +4171,24 @@ const chartRef = useRef<HTMLDivElement>(null);
                       </button>
                     )}
                   </div>
+                )}
+
+                {/* 翻遠了才出現：一鍵回到當期 */}
+                {showTodayShortcut && (
+                  <button
+                    type="button"
+                    onClick={goToToday}
+                    style={{
+                      display: "inline-flex", alignItems: "center", gap: "5px",
+                      height: "30px", padding: "0 11px", borderRadius: "999px",
+                      background: "#FDF0F2", border: "1px solid #F7DDE2",
+                      outline: "none", boxShadow: "none", cursor: "pointer",
+                      color: "#E07A8D", fontSize: "12px", fontWeight: 700, whiteSpace: "nowrap",
+                    }}
+                  >
+                    <i className="fas fa-rotate-left" style={{ fontSize: "10px" }}></i>
+                    回到{todayShortcutLabel}
+                  </button>
                 )}
               </div>
             </div>
