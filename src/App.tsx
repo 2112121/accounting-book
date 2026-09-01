@@ -1,6 +1,7 @@
 ﻿// The exported code uses Tailwind CSS. Install Tailwind CSS in your dev environment to ensure all styles work.
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import * as echarts from "./echarts";
+import { logError } from "./utils/log";
 import ExpenseForm from "./components/ExpenseForm";
 import IncomeForm from "./components/IncomeForm";
 import IncomeAnalysis from "./components/IncomeAnalysis";
@@ -1134,7 +1135,9 @@ const chartRef = useRef<HTMLDivElement>(null);
           if (data.userId === userId) {
             try {
               fetchedExpenses.push(mapExpenseDoc(doc.id, data));
-            } catch (_err) { /* noop */ }
+            } catch (err) {
+              logError(`loadExpenses:${doc.id}`, err);
+            }
           }
         });
 
@@ -1269,7 +1272,9 @@ const chartRef = useRef<HTMLDivElement>(null);
             recurringPeriod: data.recurringPeriod,
             recurringEndDate: data.recurringEndDate,
           });
-        } catch (_e) { /* noop */ }
+        } catch (err) {
+          logError(`fetchIncomes:${docSnap.id}`, err);
+        }
       });
 
       // date 降序，再 id 降序
@@ -1496,7 +1501,9 @@ const chartRef = useRef<HTMLDivElement>(null);
         if (generatedAny) {
           window.dispatchEvent(new Event("incomes-changed"));
         }
-      } catch (_err) { /* noop */ }
+      } catch (err) {
+        logError("processRecurringIncomes", err);
+      }
     };
 
     processRecurringIncomes();
@@ -1871,7 +1878,9 @@ const chartRef = useRef<HTMLDivElement>(null);
         if (generatedAny) {
           setDataRefreshKey((k) => k + 1);
         }
-      } catch (_err) { /* noop */ }
+      } catch (err) {
+        logError("processRecurringExpenses", err);
+      }
     };
 
     processRecurringExpenses();
@@ -1979,7 +1988,9 @@ const chartRef = useRef<HTMLDivElement>(null);
               exp.id === tempId ? { ...exp, id: docId } : exp,
             ),
           );
-        } catch (_txError) { /* noop */ }
+        } catch (txError) {
+          logError("addExpense:transaction", txError);
+        }
 
         // 後備方案：直接添加支出記錄
         if (!savedExpenseId) {
