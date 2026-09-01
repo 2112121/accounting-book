@@ -9,9 +9,14 @@ import { ErrorBoundary } from './components/ErrorBoundary'
 // 導入Font Awesome的樣式
 import '@fortawesome/fontawesome-free/css/all.min.css'
 
-// 導入可愛字體
-import '@fontsource/nunito'
-import '@fontsource/quicksand'
+// 導入可愛字體：只載入實際用到的字重（latin），避免整包字型
+import '@fontsource/nunito/latin-400.css'
+import '@fontsource/nunito/latin-500.css'
+import '@fontsource/nunito/latin-600.css'
+import '@fontsource/nunito/latin-700.css'
+import '@fontsource/quicksand/latin-500.css'
+import '@fontsource/quicksand/latin-600.css'
+import '@fontsource/quicksand/latin-700.css'
 
 // 全局錯誤處理相關代碼已移至 ./components/ErrorBoundary.tsx
 // 這裡刪除舊的ErrorBoundary類，使用從組件導入的版本

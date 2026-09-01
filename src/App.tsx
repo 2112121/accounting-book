@@ -1,6 +1,6 @@
 ﻿// The exported code uses Tailwind CSS. Install Tailwind CSS in your dev environment to ensure all styles work.
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import * as echarts from "echarts";
+import * as echarts from "./echarts";
 import ExpenseForm from "./components/ExpenseForm";
 import IncomeForm from "./components/IncomeForm";
 import IncomeAnalysis from "./components/IncomeAnalysis";

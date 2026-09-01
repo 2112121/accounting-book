@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import * as echarts from "echarts";
+import * as echarts from "../echarts";
 
 // 收入類型（與 App.tsx 的 Income 一致）
 interface Income {
