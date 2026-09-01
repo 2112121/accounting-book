@@ -228,6 +228,117 @@ const mapExpenseDoc = (id: string, data: any): Expense => ({
   recurringEndDate: data.recurringEndDate || undefined,
 });
 
+// ====== 收支明細的期間篩選 ======
+// 單位 + 錨點日期就能表達所有情況，取代原本 today / yesterday / this_week /
+// last_week / month / month_select / earlier / all 八個並列選項。
+type DateGranularity = "day" | "week" | "month" | "year" | "all";
+
+const DATE_GRANULARITIES: { key: DateGranularity; label: string }[] = [
+  { key: "day", label: "日" },
+  { key: "week", label: "週" },
+  { key: "month", label: "月" },
+  { key: "year", label: "年" },
+  { key: "all", label: "全部" },
+];
+
+const startOfDay = (date: Date) =>
+  new Date(date.getFullYear(), date.getMonth(), date.getDate());
+
+const startOfWeek = (date: Date) => {
+  const start = startOfDay(date);
+  const weekday = start.getDay() || 7; // 週日視為第 7 天
+  start.setDate(start.getDate() - (weekday - 1));
+  return start;
+};
+
+// 選定期間的起訖（皆為當日 0 點，含頭含尾）；「全部」回傳 null
+const getPeriodRange = (
+  granularity: DateGranularity,
+  anchor: Date,
+): { start: Date; end: Date } | null => {
+  if (granularity === "all") return null;
+  if (granularity === "day") {
+    const start = startOfDay(anchor);
+    return { start, end: start };
+  }
+  if (granularity === "week") {
+    const start = startOfWeek(anchor);
+    const end = new Date(start);
+    end.setDate(start.getDate() + 6);
+    return { start, end };
+  }
+  if (granularity === "month") {
+    return {
+      start: new Date(anchor.getFullYear(), anchor.getMonth(), 1),
+      end: new Date(anchor.getFullYear(), anchor.getMonth() + 1, 0),
+    };
+  }
+  return {
+    start: new Date(anchor.getFullYear(), 0, 1),
+    end: new Date(anchor.getFullYear(), 11, 31),
+  };
+};
+
+// 往前（-1）或往後（+1）移動一個單位
+const shiftPeriod = (granularity: DateGranularity, anchor: Date, delta: number) => {
+  const next = startOfDay(anchor);
+  if (granularity === "day") next.setDate(next.getDate() + delta);
+  else if (granularity === "week") next.setDate(next.getDate() + delta * 7);
+  else if (granularity === "month") {
+    next.setDate(1); // 先歸到月初，避免 31 號跳月
+    next.setMonth(next.getMonth() + delta);
+  } else if (granularity === "year") {
+    next.setDate(1);
+    next.setMonth(0);
+    next.setFullYear(next.getFullYear() + delta);
+  }
+  return next;
+};
+
+const formatPeriodLabel = (granularity: DateGranularity, anchor: Date): string => {
+  if (granularity === "all") return "全部";
+  const today = startOfDay(new Date());
+
+  if (granularity === "day") {
+    const day = startOfDay(anchor);
+    const diffDays = Math.round((day.getTime() - today.getTime()) / 86400000);
+    if (diffDays === 0) return "今天";
+    if (diffDays === -1) return "昨天";
+    return format(day, "yyyy年M月d日");
+  }
+
+  if (granularity === "week") {
+    const range = getPeriodRange("week", anchor)!;
+    const diffWeeks = Math.round(
+      (range.start.getTime() - startOfWeek(today).getTime()) / (7 * 86400000),
+    );
+    if (diffWeeks === 0) return "本週";
+    if (diffWeeks === -1) return "上週";
+    return `${format(range.start, "M月d日")} - ${format(range.end, "M月d日")}`;
+  }
+
+  if (granularity === "month") {
+    if (
+      anchor.getFullYear() === today.getFullYear() &&
+      anchor.getMonth() === today.getMonth()
+    ) {
+      return "本月";
+    }
+    return `${anchor.getFullYear()}年${anchor.getMonth() + 1}月`;
+  }
+
+  if (anchor.getFullYear() === today.getFullYear()) return "今年";
+  if (anchor.getFullYear() === today.getFullYear() - 1) return "去年";
+  return `${anchor.getFullYear()}年`;
+};
+
+// 已經是最新一期就不讓再往後翻
+const isLatestPeriod = (granularity: DateGranularity, anchor: Date) => {
+  if (granularity === "all") return true;
+  const next = getPeriodRange(granularity, shiftPeriod(granularity, anchor, 1));
+  return !next || next.start > startOfDay(new Date());
+};
+
 const buildRecurringExpenseDocId = (recurringRuleId: string, date: Date) =>
   `recurring_${recurringRuleId}_${formatDateKey(date)}`;
 
@@ -286,7 +397,7 @@ const chartRef = useRef<HTMLDivElement>(null);
   // 添加計時器引用，用於管理成功訊息的顯示
   const successMessageTimer = useRef<number | undefined>(undefined);
   // 添加選取的日期狀態，默認為今天
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [anchorDate, setAnchorDate] = useState<Date>(() => startOfDay(new Date())); // 收支明細目前看的那一期
   // 添加一個狀態用於存儲支出表單的初始數據
   const [expenseParams, setExpenseParams] = useState<{
     amount: string;
@@ -302,15 +413,12 @@ const chartRef = useRef<HTMLDivElement>(null);
     description: string;
     date: string;
   } | null>(null);
-  // 添加選擇的日期選項，區分"今日"，"昨日"，"更早"，"全部"
-  const [selectedDateOption, setSelectedDateOption] = useState<
-    "today" | "yesterday" | "this_week" | "last_week" | "earlier" | "all" | "month" | "month_select"
-  >("today");
+  const [dateGranularity, setDateGranularity] = useState<DateGranularity>("day");
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showMonthPicker, setShowMonthPicker] = useState(false);
-  const [selectedMonth, setSelectedMonth] = useState<string>(
-    new Date().toISOString().slice(0, 7) // 格式為 "YYYY-MM"
-  );
+  const [showYearPicker, setShowYearPicker] = useState(false);
+  // 選擇器的暫存值：按取消就不會動到目前的篩選
+  const [pickerDate, setPickerDate] = useState<Date>(() => startOfDay(new Date()));
   const [friendRequestCount, setFriendRequestCount] = useState(0);
   const [leaderboardInviteCount, setLeaderboardInviteCount] = useState(0);
   const [groupInviteCount, setGroupInviteCount] = useState(0); // 添加群组邀请计数状态
@@ -446,23 +554,6 @@ const chartRef = useRef<HTMLDivElement>(null);
       };
     }, []);
 
-  // 徹底重寫日期處理函數 - 使用最原始方式確保獲取當前日期
-  const getTodayDate = () => {
-    // 直接創建一個全新的日期對象，不用緩存，確保每次都獲取最新時間
-    const now = new Date();
-    // 直接重置時間為當天0點0分0秒，保留原始時區信息
-    now.setHours(0, 0, 0, 0);
-    return now;
-  };
-
-  // 在應用啟動時強制更新當前日期
-  useEffect(() => {
-    // 強制獲取最新的當前日期
-    const freshToday = getTodayDate();
-    setSelectedDate(freshToday);
-    setSelectedDateOption("today");
-  }, []);
-
   // 監聽排行榜瀏覽器顯示事件
   useEffect(() => {
     const handleShowLeaderboardViewer = () => {
@@ -486,21 +577,6 @@ const chartRef = useRef<HTMLDivElement>(null);
       );
     };
   }, []);
-
-  // 每當selectedDateOption變化時更新實際日期
-  useEffect(() => {
-    if (selectedDateOption === "today") {
-      // 強制獲取最新的今天日期
-      const currentToday = getTodayDate();
-      setSelectedDate(currentToday);
-    } else if (selectedDateOption === "yesterday") {
-      // 計算昨天日期
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-      yesterday.setHours(0, 0, 0, 0);
-      setSelectedDate(yesterday);
-    }
-  }, [selectedDateOption]);
 
   // 圓餅圖初始化函數 - 移到useEffect外部
   const createEmptyPieChart = useCallback(() => {
@@ -2714,171 +2790,47 @@ const chartRef = useRef<HTMLDivElement>(null);
     }
   }, [analysisDailyMode, initDailyChart]);
 
-  // 篩選當前選中日期的消費 - 完全重寫確保日期比較正確
-  const getFilteredExpenses = () => {
+  // 目前選定期間；支出與收入共用同一個判斷
+  const selectedPeriod = getPeriodRange(dateGranularity, anchorDate);
+  const periodLabel = formatPeriodLabel(dateGranularity, anchorDate);
 
-    // 全部記錄直接返回
-    if (selectedDateOption === "all") {
-      return expenses;
-    }
-
-    // 處理按月過濾
-    if (selectedDateOption === "month") {
-      const today = new Date();
-      const currentMonth = today.getMonth();
-      const currentYear = today.getFullYear();
-      
-      return expenses.filter(expense => {
-        const expenseDate = new Date(expense.date);
-        return expenseDate.getMonth() === currentMonth && 
-               expenseDate.getFullYear() === currentYear;
-      });
-    }
-    
-    // 處理選擇月份過濾
-    if (selectedDateOption === "month_select") {
-      const [year, month] = selectedMonth.split('-').map(Number);
-      
-      return expenses.filter(expense => {
-        const expenseDate = new Date(expense.date);
-        return expenseDate.getMonth() === month - 1 && 
-               expenseDate.getFullYear() === year;
-      });
-    }
-    
-    // 處理本週過濾
-    if (selectedDateOption === "this_week") {
-      const today = new Date();
-      const currentDay = today.getDay() || 7; // 處理週日為0的情況
-      const firstDayOfWeek = new Date(today);
-      firstDayOfWeek.setDate(today.getDate() - (currentDay - 1));
-      firstDayOfWeek.setHours(0, 0, 0, 0);
-      
-      const lastDayOfWeek = new Date(firstDayOfWeek);
-      lastDayOfWeek.setDate(firstDayOfWeek.getDate() + 6);
-
-      return expenses.filter(expense => {
-        const expenseDate = new Date(expense.date);
-        return expenseDate >= firstDayOfWeek && expenseDate <= lastDayOfWeek;
-      });
-    }
-    
-    // 處理上週過濾
-    if (selectedDateOption === "last_week") {
-      const today = new Date();
-      const currentDay = today.getDay() || 7; // 處理週日為0的情況
-      const firstDayOfLastWeek = new Date(today);
-      firstDayOfLastWeek.setDate(today.getDate() - (currentDay - 1) - 7);
-      firstDayOfLastWeek.setHours(0, 0, 0, 0);
-      const lastDayOfLastWeek = new Date(firstDayOfLastWeek);
-      lastDayOfLastWeek.setDate(firstDayOfLastWeek.getDate() + 6);
-      lastDayOfLastWeek.setHours(23, 59, 59, 999);
-
-      return expenses.filter(expense => {
-        const expenseDate = new Date(expense.date);
-        return expenseDate >= firstDayOfLastWeek && expenseDate <= lastDayOfLastWeek;
-      });
-    }
-
-    // 獲取篩選日期
-    let filterDate: Date;
-
-    if (selectedDateOption === "today") {
-      // 每次都重新獲取今天的日期，不使用緩存
-      filterDate = new Date();
-      filterDate.setHours(0, 0, 0, 0);
-    } else if (selectedDateOption === "yesterday") {
-      // 昨天 = 當前日期減去1天
-      filterDate = new Date();
-      filterDate.setHours(0, 0, 0, 0);
-      filterDate.setDate(filterDate.getDate() - 1);
-    } else {
-      // 使用用戶選擇的日期
-      filterDate = selectedDate;
-    }
-
-    const filterYear = filterDate.getFullYear();
-    const filterMonth = filterDate.getMonth();
-    const filterDay = filterDate.getDate();
-
-    // 使用年月日精確比較篩選
-    const filtered = expenses.filter((expense) => {
-      try {
-        // 提取支出記錄的年月日
-        const expenseYear = expense.date.getFullYear();
-        const expenseMonth = expense.date.getMonth();
-        const expenseDay = expense.date.getDate();
-
-        const matches = expenseYear === filterYear && expenseMonth === filterMonth && expenseDay === filterDay;
-        return matches;
-      } catch (_err) {
-        return false;
-      }
-    });
-
-    return filtered;
+  const isInSelectedPeriod = (date: Date): boolean => {
+    if (!selectedPeriod) return true; // 全部
+    const time = startOfDay(new Date(date)).getTime();
+    return time >= selectedPeriod.start.getTime() && time <= selectedPeriod.end.getTime();
   };
 
-  const filteredTransactions = getFilteredExpenses();
-
-  // 依目前的日期選項判斷某筆日期是否符合（收入與支出共用）
-  const matchesSelectedDate = (d: Date): boolean => {
-    if (selectedDateOption === "all") return true;
-
-    if (selectedDateOption === "month") {
-      const today = new Date();
-      return d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear();
-    }
-
-    if (selectedDateOption === "month_select") {
-      const [year, month] = selectedMonth.split('-').map(Number);
-      return d.getMonth() === month - 1 && d.getFullYear() === year;
-    }
-
-    if (selectedDateOption === "this_week") {
-      const today = new Date();
-      const currentDay = today.getDay() || 7;
-      const firstDayOfWeek = new Date(today);
-      firstDayOfWeek.setDate(today.getDate() - (currentDay - 1));
-      firstDayOfWeek.setHours(0, 0, 0, 0);
-      const lastDayOfWeek = new Date(firstDayOfWeek);
-      lastDayOfWeek.setDate(firstDayOfWeek.getDate() + 6);
-      lastDayOfWeek.setHours(23, 59, 59, 999);
-      return d >= firstDayOfWeek && d <= lastDayOfWeek;
-    }
-
-    if (selectedDateOption === "last_week") {
-      const today = new Date();
-      const currentDay = today.getDay() || 7;
-      const firstDayOfLastWeek = new Date(today);
-      firstDayOfLastWeek.setDate(today.getDate() - (currentDay - 1) - 7);
-      firstDayOfLastWeek.setHours(0, 0, 0, 0);
-      const lastDayOfLastWeek = new Date(firstDayOfLastWeek);
-      lastDayOfLastWeek.setDate(firstDayOfLastWeek.getDate() + 6);
-      lastDayOfLastWeek.setHours(23, 59, 59, 999);
-      return d >= firstDayOfLastWeek && d <= lastDayOfLastWeek;
-    }
-
-    let filterDate: Date;
-    if (selectedDateOption === "today") {
-      filterDate = new Date();
-      filterDate.setHours(0, 0, 0, 0);
-    } else if (selectedDateOption === "yesterday") {
-      filterDate = new Date();
-      filterDate.setHours(0, 0, 0, 0);
-      filterDate.setDate(filterDate.getDate() - 1);
-    } else {
-      filterDate = selectedDate;
-    }
-    return (
-      d.getFullYear() === filterDate.getFullYear() &&
-      d.getMonth() === filterDate.getMonth() &&
-      d.getDate() === filterDate.getDate()
-    );
+  const goToPeriod = (delta: number) => {
+    setAnchorDate((current) => shiftPeriod(dateGranularity, current, delta));
   };
+
+  // 依目前單位開對應的選擇器（日與週都用日期選擇器）
+  const openPeriodPicker = () => {
+    setPickerDate(startOfDay(anchorDate));
+    if (dateGranularity === "month") setShowMonthPicker(true);
+    else if (dateGranularity === "year") setShowYearPicker(true);
+    else setShowDatePicker(true);
+  };
+
+  // 年份選擇器的可選年份：涵蓋所有資料，至少近 6 年
+  const selectableYears = (() => {
+    const currentYear = new Date().getFullYear();
+    let earliest = currentYear - 5;
+    for (const item of [...expenses, ...incomes]) {
+      const year = new Date(item.date).getFullYear();
+      if (year < earliest) earliest = year;
+    }
+    const years: number[] = [];
+    for (let year = currentYear; year >= earliest; year--) years.push(year);
+    return years;
+  })();
+
+  const filteredTransactions = expenses.filter((expense) =>
+    isInSelectedPeriod(expense.date),
+  );
 
   const filteredIncomesForHistory = incomes.filter((income) =>
-    matchesSelectedDate(new Date(income.date)),
+    isInSelectedPeriod(new Date(income.date)),
   );
 
   // 合併的歷史明細項目（依 historyMode 切換）
@@ -4035,17 +3987,8 @@ const chartRef = useRef<HTMLDivElement>(null);
               
               <div className="mb-3">
                 <h2 className="text-xl font-bold text-elora-pink">
-                  {(() => {
-                    const suffix = historyMode === 'income' ? '收入明細' : historyMode === 'expense' ? '支出明細' : '收支明細';
-                    if (selectedDateOption === "today") return `今日${suffix}`;
-                    if (selectedDateOption === "yesterday") return `昨日${suffix}`;
-                    if (selectedDateOption === "month") return `本月${suffix}`;
-                    if (selectedDateOption === "this_week") return `本週${suffix}`;
-                    if (selectedDateOption === "last_week") return `上週${suffix}`;
-                    if (selectedDateOption === "month_select") return `${selectedMonth.split('-')[0]}年${String(selectedMonth.split('-')[1]).padStart(2, '0')}月${suffix}`;
-                    if (selectedDateOption === "earlier") return `${format(selectedDate, "yyyy年M月d日")} ${suffix}`;
-                    return `全部${suffix}`;
-                  })()}
+                  {periodLabel}
+                  {historyMode === 'income' ? '收入明細' : historyMode === 'expense' ? '支出明細' : '收支明細'}
                 </h2>
               </div>
 
@@ -4079,131 +4022,63 @@ const chartRef = useRef<HTMLDivElement>(null);
                 ))}
               </div>
 
-              {/* 日期切換按鈕 - 簡約優雅設計 */}
-              <div className="flex flex-wrap gap-1.5 mb-4">
-                <button
-                  onClick={() => {
-                    setSelectedDate(getTodayDate());
-                    setSelectedDateOption("today");
-                  }}
-                  className={`px-3 py-1.5 text-xs rounded-md flex items-center gap-1 transition-colors duration-200 ${
-                    selectedDateOption === "today"
-                      ? "bg-[#8A7C9F] text-white border border-[#8A7C9F]"
-                      : "bg-[#F9F7FB] text-[#6D6D6D] border border-[#E8E4ED] hover:bg-[#F2EDF7]"
-                  }`}
-                >
-                  <i className="fas fa-calendar-day text-[10px]"></i>
-                  今天
-                </button>
-                <button
-                  onClick={() => {
-                    const yesterday = new Date(getTodayDate());
-                    yesterday.setDate(yesterday.getDate() - 1);
-                    setSelectedDate(yesterday);
-                    setSelectedDateOption("yesterday");
-                  }}
-                  className={`px-3 py-1.5 text-xs rounded-md flex items-center gap-1 transition-colors duration-200 ${
-                    selectedDateOption === "yesterday"
-                      ? "bg-[#8A7C9F] text-white border border-[#8A7C9F]"
-                      : "bg-[#F9F7FB] text-[#6D6D6D] border border-[#E8E4ED] hover:bg-[#F2EDF7]"
-                  }`}
-                >
-                  <i className="fas fa-calendar-minus text-[10px]"></i>
-                  昨天
-                </button>
-                <button
-                  onClick={() => {
-                    // 獲取本週的起始日期
-                    const today = new Date();
-                    const currentDay = today.getDay() || 7; // 處理週日為0的情況
-                    const firstDayOfWeek = new Date(today);
-                    firstDayOfWeek.setDate(today.getDate() - (currentDay - 1));
-                    firstDayOfWeek.setHours(0, 0, 0, 0);
-                    setSelectedDate(firstDayOfWeek);
-                    setSelectedDateOption("this_week");
-                  }}
-                  className={`px-3 py-1.5 text-xs rounded-md flex items-center gap-1 transition-colors duration-200 ${
-                    selectedDateOption === "this_week"
-                      ? "bg-[#8A7C9F] text-white border border-[#8A7C9F]"
-                      : "bg-[#F9F7FB] text-[#6D6D6D] border border-[#E8E4ED] hover:bg-[#F2EDF7]"
-                  }`}
-                >
-                  <i className="fas fa-calendar-week text-[10px]"></i>
-                  本週
-                </button>
-                <button
-                  onClick={() => {
-                    // 獲取上週的起始日期
-                    const today = new Date();
-                    const currentDay = today.getDay() || 7; // 處理週日為0的情況
-                    const firstDayOfLastWeek = new Date(today);
-                    firstDayOfLastWeek.setDate(today.getDate() - (currentDay - 1) - 7);
-                    firstDayOfLastWeek.setHours(0, 0, 0, 0);
-                    setSelectedDate(firstDayOfLastWeek);
-                    setSelectedDateOption("last_week");
-                  }}
-                  className={`px-3 py-1.5 text-xs rounded-md flex items-center gap-1 transition-colors duration-200 ${
-                    selectedDateOption === "last_week"
-                      ? "bg-[#8A7C9F] text-white border border-[#8A7C9F]"
-                      : "bg-[#F9F7FB] text-[#6D6D6D] border border-[#E8E4ED] hover:bg-[#F2EDF7]"
-                  }`}
-                >
-                  <i className="fas fa-calendar-alt text-[10px]"></i>
-                  上週
-                </button>
-                <button
-                  onClick={() => {
-                    setSelectedDateOption("month");
-                  }}
-                  className={`px-3 py-1.5 text-xs rounded-md flex items-center gap-1 transition-colors duration-200 ${
-                    selectedDateOption === "month"
-                      ? "bg-[#8A7C9F] text-white border border-[#8A7C9F]"
-                      : "bg-[#F9F7FB] text-[#6D6D6D] border border-[#E8E4ED] hover:bg-[#F2EDF7]"
-                  }`}
-                >
-                  <i className="fas fa-calendar text-[10px]"></i>
-                  本月
-                </button>
-                <button
-                  onClick={() => {
-                    setShowDatePicker(true);
-                  }}
-                  className={`px-3 py-1.5 text-xs rounded-md flex items-center gap-1 transition-colors duration-200 ${
-                    selectedDateOption === "earlier"
-                      ? "bg-[#8A7C9F] text-white border border-[#8A7C9F]"
-                      : "bg-[#F9F7FB] text-[#6D6D6D] border border-[#E8E4ED] hover:bg-[#F2EDF7]"
-                  }`}
-                >
-                  <i className="fas fa-calendar-plus text-[10px]"></i>
-                  選擇日期
-                </button>
-                <button
-                  onClick={() => {
-                    // 打開選擇月份對話框
-                    setShowMonthPicker(true);
-                  }}
-                  className={`px-3 py-1.5 text-xs rounded-md flex items-center gap-1 transition-colors duration-200 ${
-                    selectedDateOption === "month_select"
-                      ? "bg-[#8A7C9F] text-white border border-[#8A7C9F]"
-                      : "bg-[#F9F7FB] text-[#6D6D6D] border border-[#E8E4ED] hover:bg-[#F2EDF7]"
-                  }`}
-                >
-                  <i className="fas fa-calendar-alt text-[10px]"></i>
-                  選擇月份
-                </button>
-                <button
-                  onClick={() => {
-                    setSelectedDateOption("all");
-                  }}
-                  className={`px-3 py-1.5 text-xs rounded-md flex items-center gap-1 transition-colors duration-200 ${
-                    selectedDateOption === "all"
-                      ? "bg-[#8A7C9F] text-white border border-[#8A7C9F]"
-                      : "bg-[#F9F7FB] text-[#6D6D6D] border border-[#E8E4ED] hover:bg-[#F2EDF7]"
-                  }`}
-                >
-                  <i className="fas fa-infinity text-[10px]"></i>
-                  全部
-                </button>
+              {/* 期間篩選：上排選單位，下排前後翻頁 */}
+              <div className="mb-4 flex flex-col items-start gap-2">
+                {/* 單位切換 - 滑動 tab */}
+                <div style={{ position: "relative", display: "grid", gridTemplateColumns: "repeat(5, 48px)", background: "#F2EDF7", borderRadius: "999px", padding: "3px" }}>
+                  <div style={{
+                    position: "absolute", top: "3px", bottom: "3px", left: "3px",
+                    width: "48px", borderRadius: "999px", background: "#8A7C9F",
+                    transform: `translateX(${DATE_GRANULARITIES.findIndex((g) => g.key === dateGranularity) * 48}px)`,
+                    transition: "transform 0.3s cubic-bezier(0.4,0,0.2,1)",
+                    boxShadow: "0 1px 4px rgba(0,0,0,0.12)",
+                  }} />
+                  {DATE_GRANULARITIES.map(({ key, label }) => (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => setDateGranularity(key)}
+                      style={{
+                        position: "relative", zIndex: 1, padding: "6px 0",
+                        background: "none", border: "none", outline: "none", boxShadow: "none",
+                        cursor: "pointer", fontSize: "12px", fontWeight: 600,
+                        color: dateGranularity === key ? "#fff" : "#8A7C9F",
+                        transition: "color 0.3s ease",
+                      }}
+                    >{label}</button>
+                  ))}
+                </div>
+
+                {/* 期間切換：◀ 期間 ▶ */}
+                {dateGranularity !== "all" && (
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => goToPeriod(-1)}
+                      aria-label="上一期"
+                      style={{ fontSize: "12px", borderRadius: "8px", border: "1px solid #E8E4ED", outline: "none", boxShadow: "none", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "4px", transition: "background 0.2s, color 0.2s", width: "32px", padding: "6px 0", background: "#F9F7FB", color: "#6D6D6D", cursor: "pointer" }}
+                    >
+                      <i className="fas fa-chevron-left text-[10px]"></i>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={openPeriodPicker}
+                      style={{ fontSize: "12px", borderRadius: "8px", border: "1px solid #E8E4ED", outline: "none", boxShadow: "none", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "4px", transition: "background 0.2s, color 0.2s", minWidth: "128px", padding: "6px 12px", background: "#8A7C9F", borderColor: "#8A7C9F", color: "#fff", fontWeight: 600, cursor: "pointer" }}
+                    >
+                      {periodLabel}
+                      <i className="fas fa-caret-down text-[10px] opacity-80"></i>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => goToPeriod(1)}
+                      disabled={isLatestPeriod(dateGranularity, anchorDate)}
+                      aria-label="下一期"
+                      style={{ fontSize: "12px", borderRadius: "8px", border: "1px solid #E8E4ED", outline: "none", boxShadow: "none", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "4px", transition: "background 0.2s, color 0.2s", width: "32px", padding: "6px 0", background: "#F9F7FB", color: "#6D6D6D", opacity: isLatestPeriod(dateGranularity, anchorDate) ? 0.35 : 1, cursor: isLatestPeriod(dateGranularity, anchorDate) ? "default" : "pointer" }}
+                    >
+                      <i className="fas fa-chevron-right text-[10px]"></i>
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -4353,14 +4228,8 @@ const chartRef = useRef<HTMLDivElement>(null);
                 <p className="mb-3">
                   {(() => {
                     const label = historyMode === 'income' ? '收入' : historyMode === 'expense' ? '支出' : '記錄';
-                    if (selectedDateOption === "today") return `今天還沒有${label}記錄`;
-                    if (selectedDateOption === "yesterday") return `昨天沒有${label}記錄`;
-                    if (selectedDateOption === "month") return `本月沒有${label}記錄`;
-                    if (selectedDateOption === "month_select") return `${selectedMonth.split('-')[0]}年${String(selectedMonth.split('-')[1]).padStart(2, '0')}月沒有${label}記錄`;
-                    if (selectedDateOption === "this_week") return `本週沒有${label}記錄`;
-                    if (selectedDateOption === "last_week") return `上週沒有${label}記錄`;
-                    if (selectedDateOption === "all") return `沒有任何${label}`;
-                    return `${format(selectedDate, "yyyy年M月d日")} 沒有${label}記錄`;
+                    if (dateGranularity === "all") return `沒有任何${label}`;
+                    return `${periodLabel}沒有${label}記錄`;
                   })()}
                 </p>
                 <button
@@ -4790,7 +4659,7 @@ const chartRef = useRef<HTMLDivElement>(null);
             <div className="flex items-center justify-between mb-4 border-b border-gray-100 pb-2">
               <h3 className="text-base font-medium text-gray-700 flex items-center">
                 <i className="fas fa-calendar-day mr-2 text-[#8A7C9F]"></i>
-                選擇日期
+                {dateGranularity === "week" ? "選擇週（點該週任一天）" : "選擇日期"}
               </h3>
               <button
                 onClick={() => setShowDatePicker(false)}
@@ -4809,12 +4678,12 @@ const chartRef = useRef<HTMLDivElement>(null);
                   <label className="block text-xs text-gray-600 mb-1">年</label>
                   <select 
                     className="w-full p-2 border border-[#E8E4ED] rounded-md focus:outline-none focus:ring-1 focus:ring-[#8A7C9F] focus:border-[#8A7C9F] bg-white text-sm"
-                    value={selectedDate.getFullYear()}
+                    value={pickerDate.getFullYear()}
                     onChange={(e) => {
                       const newYear = parseInt(e.target.value);
-                      const newDate = new Date(selectedDate);
+                      const newDate = new Date(pickerDate);
                       newDate.setFullYear(newYear);
-                      setSelectedDate(newDate);
+                      setPickerDate(newDate);
                     }}
                   >
                     {Array.from({ length: 10 }, (_, i) => (
@@ -4830,20 +4699,20 @@ const chartRef = useRef<HTMLDivElement>(null);
                   <label className="block text-xs text-gray-600 mb-1">月</label>
                   <select 
                     className="w-full p-2 border border-[#E8E4ED] rounded-md focus:outline-none focus:ring-1 focus:ring-[#8A7C9F] focus:border-[#8A7C9F] bg-white text-sm"
-                    value={selectedDate.getMonth() + 1}
+                    value={pickerDate.getMonth() + 1}
                     onChange={(e) => {
                       const newMonth = parseInt(e.target.value) - 1;
-                      const newDate = new Date(selectedDate);
+                      const newDate = new Date(pickerDate);
                       newDate.setMonth(newMonth);
                       
                       // 處理月份天數問題
-                      const currentDay = selectedDate.getDate();
+                      const currentDay = pickerDate.getDate();
                       const lastDayOfMonth = new Date(newDate.getFullYear(), newMonth + 1, 0).getDate();
                       if (currentDay > lastDayOfMonth) {
                         newDate.setDate(lastDayOfMonth);
                       }
                       
-                      setSelectedDate(newDate);
+                      setPickerDate(newDate);
                     }}
                   >
                     {Array.from({ length: 12 }, (_, i) => (
@@ -4859,18 +4728,18 @@ const chartRef = useRef<HTMLDivElement>(null);
                   <label className="block text-xs text-gray-600 mb-1">日</label>
                   <select 
                     className="w-full p-2 border border-[#E8E4ED] rounded-md focus:outline-none focus:ring-1 focus:ring-[#8A7C9F] focus:border-[#8A7C9F] bg-white text-sm"
-                    value={selectedDate.getDate()}
+                    value={pickerDate.getDate()}
                     onChange={(e) => {
                       const newDay = parseInt(e.target.value);
-                      const newDate = new Date(selectedDate);
+                      const newDate = new Date(pickerDate);
                       newDate.setDate(newDay);
-                      setSelectedDate(newDate);
+                      setPickerDate(newDate);
                     }}
                   >
                     {Array.from(
                       { length: new Date(
-                        selectedDate.getFullYear(), 
-                        selectedDate.getMonth() + 1, 
+                        pickerDate.getFullYear(), 
+                        pickerDate.getMonth() + 1, 
                         0
                       ).getDate() }, 
                       (_, i) => (
@@ -4886,7 +4755,7 @@ const chartRef = useRef<HTMLDivElement>(null);
               {/* 顯示選擇的日期 */}
               <div className="mt-3 text-center bg-white p-2 rounded-md shadow-sm border border-[#E8E4ED]">
                 <p className="text-gray-700 font-medium">
-                  {selectedDate.getFullYear()}年{selectedDate.getMonth() + 1}月{selectedDate.getDate()}日
+                  {formatPeriodLabel(dateGranularity, pickerDate)}
                 </p>
               </div>
             </div>
@@ -4901,7 +4770,7 @@ const chartRef = useRef<HTMLDivElement>(null);
               </button>
               <button
                 onClick={() => {
-                  setSelectedDateOption("earlier");
+                  setAnchorDate(startOfDay(pickerDate));
                   setShowDatePicker(false);
                 }}
                 className="flex-1 py-2 px-4 bg-[#8A7C9F] text-white rounded-md hover:bg-[#79708C] transition-colors text-sm flex items-center justify-center gap-1 shadow-sm"
@@ -4940,16 +4809,12 @@ const chartRef = useRef<HTMLDivElement>(null);
                   <label className="block text-xs text-gray-600 mb-1">年</label>
                   <select 
                     className="w-full p-2 border border-[#E8E4ED] rounded-md focus:outline-none focus:ring-1 focus:ring-[#8A7C9F] focus:border-[#8A7C9F] bg-white text-sm"
-                    value={selectedDate.getFullYear()}
+                    value={pickerDate.getFullYear()}
                     onChange={(e) => {
                       const newYear = parseInt(e.target.value);
-                      const newDate = new Date(selectedDate);
+                      const newDate = new Date(pickerDate);
                       newDate.setFullYear(newYear);
-                      setSelectedDate(newDate);
-                      
-                      // 更新selectedMonth
-                      const month = newDate.getMonth() + 1;
-                      setSelectedMonth(`${newYear}-${month}`);
+                      setPickerDate(newDate);
                     }}
                   >
                     {Array.from({ length: 10 }, (_, i) => (
@@ -4965,18 +4830,13 @@ const chartRef = useRef<HTMLDivElement>(null);
                   <label className="block text-xs text-gray-600 mb-1">月</label>
                   <select 
                     className="w-full p-2 border border-[#E8E4ED] rounded-md focus:outline-none focus:ring-1 focus:ring-[#8A7C9F] focus:border-[#8A7C9F] bg-white text-sm"
-                    value={selectedDate.getMonth() + 1}
+                    value={pickerDate.getMonth() + 1}
                     onChange={(e) => {
                       const newMonth = parseInt(e.target.value) - 1;
-                      const newDate = new Date(selectedDate);
+                      const newDate = new Date(pickerDate);
                       newDate.setMonth(newMonth);
                       newDate.setDate(1); // 設為月初
-                      setSelectedDate(newDate);
-                      
-                      // 更新selectedMonth
-                      const year = newDate.getFullYear();
-                      const month = newMonth + 1;
-                      setSelectedMonth(`${year}-${month}`);
+                      setPickerDate(newDate);
                     }}
                   >
                     {Array.from({ length: 12 }, (_, i) => (
@@ -4994,20 +4854,15 @@ const chartRef = useRef<HTMLDivElement>(null);
                   <button
                     key={i}
                     className={`p-2 text-sm rounded-md transition-colors ${
-                      selectedDate.getMonth() === i 
+                      pickerDate.getMonth() === i 
                         ? "bg-[#8A7C9F] text-white" 
                         : "bg-white text-gray-700 hover:bg-[#F2EDF7]"
                     } border border-[#E8E4ED]`}
                     onClick={() => {
-                      const newDate = new Date(selectedDate);
+                      const newDate = new Date(pickerDate);
                       newDate.setMonth(i);
                       newDate.setDate(1); // 設為月初
-                      setSelectedDate(newDate);
-                      
-                      // 更新selectedMonth
-                      const year = newDate.getFullYear();
-                      const month = i + 1;
-                      setSelectedMonth(`${year}-${month}`);
+                      setPickerDate(newDate);
                     }}
                   >
                     {i + 1}月
@@ -5018,7 +4873,7 @@ const chartRef = useRef<HTMLDivElement>(null);
               {/* 顯示選擇的月份 */}
               <div className="mt-3 text-center bg-white p-2 rounded-md shadow-sm border border-[#E8E4ED]">
                 <p className="text-gray-700 font-medium">
-                  {selectedDate.getFullYear()}年{selectedDate.getMonth() + 1}月
+                  {formatPeriodLabel("month", pickerDate)}
                 </p>
               </div>
             </div>
@@ -5033,7 +4888,7 @@ const chartRef = useRef<HTMLDivElement>(null);
               </button>
               <button
                 onClick={() => {
-                  setSelectedDateOption("month_select");
+                  setAnchorDate(startOfDay(pickerDate));
                   setShowMonthPicker(false);
                 }}
                 className="flex-1 py-2 px-4 bg-[#8A7C9F] text-white rounded-md hover:bg-[#79708C] transition-colors text-sm flex items-center justify-center gap-1 shadow-sm"
@@ -5041,6 +4896,52 @@ const chartRef = useRef<HTMLDivElement>(null);
                 <i className="fas fa-check-circle text-xs"></i>
                 確認
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 年份選擇對話框 */}
+      {showYearPicker && (
+        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white rounded-lg p-4 w-[90%] max-w-sm animate-slideUpIn shadow-xl border border-[#E8E4ED]">
+            <div className="flex items-center justify-between mb-4 border-b border-gray-100 pb-2">
+              <h3 className="text-base font-medium text-gray-700 flex items-center">
+                <i className="fas fa-calendar mr-2 text-[#8A7C9F]"></i>
+                選擇年份
+              </h3>
+              <button
+                onClick={() => setShowYearPicker(false)}
+                className="w-6 h-6 rounded-full flex items-center justify-center bg-[#F2EDF7] text-[#8A7C9F] hover:bg-[#8A7C9F] hover:text-white transition-all duration-200"
+                aria-label="關閉"
+              >
+                <i className="fas fa-times text-xs"></i>
+              </button>
+            </div>
+
+            <div className="bg-[#F9F7FB] p-3 rounded-md">
+              <div className="grid grid-cols-3 gap-2">
+                {selectableYears.map((year) => (
+                  <button
+                    key={year}
+                    type="button"
+                    onClick={() => {
+                      setAnchorDate(new Date(year, 0, 1));
+                      setShowYearPicker(false);
+                    }}
+                    style={{
+                      padding: "10px 0", fontSize: "14px", borderRadius: "6px",
+                      border: "1px solid #E8E4ED", outline: "none", boxShadow: "none", cursor: "pointer",
+                      background: anchorDate.getFullYear() === year ? "#8A7C9F" : "#fff",
+                      color: anchorDate.getFullYear() === year ? "#fff" : "#374151",
+                      fontWeight: anchorDate.getFullYear() === year ? 600 : 400,
+                      transition: "background 0.2s, color 0.2s",
+                    }}
+                  >
+                    {year}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </div>
@@ -5526,6 +5427,7 @@ const chartRef = useRef<HTMLDivElement>(null);
         !showSplitExpenseForm && 
         !showDatePicker && 
         !showMonthPicker && 
+        !showYearPicker && 
         !showNotifications && (
         <div className="fixed bottom-5 right-4 z-[1000] flex flex-col gap-2 items-center sm:bottom-8 sm:right-8 sm:gap-3">
           {/* 歷史消費明細按鈕 */}
