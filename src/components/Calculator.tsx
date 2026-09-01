@@ -136,11 +136,12 @@ const Calculator: React.FC<CalculatorProps> = ({
         // 刪除最後一個字符
         setInput(prev => {
           const newInput = prev.slice(0, -1);
-          // 如果刪除後為空，則設置結果為0
+          // 退格後舊結果已經不對應目前的輸入，先收起來（與輸入數字時一致），
+          // 要重新按 = 才會出現結果與「使用結果」，避免帶入上一次的舊值
+          setShowResult(false);
+          setCopySuccess(false);
           if (!newInput) {
             setResult('0');
-            setShowResult(false);
-            setCopySuccess(false);
           }
           return newInput;
         });
@@ -193,17 +194,25 @@ const Calculator: React.FC<CalculatorProps> = ({
     }
   };
 
-  // 使用計算結果
+  // 使用計算結果：以目前的輸入重算，避免帶入上一次按 = 的舊結果
   const handleUseResult = () => {
-    if (onUseResult && result !== '錯誤') {
-      onUseResult(result);
+    if (!onUseResult) return;
+    const finalResult = calculateExpression(input);
+    if (finalResult === '錯誤') {
+      setResult('錯誤');
+      setShowResult(true);
+      setShake(true);
+      setTimeout(() => setShake(false), 500);
+      return;
     }
+    onUseResult(finalResult);
   };
 
   // 複製計算結果到剪貼板
   const handleCopyResult = () => {
-    if (result !== '錯誤' && result !== '0') {
-      navigator.clipboard.writeText(result)
+    const finalResult = calculateExpression(input);
+    if (finalResult !== '錯誤' && finalResult !== '0') {
+      navigator.clipboard.writeText(finalResult)
         .then(() => {
           setCopySuccess(true);
           setTimeout(() => setCopySuccess(false), 2000);

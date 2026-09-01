@@ -586,15 +586,17 @@ const ConfirmExpenseForm: React.FC<ConfirmExpenseFormProps> = ({
     }
   };
   
-  // 計算機功能
-  const calculateResult = () => {
+  // 計算機功能：純函式，任何時候都以傳入的算式為準
+  const evaluateExpression = (expression: string): string => {
+    if (!expression) return '0';
     try {
       // 替換顯示的乘號和除號為JS可以運算的符號
-      const expression = calculatorInput.replace(/×/g, '*').replace(/÷/g, '/');
-      const result = eval(expression);
-      setCalculatorResult(Number.isInteger(result) ? result.toString() : result.toFixed(2));
+      const sanitized = expression.replace(/×/g, '*').replace(/÷/g, '/');
+      const result = eval(sanitized);
+      if (typeof result !== 'number' || !isFinite(result)) return '錯誤';
+      return Number.isInteger(result) ? result.toString() : result.toFixed(2);
     } catch (_error) {
-      setCalculatorResult('錯誤');
+      return '錯誤';
     }
   };
 
@@ -606,10 +608,14 @@ const ConfirmExpenseForm: React.FC<ConfirmExpenseFormProps> = ({
       setCalculatorResult('0');
     } else if (value === '=') {
       // 計算結果
-      calculateResult();
+      setCalculatorResult(evaluateExpression(calculatorInput));
     } else if (value === '←') {
-      // 刪除最後一個字符
-      setCalculatorInput(prev => prev.slice(0, -1));
+      // 刪除最後一個字符：結果要跟著重算，否則會停在退格前的舊值
+      setCalculatorInput(prev => {
+        const next = prev.slice(0, -1);
+        setCalculatorResult(next ? evaluateExpression(next) : '0');
+        return next;
+      });
     } else {
       // 添加輸入
       setCalculatorInput(prev => prev + value);
