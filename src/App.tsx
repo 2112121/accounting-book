@@ -130,7 +130,6 @@ interface AxisTooltipParam {
 
 declare global {
   interface Window {
-    initializeAppData?: () => Promise<void>;
     __shouldShowLeaderboardManager?: boolean;
   }
 }
@@ -187,6 +186,47 @@ const getNextRecurringDate = (
   return new Date(targetYear, targetMonthIndex, targetDay);
 };
 
+// Firestore 文件 -> Expense：唯一的對映來源，避免多處各自解析而漏欄位
+const parseFirestoreDate = (raw: any): Date => {
+  let parsed: Date;
+  if (raw && typeof raw.toDate === "function") {
+    parsed = raw.toDate();
+  } else if (raw && raw._seconds) {
+    parsed = new Date(raw._seconds * 1000);
+  } else if (raw instanceof Date) {
+    parsed = new Date(raw.getTime());
+  } else if (typeof raw === "string") {
+    const dateString = raw.trim();
+    if (dateString.match(/^\d{4}[-/]\d{1,2}[-/]\d{1,2}$/)) {
+      // 只有日期的字串：以本地時間建立，避免被當成 UTC 而位移一天
+      const [year, month, day] = dateString.split(/[-/]/).map(Number);
+      parsed = new Date(year, month - 1, day, 0, 0, 0);
+    } else {
+      parsed = new Date(dateString);
+    }
+  } else {
+    parsed = new Date();
+  }
+
+  if (isNaN(parsed.getTime())) {
+    parsed = new Date();
+  }
+
+  // 標準化為當天 0 點，避免時區與時間部分造成的比較誤差
+  return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate(), 0, 0, 0);
+};
+
+const mapExpenseDoc = (id: string, data: any): Expense => ({
+  id,
+  amount: data.amount,
+  category: data.category,
+  date: parseFirestoreDate(data.date),
+  notes: data.notes || "",
+  userId: data.userId,
+  recurringPeriod: data.recurringPeriod || undefined,
+  recurringEndDate: data.recurringEndDate || undefined,
+});
+
 const buildRecurringExpenseDocId = (recurringRuleId: string, date: Date) =>
   `recurring_${recurringRuleId}_${formatDateKey(date)}`;
 
@@ -218,6 +258,7 @@ const App: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null); // 選中的支出類別
   const [pieChartMode, setPieChartMode] = useState<'current' | 'selected' | 'all'>('current'); // 圓餅圖顯示模式
   const [analysisMode, setAnalysisMode] = useState<'expense' | 'income'>('expense'); // 分析圓餅圖：支出/收入
+  const [dataRefreshKey, setDataRefreshKey] = useState(0); // 補產定期帳目後用來重新載入清單
   const [analysisDailyMode, setAnalysisDailyMode] = useState<'expense' | 'income'>('expense'); // 每日趨勢：支出/收入（獨立）
   const [historyMode, setHistoryMode] = useState<'all' | 'expense' | 'income'>('all'); // 歷史明細：全部/支出/收入
   const [pieChartMonth, setPieChartMonth] = useState<string>(
@@ -1092,76 +1133,7 @@ const chartRef = useRef<HTMLDivElement>(null);
           // 確認用戶ID匹配
           if (data.userId === userId) {
             try {
-              // 安全地處理日期轉換
-              let expenseDate;
-              try {
-                if (data.date && typeof data.date.toDate === "function") {
-                  // Firestore Timestamp 對象
-                  expenseDate = data.date.toDate();
-                } else if (data.date && data.date._seconds) {
-                  // Firestore Timestamp 從JSON
-                  expenseDate = new Date(data.date._seconds * 1000);
-                } else if (data.date instanceof Date) {
-                  // 已經是日期對象
-                  expenseDate = new Date(data.date.getTime());
-                } else if (typeof data.date === "string") {
-                  // 字符串日期 - 確保正確解析
-                  // 為了解決時區問題，我們需要保留原始字符串的日期部分
-                  // 格式可能是 YYYY-MM-DD 或 YYYY/MM/DD
-                  const dateString = data.date.trim();
-                  if (dateString.match(/^\d{4}[-/]\d{1,2}[-/]\d{1,2}$/)) {
-                    // 標準化日期字符串格式為 YYYY-MM-DD
-                    const [year, month, day] = dateString.split(/[-/]/).map(Number);
-                    
-                    // 創建本地時間的日期對象，避免時區轉換問題
-                    expenseDate = new Date(year, month - 1, day, 0, 0, 0);
-                  } else {
-                    // 嘗試作為標準ISO字符串解析
-                    expenseDate = new Date(dateString);
-                  }
-                } else {
-                  // 默認為當前日期
-                  expenseDate = new Date();
-                }
-                
-                // 確保日期有效
-                if (isNaN(expenseDate.getTime())) {
-                  throw new Error(`無效日期: ${data.date}`);
-                }
-                
-                // 標準化為當天的0點，避免時區和時間部分差異
-                const normalizedDate = new Date(
-                  expenseDate.getFullYear(),
-                  expenseDate.getMonth(),
-                  expenseDate.getDate(),
-                  0, 0, 0
-                );
-                
-                fetchedExpenses.push({
-                  id: doc.id,
-                  amount: data.amount,
-                  category: data.category,
-                  // 使用標準化後的日期
-                  date: normalizedDate,
-                  notes: data.notes || "",
-                  userId: data.userId,
-                  recurringPeriod: data.recurringPeriod || undefined,
-                  recurringEndDate: data.recurringEndDate || undefined,
-                });
-                
-              } catch (_e) {
-                // 如果日期處理出錯，仍然添加記錄但使用當前日期
-                fetchedExpenses.push({
-                  id: doc.id,
-                  amount: data.amount,
-                  category: data.category,
-                  date: new Date(), // 默認使用當前日期
-                  notes: data.notes || "",
-                  userId: data.userId,
-                  recurringPeriod: data.recurringPeriod || undefined,
-                  recurringEndDate: data.recurringEndDate || undefined,
-                });
-              }
+              fetchedExpenses.push(mapExpenseDoc(doc.id, data));
             } catch (_err) { /* noop */ }
           }
         });
@@ -1213,9 +1185,6 @@ const chartRef = useRef<HTMLDivElement>(null);
       }
     };
 
-    // 使initializeAppData可以在組件內部調用
-    window.initializeAppData = initializeAppData;
-
     // 執行初始化
         if (currentUser) {
       initializeAppData();
@@ -1243,7 +1212,7 @@ const chartRef = useRef<HTMLDivElement>(null);
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [currentUser]); // 圖表函式會隨 expenses 變動，不能放進這裡避免重複初始化
+  }, [currentUser, dataRefreshKey]); // 圖表函式會隨 expenses 變動，不能放進這裡避免重複初始化
 
   // ====== 收入：抓取 ======
   const fetchIncomes = useCallback(async () => {
@@ -1797,118 +1766,6 @@ const chartRef = useRef<HTMLDivElement>(null);
     };
   }, []);
 
-  // 刷新後的數據恢復機制 - 完全重寫
-  useEffect(() => {
-    const recoverDataAfterRefresh = async () => {
-      // 如果用戶未登入，不執行恢復
-      if (!currentUser || !currentUser.uid) {
-        return;
-      }
-
-
-      try {
-        // 直接從Firebase獲取最新數據
-        const userId = currentUser.uid;
-
-        const expensesRef = collection(db, "expenses");
-        const q = query(
-          expensesRef,
-          where("userId", "==", userId),
-          orderBy("createdAt", "desc"),
-        );
-
-        const querySnapshot = await getDocs(q);
-
-        if (!querySnapshot.empty) {
-          const fetchedExpenses: Expense[] = [];
-
-          querySnapshot.forEach((doc) => {
-            const data = doc.data();
-            // 嚴格驗證是當前用戶的記錄
-            if (data.userId === userId) {
-              try {
-                // 安全地處理日期轉換
-                let expenseDate;
-                if (data.date && typeof data.date.toDate === "function") {
-                  // Firestore Timestamp 對象
-                  expenseDate = data.date.toDate();
-                } else if (data.date && data.date._seconds) {
-                  // Firestore Timestamp 從JSON
-                  expenseDate = new Date(data.date._seconds * 1000);
-                } else if (data.date instanceof Date) {
-                  // 已經是日期對象
-                  expenseDate = data.date;
-                } else if (typeof data.date === "string") {
-                  // 字符串日期
-                  expenseDate = new Date(data.date);
-                } else {
-                  // 默認為當前日期
-                  expenseDate = new Date();
-                }
-
-                fetchedExpenses.push({
-                  id: doc.id,
-                  amount: data.amount,
-                  category: data.category,
-                  date: expenseDate,
-                  notes: data.notes || "",
-                  userId: data.userId,
-                  recurringPeriod: data.recurringPeriod || undefined,
-                  recurringEndDate: data.recurringEndDate || undefined,
-                });
-              } catch (_e) { /* noop */ }
-            }
-          });
-
-          if (fetchedExpenses.length > 0) {
-            // 更新React狀態
-            setExpenses(fetchedExpenses);
-
-            // 強制更新UI和圖表
-            forceRerender();
-
-            // 增加延遲時間，確保數據已完全更新且DOM已渲染完成
-            setTimeout(() => {
-              try {
-                // 觸發圖表重新渲染事件
-                window.dispatchEvent(new Event("expenses-changed"));
-
-                // 直接調用初始化函數
-                if (chartRef.current) {
-                  initPieChart();
-                }
-
-                if (dailyChartRef.current) {
-                  initDailyChart();
-                }
-
-              } catch (_error) { /* noop */ }
-            }, 800);
-          }
-        }
-    } catch (_error) {
-        // 不再顯示錯誤提示，只在控制台輸出錯誤信息
-        // setError("無法恢復數據，請嘗試手動刷新頁面");
-        // setTimeout(() => setError(null), 3000);
-
-        // 靜默處理錯誤，不顯示給用戶
-      } finally { /* noop */ }
-    };
-
-    // 監聽強制數據恢復事件
-    const handleForceDataRecovery = () => {
-      recoverDataAfterRefresh();
-    };
-
-    window.addEventListener("force_data_recovery", handleForceDataRecovery);
-
-    return () => {
-      window.removeEventListener(
-        "force_data_recovery",
-        handleForceDataRecovery,
-      );
-    };
-  }, [currentUser]);
 
   // 啟動時自動補產定期支出帳目
   useEffect(() => {
@@ -1924,6 +1781,7 @@ const chartRef = useRef<HTMLDivElement>(null);
         const snapshot = await getDocs(q);
         const today = new Date();
         today.setHours(0, 0, 0, 0);
+        let generatedAny = false;
 
         for (const docSnap of snapshot.docs) {
           const rec = docSnap.data();
@@ -2006,6 +1864,15 @@ const chartRef = useRef<HTMLDivElement>(null);
 
             await updateDoc(doc(db, "recurringExpenses", docSnap.id), updatePayload);
           }
+
+          if (latestGenerated > lastDate) {
+            generatedAny = true;
+          }
+        }
+
+        // 補產的帳目是直接寫進 Firestore 的，要重新載入才會出現在畫面上
+        if (generatedAny) {
+          setDataRefreshKey((k) => k + 1);
         }
       } catch (_err) { /* noop */ }
     };
