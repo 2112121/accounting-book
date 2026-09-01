@@ -1145,9 +1145,6 @@ const chartRef = useRef<HTMLDivElement>(null);
         // 增加雙重延遲時間，確保數據和DOM完全更新後再渲染圖表
         setTimeout(() => {
           try {
-            // 先強制重新渲染一次
-            forceRerender();
-
             // 再加一個延遲確保DOM完全渲染
             setTimeout(() => {
               try {
@@ -2890,15 +2887,6 @@ const chartRef = useRef<HTMLDivElement>(null);
 
   const historyExpenseTotal = filteredTransactions.reduce((t, e) => t + e.amount, 0);
   const historyIncomeTotal = filteredIncomesForHistory.reduce((t, i) => t + i.amount, 0);
-
-  // 強制重新渲染組件的函數
-  const forceRerender = () => {
-  };
-
-  // 在支出數據變更時，強制組件重新渲染
-  useEffect(() => {
-    forceRerender();
-  }, [expenses.length]);
 
   // 讀取通知數量
   useEffect(() => {
@@ -4675,13 +4663,11 @@ const chartRef = useRef<HTMLDivElement>(null);
                         success = await updateExpense(data);
                         if (success) {
                           setSuccessMessage("支出已更新！");
-                          forceRerender();
                         }
                       } else {
                         success = await addExpense(data);
                         if (success) {
                           setSuccessMessage("記帳成功！");
-                          forceRerender();
                         }
                       }
 

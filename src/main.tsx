@@ -6,11 +6,6 @@ import './index.css'
 import { AuthProvider } from './contexts/AuthContext'
 import { ErrorBoundary } from './components/ErrorBoundary'
 
-// 導入swiper的樣式
-import 'swiper/css'
-import 'swiper/css/pagination'
-import 'swiper/css/autoplay'
-
 // 導入Font Awesome的樣式
 import '@fortawesome/fontawesome-free/css/all.min.css'
 
