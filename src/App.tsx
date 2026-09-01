@@ -1145,6 +1145,8 @@ const chartRef = useRef<HTMLDivElement>(null);
                   date: normalizedDate,
                   notes: data.notes || "",
                   userId: data.userId,
+                  recurringPeriod: data.recurringPeriod || undefined,
+                  recurringEndDate: data.recurringEndDate || undefined,
                 });
                 
               } catch (_e) {
@@ -1156,6 +1158,8 @@ const chartRef = useRef<HTMLDivElement>(null);
                   date: new Date(), // 默認使用當前日期
                   notes: data.notes || "",
                   userId: data.userId,
+                  recurringPeriod: data.recurringPeriod || undefined,
+                  recurringEndDate: data.recurringEndDate || undefined,
                 });
               }
             } catch (_err) { /* noop */ }
