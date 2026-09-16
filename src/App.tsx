@@ -1,5 +1,5 @@
 ﻿// The exported code uses Tailwind CSS. Install Tailwind CSS in your dev environment to ensure all styles work.
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import * as echarts from "./echarts";
 import { logError } from "./utils/log";
 import ExpenseForm from "./components/ExpenseForm";
@@ -2527,6 +2527,28 @@ const chartRef = useRef<HTMLDivElement>(null);
     };
   };
 
+  // 傳給表單的物件要保持同一份參考。每次重繪都產生新物件的話，
+  // 表單的「換了一筆資料就重設欄位」會被誤觸發，使用者正在打的字會被清空。
+  const expenseFormValue = useMemo(() => {
+    if (editingExpense) return convertExpenseForForm(editingExpense);
+    if (expenseParams) {
+      return {
+        id: '',
+        amount: parseFloat(expenseParams.amount),
+        category: expenseParams.category,
+        date: expenseParams.date || new Date().toISOString().slice(0, 10),
+        notes: expenseParams.notes,
+        attachments: [],
+      } as any;
+    }
+    return null;
+  }, [editingExpense, expenseParams]);
+
+  const incomeFormValue = useMemo(
+    () => (editingIncome ? convertIncomeForForm(editingIncome) : null),
+    [editingIncome],
+  );
+
   // 編輯支出記錄
   const editExpense = (expense: Expense) => {
     setEditingExpense(expense);
@@ -4682,17 +4704,7 @@ const chartRef = useRef<HTMLDivElement>(null);
                     setEditingExpense(null);
                     setExpenseParams(null); // 清除初始參數
                   }}
-                  expense={
-                    editingExpense ? convertExpenseForForm(editingExpense) :
-                    expenseParams ? {
-                      id: '',
-                      amount: parseFloat(expenseParams.amount),
-                      category: expenseParams.category,
-                      date: expenseParams.date || new Date().toISOString().slice(0, 10),
-                      notes: expenseParams.notes,
-                      attachments: []
-                    } as any : null
-                  }
+                  expense={expenseFormValue}
                 />
               ) : (
                 <IncomeForm
@@ -4715,7 +4727,7 @@ const chartRef = useRef<HTMLDivElement>(null);
                     setShowEntryModal(false);
                     setEditingIncome(null);
                   }}
-                  income={editingIncome ? convertIncomeForForm(editingIncome) : null}
+                  income={incomeFormValue}
                 />
               )}
             </div>

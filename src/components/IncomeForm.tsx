@@ -153,7 +153,9 @@ const IncomeForm: React.FC<IncomeFormProps> = ({
       setRecurringPeriod('monthly');
       setRecurringEndDate("");
     }
-  }, [income]);
+    // 只在換一筆資料時重設欄位：物件參考變了但還是同一筆，就不能動使用者正在輸入的內容
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [income?.id]);
 
   // 獲取匯率的函數
   const fetchExchangeRate = async (
