@@ -12,6 +12,7 @@ import GroupInviteList from './GroupInviteList';
 import { toast } from 'react-toastify';
 import './SplitExpenseManagement.css'; // 引入CSS文件
 import { format } from 'date-fns';
+import { allocateByShares } from '../utils/split';
 
 // 分帳交易類型定義
 export interface SplitTransaction {
@@ -883,6 +884,8 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
         // 記錄是否為批量結算
         const isBatchSettlement = formData.isBatchSettlement || false;
         const batchCount = formData.batchCount || 1;
+        // 整批共用同一個批次 ID，才能事後辨識是同一次結算
+        const batchId = Date.now().toString();
         
         // 更新群組支出狀態為已分帳
         for (const expenseId of formData.expenseIds) {
@@ -893,19 +896,25 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
           // 計算每位參與者在此支出中的應付金額
           let participants = [...formData.participants];
           
-          // 如果是批量結算，需要按比例分配金額
+          // 批量結算：把這筆支出的金額依各人比例拆開。
+          // 一定要用會補餘數的分配，否則每筆各自四捨五入，加總對不回
+          // 支出金額，結算餘額就永遠差一點點、結不乾淨。
           if (isBatchSettlement && formData.expenseIds.length > 1) {
-            // 計算當前支出在總金額中的比例
-            const expenseRatio = currentExpense.amount / formData.totalAmount;
-            
-            // 按比例分配每位成員的金額
-            participants = participants.map(p => ({
+            const expenseRatio = formData.totalAmount
+              ? currentExpense.amount / formData.totalAmount
+              : 0;
+            const allocated = allocateByShares(
+              currentExpense.amount,
+              participants.map((p: any) => p.amount || 0),
+            );
+
+            participants = participants.map((p: any, index: number) => ({
               ...p,
-              amount: Math.round(p.amount * expenseRatio * 100) / 100, // 四捨五入到分
+              amount: allocated[index],
               batchSettlementInfo: {
                 originalAmount: p.amount, // 記錄原始分配金額
                 ratio: expenseRatio, // 記錄分配比例
-                batchId: Date.now().toString(), // 批次ID
+                batchId,
                 batchIndex: formData.expenseIds.indexOf(expenseId), // 批次中的索引
                 batchTotal: formData.expenseIds.length // 批次總數
               }
@@ -924,7 +933,7 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
             updatedAt: Timestamp.now(),
             isBatchSettlement: isBatchSettlement, // 記錄是否為批量結算
             batchCount: batchCount, // 記錄批量數量
-            batchSettlementId: isBatchSettlement ? Date.now().toString() : null // 批量結算ID
+            batchSettlementId: isBatchSettlement ? batchId : null // 批量結算ID
           });
         }
 

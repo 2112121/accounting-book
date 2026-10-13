@@ -586,6 +586,14 @@ const ConfirmExpenseForm: React.FC<ConfirmExpenseFormProps> = ({
     }
   };
   
+  // 金額比對的容許誤差：即時驗證與送出必須用同一個，
+  // 否則會出現「畫面說可以送出、按下去卻被擋」的死結
+  const AMOUNT_EPSILON = 0.01;
+  const PERCENT_EPSILON = 0.01;
+  // 金額有小數才顯示小數，避免錯誤訊息出現兩個一模一樣的數字
+  const showAmount = (value: number) =>
+    Number.isInteger(value) ? value.toString() : value.toFixed(2);
+
   // 計算機功能：純函式，任何時候都以傳入的算式為準
   const evaluateExpression = (expression: string): string => {
     if (!expression) return '0';
@@ -649,7 +657,7 @@ const ConfirmExpenseForm: React.FC<ConfirmExpenseFormProps> = ({
     setRemainingAmount(remaining);
     
     // 驗證總金額是否匹配 - 使用更精確的計算方式
-    const isAmountValid = Math.abs(remaining) < 1;  // 允許1元以内的誤差
+    const isAmountValid = Math.abs(remaining) < AMOUNT_EPSILON;
     
     // 在 percentage 模式下，同時檢查百分比是否為 100%
     if (splitMethod === 'percentage') {
@@ -664,7 +672,7 @@ const ConfirmExpenseForm: React.FC<ConfirmExpenseFormProps> = ({
         if (error.includes('分帳比例總和')) {
           setError('');
         }
-        const isPercentageValid = Math.abs(totalPercentage - 100) < 1;  // 允許1%以内的誤差
+        const isPercentageValid = Math.abs(totalPercentage - 100) < PERCENT_EPSILON;
         setValidSplitAmount(isPercentageValid && isAmountValid);
       
       }
@@ -744,8 +752,12 @@ const ConfirmExpenseForm: React.FC<ConfirmExpenseFormProps> = ({
     
     // 確保所有成員的分帳總額與支出總額一致
     const memberTotalAmount = members.reduce((sum, member) => sum + member.amount, 0);
-    if (Math.abs(memberTotalAmount - totalAmount) > 0.01) {
-      setError(`分帳金額總和 (${memberTotalAmount.toFixed(0)}) 必須等於支出總額 (${totalAmount.toFixed(0)})`);
+    if (Math.abs(memberTotalAmount - totalAmount) >= AMOUNT_EPSILON) {
+      const diff = totalAmount - memberTotalAmount;
+      setError(
+        `分帳金額總和 (${showAmount(memberTotalAmount)}) 必須等於支出總額 (${showAmount(totalAmount)})，` +
+        `還差 ${showAmount(Math.abs(diff))} 元${diff > 0 ? '未分配' : '超出'}`,
+      );
       return;
     }
     
@@ -756,8 +768,8 @@ const ConfirmExpenseForm: React.FC<ConfirmExpenseFormProps> = ({
         setError(`分帳比例總和 (${totalPercentage.toFixed(1)}%) 不能超過 100%，請調整各成員比例`);
         return;
       }
-      if (Math.abs(totalPercentage - 100) > 1) {
-        setError(`分帳比例總和 (${totalPercentage.toFixed(1)}%) 必須為 100%`);
+      if (Math.abs(totalPercentage - 100) >= PERCENT_EPSILON) {
+        setError(`分帳比例總和 (${totalPercentage.toFixed(2)}%) 必須為 100%`);
         return;
       }
     }

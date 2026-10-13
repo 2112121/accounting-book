@@ -96,8 +96,9 @@ const GroupExpenseForm: React.FC<GroupExpenseFormProps> = ({
           
           setMembers(groupMembers);
           
-          // 找到當前用戶的資訊
-          if (currentUser) {
+          // 找到當前用戶的資訊。編輯既有支出時不能覆蓋，
+          // 否則付款人會被改成正在編輯的人，整個結算方向就反了。
+          if (currentUser && !isEditing) {
             const userMember = groupMembers.find((member: GroupMember) => member.userId === currentUser.uid);
             if (userMember) {
               setCurrentUserInfo(userMember);
@@ -113,7 +114,7 @@ const GroupExpenseForm: React.FC<GroupExpenseFormProps> = ({
     };
     
     loadGroupDetails();
-  }, [groupId, currentUser]);
+  }, [groupId, currentUser, isEditing]);
   
   // 提交表單
   const handleSubmit = async (e: React.FormEvent) => {
@@ -167,25 +168,29 @@ const GroupExpenseForm: React.FC<GroupExpenseFormProps> = ({
         category: category || '其他',
         date: Timestamp.fromDate(date || new Date()),
         notes: notes.trim() || '',
-        payerId: payerInfo.userId || '',
-        payerName: payerInfo.nickname || '未知用戶',
-        payerPhotoURL: payerInfo.photoURL || '',
         updatedAt: Timestamp.now(),
+        // 付款人只在建立時寫入；編輯時完全不碰，維持原本的付款人
         ...(isEditing ? {} : {
+          payerId: payerInfo.userId || '',
+          payerName: payerInfo.nickname || '未知用戶',
+          payerPhotoURL: payerInfo.photoURL || '',
           createdAt: Timestamp.now(),
           createdBy: currentUser.uid || '',
         }),
-        status: 'pending',
-        confirmed: false,
-        splitMethod: 'equal', // 添加默認的分帳方式
-        // 初始化參與者數組，包含群組所有成員
-        participants: members.map(member => ({
-          userId: member.userId,
-          nickname: member.nickname || '未知用戶',
-          photoURL: member.photoURL || '',
-          percentage: 0, // 默認百分比
-          amount: 0 // 默認金額
-        }))
+        // 分帳狀態與參與者只在建立時初始化；
+        // 編輯時保留既有資料，由「分帳結算」那邊決定
+        ...(isEditing ? {} : {
+          status: 'pending',
+          confirmed: false,
+          splitMethod: 'equal',
+          participants: members.map(member => ({
+            userId: member.userId,
+            nickname: member.nickname || '未知用戶',
+            photoURL: member.photoURL || '',
+            percentage: 0,
+            amount: 0,
+          })),
+        })
       };
       
       // 輔助函數：清理對象中的undefined值
