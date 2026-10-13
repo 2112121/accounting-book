@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import Calculator from './Calculator';
+import type { EntryDraft } from '../types';
 
 interface IncomeFormProps {
   onSave: (income: {
@@ -13,6 +14,10 @@ interface IncomeFormProps {
     recurringEndDate?: string;
   }) => void;
   onCancel: () => void;
+  // 從另一種類型切換過來時要帶進來的內容
+  prefill?: EntryDraft | null;
+  // 讓外層隨時取得目前輸入的內容（寫 ref 不會觸發重繪）
+  draftRef?: { current: EntryDraft | null };
   income?: {
     id: string;
     amount: number;
@@ -47,6 +52,8 @@ interface CurrencyInfo {
 const IncomeForm: React.FC<IncomeFormProps> = ({
   onSave,
   onCancel,
+  prefill,
+  draftRef,
   income,
 }) => {
   const [amount, setAmount] = useState<string>("");
@@ -156,6 +163,21 @@ const IncomeForm: React.FC<IncomeFormProps> = ({
     // 只在換一筆資料時重設欄位：物件參考變了但還是同一筆，就不能動使用者正在輸入的內容
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [income?.id]);
+
+  // 從另一種類型切換過來：把已經打好的金額/日期/備註帶進來。
+  // 只在掛載時做一次，之後使用者的輸入為準。
+  useEffect(() => {
+    if (income || !prefill) return;
+    if (prefill.amount) setAmount(prefill.amount);
+    if (prefill.date) setDate(prefill.date);
+    if (prefill.notes) setNotes(prefill.notes);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // 隨時把目前輸入的內容放進 ref，切換類型時外層才拿得到
+  useEffect(() => {
+    if (draftRef) draftRef.current = { amount, date, notes };
+  }, [amount, date, notes, draftRef]);
 
   // 獲取匯率的函數
   const fetchExchangeRate = async (

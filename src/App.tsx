@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import * as echarts from "./echarts";
 import { logError } from "./utils/log";
 import ExpenseForm from "./components/ExpenseForm";
+import type { EntryDraft } from "./types";
 import IncomeForm from "./components/IncomeForm";
 import IncomeAnalysis from "./components/IncomeAnalysis";
 import RecurringIncomeManagement from "./components/RecurringIncomeManagement";
@@ -410,6 +411,9 @@ const buildRecurringIncomeDocId = (recurringRuleId: string, date: Date) =>
 const App: React.FC = () => {
   // 記一筆彈窗：單一入口 + 收入/支出 tab 切換
   const [showEntryModal, setShowEntryModal] = useState(false);
+  // 支出/收入切換時，把已經打好的內容帶過去，不用重打
+  const entryDraftRef = useRef<EntryDraft | null>(null);
+  const [entryPrefill, setEntryPrefill] = useState<EntryDraft | null>(null);
   const [entryType, setEntryType] = useState<"expense" | "income">("expense");
   const [showLoginForm, setShowLoginForm] = useState(false);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
@@ -1859,7 +1863,20 @@ const chartRef = useRef<HTMLDivElement>(null);
     setEntryType(type);
     setEditingExpense(null);
     setEditingIncome(null);
+    clearEntryDraft(); // 重新開啟就是一張新的表單
     setShowEntryModal(true);
+  };
+
+  const clearEntryDraft = () => {
+    entryDraftRef.current = null;
+    setEntryPrefill(null);
+  };
+
+  // 切換支出/收入：把目前打好的金額、日期、備註帶到另一邊
+  const switchEntryType = (type: "expense" | "income") => {
+    if (type === entryType) return;
+    setEntryPrefill(entryDraftRef.current);
+    setEntryType(type);
   };
 
   // 開啟「固定收支管理」統一彈窗
@@ -4626,6 +4643,7 @@ const chartRef = useRef<HTMLDivElement>(null);
             setEditingExpense(null);
             setEditingIncome(null);
             setExpenseParams(null);
+            clearEntryDraft();
           }}
         >
           <div
@@ -4652,7 +4670,7 @@ const chartRef = useRef<HTMLDivElement>(null);
                   }} />
                   <button
                     type="button"
-                    onClick={() => setEntryType("expense")}
+                    onClick={() => switchEntryType("expense")}
                     style={{
                       position: "relative", zIndex: 1, flex: 1, padding: "9px 0",
                       background: "none", border: "none", outline: "none", boxShadow: "none",
@@ -4663,7 +4681,7 @@ const chartRef = useRef<HTMLDivElement>(null);
                   >支出</button>
                   <button
                     type="button"
-                    onClick={() => setEntryType("income")}
+                    onClick={() => switchEntryType("income")}
                     style={{
                       position: "relative", zIndex: 1, flex: 1, padding: "9px 0",
                       background: "none", border: "none", outline: "none", boxShadow: "none",
@@ -4719,6 +4737,8 @@ const chartRef = useRef<HTMLDivElement>(null);
                     setEditingExpense(null);
                     setExpenseParams(null); // 清除初始參數
                   }}
+                  prefill={entryPrefill}
+                  draftRef={entryDraftRef}
                   expense={expenseFormValue}
                 />
               ) : (
@@ -4742,6 +4762,8 @@ const chartRef = useRef<HTMLDivElement>(null);
                     setShowEntryModal(false);
                     setEditingIncome(null);
                   }}
+                  prefill={entryPrefill}
+                  draftRef={entryDraftRef}
                   income={incomeFormValue}
                 />
               )}
