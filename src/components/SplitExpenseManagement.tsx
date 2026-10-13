@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Friend } from '../contexts/AuthContext';
-import { collection, query, where, getDocs, addDoc, updateDoc, doc, serverTimestamp, Timestamp, deleteDoc, getDoc, orderBy } from 'firebase/firestore';
+import { collection, query, where, getDocs, addDoc, updateDoc, doc, serverTimestamp, Timestamp, deleteDoc, getDoc, orderBy, writeBatch, DocumentReference } from 'firebase/firestore';
 import { db } from '../firebase';
 import SplitExpenseForm from './SplitExpenseForm';
 import ExpenseGroupForm from './ExpenseGroupForm';
@@ -13,6 +13,7 @@ import { toast } from 'react-toastify';
 import './SplitExpenseManagement.css'; // 引入CSS文件
 import { format } from 'date-fns';
 import { allocateByShares } from '../utils/split';
+import { logError } from '../utils/log';
 
 // 分帳交易類型定義
 export interface SplitTransaction {
@@ -54,7 +55,6 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [activeTab] = useState<'created'>('created'); // 默認顯示分帳群組
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showGroupForm, setShowGroupForm] = useState(false);
   const [showEditGroupForm, setShowEditGroupForm] = useState(false); // 添加編輯群組表單狀態
@@ -69,29 +69,18 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
   const [showConfirmExpenseForm, setShowConfirmExpenseForm] = useState(false); // 新增：顯示確認帳單表單
   const [groupExpenses, setGroupExpenses] = useState<any[]>([]); // 新增：群組中的支出列表
   const [editingExpense, setEditingExpense] = useState<any>(null);
+  // 載入群組支出的流水號：快速切換群組時，舊的請求後到也不會蓋掉新的
+  const loadExpensesSeqRef = useRef(0);
   
-  // 當顯示分帳詳情時自動加載群組支出
+  // 顯示分帳詳情時載入群組支出。
+  // 原本有兩個 effect 做同一件事，每次開群組都會讀兩次；
+  // 其中一個還會在詳情關閉時自動把它打開，刪掉群組後會彈出已刪除的群組。
   useEffect(() => {
-    if (showTransactionDetails && selectedTransaction) {
-      // 確保 selectedTransaction.id 是有效的
-      if (selectedTransaction.id && selectedTransaction.id.trim() !== '') {
-        loadGroupExpenses(selectedTransaction.id);
-      }
-    }
-  }, [showTransactionDetails, selectedTransaction, showGroupExpenseForm]);
-  
-  // 監聽 GroupExpenseForm 關閉事件，主動重新加載群組支出
-  useEffect(() => {
-    // 當從添加支出表單返回到分帳詳情時，重新加載支出
-    if (!showGroupExpenseForm && selectedTransaction) {
+    if (!showGroupExpenseForm && showTransactionDetails && selectedTransaction?.id) {
       loadGroupExpenses(selectedTransaction.id);
-      
-      // 確保分帳詳情頁面是可見的
-      if (!showTransactionDetails) {
-        setShowTransactionDetails(true);
-      }
     }
-  }, [showGroupExpenseForm, selectedTransaction]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showTransactionDetails, selectedTransaction, showGroupExpenseForm]);
   
   // 初始化加載
   useEffect(() => {
@@ -100,6 +89,25 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
     }
   }, [currentUser]);
   
+  // 只有建立群組的人可以改動或刪除群組本身
+  const isGroupOwner = (transaction: SplitTransaction | null) =>
+    !!transaction && !!currentUser && transaction.creatorId === currentUser.uid;
+
+  // 群組支出只有記錄者或付款人可以編輯、刪除
+  const canManageExpense = (expense: any) =>
+    !!currentUser &&
+    (expense?.createdBy === currentUser.uid || expense?.payerId === currentUser.uid);
+
+  // 一次刪除大量文件：Firestore 單批上限 500，超過就分批
+  const deleteDocsInBatches = async (refs: DocumentReference[]) => {
+    const CHUNK = 450;
+    for (let i = 0; i < refs.length; i += CHUNK) {
+      const batch = writeBatch(db);
+      refs.slice(i, i + CHUNK).forEach((ref) => batch.delete(ref));
+      await batch.commit();
+    }
+  };
+
   // 輔助函數：解析 Firestore 時間戳記為 Date 對象
   const parseFirestoreTimestamp = (timestamp: any): Date => {
     try {
@@ -131,185 +139,78 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
   };
   
   // 加載分帳記錄的函數
+  // 群組文件 -> 畫面用的分帳交易。原本同一段轉換寫了三份，
+  // 欄位一改就會有地方漏掉。
+  const mapGroupDoc = (id: string, data: any): SplitTransaction => {
+    const date = parseFirestoreTimestamp(data.createdAt);
+    const members = Array.isArray(data.members) ? data.members : [];
+
+    return {
+      id,
+      creatorId: data.createdBy || '',
+      title: data.name || '未命名群組',
+      description: data.description || '',
+      totalAmount: 0, // 群組本身沒有總金額
+      date,
+      status: 'pending',
+      participants: members.map((m: any) => ({
+        userId: m.userId || '',
+        nickname: m.nickname || '未知用戶',
+        email: m.email || undefined,
+        photoURL: m.photoURL || undefined,
+        amount: 0,
+        paid: false,
+      })),
+      created: data.createdAt ? date : new Date(0),
+    };
+  };
+
   const loadSplitTransactions = async () => {
+    if (!currentUser) return;
+
     try {
       setLoading(true);
-      setError(''); // 清除之前的錯誤
-      
-      if (!currentUser) return;
-      
-      
-      // 用於去重的集合
-      const uniqueTransactionIds = new Set();
-      
-      // 處理查詢結果
-      const transactionsList: SplitTransaction[] = [];
-      
-      // 查詢用戶創建的分帳群組和參與的分帳群組
-      try {
-        // 查詢用戶創建的分帳群組
-        const groupsRef = collection(db, 'expenseGroups');
-        
-        // 查詢用戶創建的群組
-        const createdGroupsQuery = query(
-          groupsRef,
-          where('createdBy', '==', currentUser.uid),
-          orderBy('createdAt', 'desc')
-        );
-        
-        // 獲取用戶創建的群組
-        const createdGroupsSnapshot = await getDocs(createdGroupsQuery);
-        
-        // 處理為分帳記錄格式
-        createdGroupsSnapshot.forEach((doc) => {
-          try {
-            const data = doc.data();
-            
-            // 使用輔助函數解析日期
-            const date = parseFirestoreTimestamp(data.createdAt);
-            
-            // 確保members是數組
-            const members = Array.isArray(data.members) ? data.members : [];
-            
-            // 將群組轉換為分帳交易格式顯示
-            const transaction: SplitTransaction = {
-              id: doc.id,
-              creatorId: data.createdBy || currentUser.uid,
-              title: data.name || '未命名群組',
-              description: data.description || '',
-              totalAmount: 0, // 群組沒有總金額
-              date,
-              status: 'pending',
-              participants: members.map((m: any) => ({
-                userId: m.userId || '',
-                nickname: m.nickname || '未知用戶',
-                email: m.email || undefined,
-                photoURL: m.photoURL || undefined,
-                amount: 0,
-                paid: false
-              })),
-              created: data.createdAt ? date : new Date(0)
-            };
-            
-            transactionsList.push(transaction);
-            uniqueTransactionIds.add(doc.id);
-          } catch (_err) { /* noop */ }
-        });
-        
-        // 查詢用戶參與的分帳群組 - 使用memberIds數組
-        try {
-          // 首先嘗試使用memberIds數組查詢
-          const participantGroupsQuery = query(
-            groupsRef,
-            where('memberIds', 'array-contains', currentUser.uid),
-            orderBy('createdAt', 'desc')
-          );
-          
-          const participantGroupsSnapshot = await getDocs(participantGroupsQuery);
-          
-          // 處理為分帳記錄格式
-          participantGroupsSnapshot.forEach((doc) => {
-            try {
-              // 避免重複
-              if (uniqueTransactionIds.has(doc.id)) return;
-              
-              const data = doc.data();
-              const date = parseFirestoreTimestamp(data.createdAt);
-              
-              // 確保members是數組
-              const members = Array.isArray(data.members) ? data.members : [];
-              
-              // 將群組轉換為分帳交易格式顯示
-              const transaction: SplitTransaction = {
-                id: doc.id,
-                creatorId: data.createdBy || '',
-                title: data.name || '未命名群組',
-                description: data.description || '',
-                totalAmount: 0,
-                date,
-                status: 'pending',
-                participants: members.map((m: any) => ({
-                  userId: m.userId || '',
-                  nickname: m.nickname || '未知用戶',
-                  email: m.email || undefined,
-                  photoURL: m.photoURL || undefined,
-                  amount: 0,
-                  paid: false
-                })),
-                created: data.createdAt ? date : new Date(0)
-              };
-              
-              uniqueTransactionIds.add(doc.id);
-              transactionsList.push(transaction);
-            } catch (_err) { /* noop */ }
-          });
-        } catch (_memberIdsError) {
-          
-          // 如果memberIds查詢失敗，嘗試使用成員數組查詢
-          try {
-            // 獲取所有群組
-            const allGroupsQuery = query(groupsRef, orderBy('createdAt', 'desc'));
-            const allGroupsSnapshot = await getDocs(allGroupsQuery);
-            
-            // 手動過濾，查找包含當前用戶的群組
-            allGroupsSnapshot.forEach((doc) => {
-              try {
-                // 避免重複
-                if (uniqueTransactionIds.has(doc.id)) return;
-                
-                const data = doc.data();
-                // 檢查成員列表中是否包含當前用戶
-                const members = Array.isArray(data.members) ? data.members : [];
-                const isParticipant = members.some((m: any) => m.userId === currentUser.uid);
-                
-                if (isParticipant) {
-                  const date = parseFirestoreTimestamp(data.createdAt);
-                  
-                  // 將群組轉換為分帳交易格式顯示
-                  const transaction: SplitTransaction = {
-                    id: doc.id,
-                    creatorId: data.createdBy || '',
-                    title: data.name || '未命名群組',
-                    description: data.description || '',
-                    totalAmount: 0,
-                    date,
-                    status: 'pending',
-                    participants: members.map((m: any) => ({
-                      userId: m.userId || '',
-                      nickname: m.nickname || '未知用戶',
-                      email: m.email || undefined,
-                      photoURL: m.photoURL || undefined,
-                      amount: 0,
-                      paid: false
-                    })),
-                    created: data.createdAt ? date : new Date(0)
-                  };
-                  
-                  uniqueTransactionIds.add(doc.id);
-                  transactionsList.push(transaction);
-                }
-              } catch (_err) { /* noop */ }
-            });
-            
-          } catch (_allGroupsError) { /* noop */ }
-        }
-      } catch (_error) { /* noop */ }
-      
-      // 查詢其他分帳記錄
-      if (activeTab === 'created') {
-        // ... 其他查詢代碼，已省略保持不變 ...
+      setError('');
+
+      const groupsRef = collection(db, 'expenseGroups');
+
+      // 兩個查詢分開判斷成敗：其中一個缺索引時，另一個的結果仍然看得到。
+      // 注意這裡刻意不再有「查詢失敗就改讀整個 expenseGroups 集合」的退路，
+      // 那等於把所有人的群組都抓到前端過濾。
+      const [createdResult, memberResult] = await Promise.allSettled([
+        getDocs(query(groupsRef, where('createdBy', '==', currentUser.uid), orderBy('createdAt', 'desc'))),
+        getDocs(query(groupsRef, where('memberIds', 'array-contains', currentUser.uid), orderBy('createdAt', 'desc'))),
+      ]);
+
+      if (createdResult.status === 'rejected') logError('loadSplitTransactions:created', createdResult.reason);
+      if (memberResult.status === 'rejected') logError('loadSplitTransactions:member', memberResult.reason);
+
+      if (createdResult.status === 'rejected' && memberResult.status === 'rejected') {
+        setError('無法載入分帳群組，請稍後再試');
+        return;
       }
-      
-      // 更新狀態，設置分帳記錄
-      setSplitTransactions(transactionsList);
-      
-    } catch (_error) {
+
+      const byId = new Map<string, SplitTransaction>();
+      for (const result of [createdResult, memberResult]) {
+        if (result.status !== 'fulfilled') continue;
+        result.value.forEach((docSnap) => {
+          if (byId.has(docSnap.id)) return; // 兩個查詢會重疊
+          byId.set(docSnap.id, mapGroupDoc(docSnap.id, docSnap.data()));
+        });
+      }
+
+      const list = Array.from(byId.values()).sort(
+        (a, b) => b.created.getTime() - a.created.getTime(),
+      );
+      setSplitTransactions(list);
+    } catch (err) {
+      logError('loadSplitTransactions', err);
       setError('無法加載分帳記錄，請稍後再試');
     } finally {
       setLoading(false);
     }
   };
-  
+
   // 創建分帳記錄
   const createSplitExpense = async (formData: any): Promise<string> => {
     try {
@@ -329,9 +230,10 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
       loadSplitTransactions();
       
       return docRef.id;
-    } catch (_error) {
+    } catch (err) {
+      logError('createSplitExpense', err);
       setError('創建分帳記錄失敗，請稍後再試');
-      throw error; // 重新拋出錯誤以便調用者可以處理
+      throw err; // 重新拋出真正的錯誤，讓呼叫端判斷
     } finally {
       setLoading(false);
     }
@@ -468,72 +370,30 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
         throw new Error('群組不存在');
       }
       
-      // 檢查用戶是否為群組成員或創建者
       const groupData = groupDoc.data();
-      
-      // 首先檢查用戶是否為創建者，創建者擁有刪除權限
-      const isCreator = groupData.createdBy === currentUser.uid;
-      
-      // 再檢查用戶是否為群組成員，考慮數據可能存在的不同字段
-      let isGroupMember = false;
-      
-      // 檢查 members 字段
-      if (Array.isArray(groupData.members)) {
-        isGroupMember = groupData.members.some((m: any) => m.userId === currentUser.uid);
+
+      // 只有創建者可以刪除。原本任何成員都能刪掉整個群組與所有人的支出，
+      // 風險太高（而且不可復原）。
+      if (groupData.createdBy !== currentUser.uid) {
+        throw new Error('只有群組創建者可以刪除這個群組');
       }
-      
-      // 如果在 members 中未找到，則檢查 participants 字段
-      if (!isGroupMember && Array.isArray(groupData.participants)) {
-        isGroupMember = groupData.participants.some((p: any) => p.userId === currentUser.uid);
-      }
-      
-      // 檢查 memberIds 字段 (可能是一個簡化的成員ID數組)
-      if (!isGroupMember && Array.isArray(groupData.memberIds)) {
-        isGroupMember = groupData.memberIds.includes(currentUser.uid);
-      }
-      
-      // 如果既不是創建者也不是成員，則拒絕刪除操作
-      if (!isCreator && !isGroupMember) {
-        throw new Error('只有群組成員或創建者才能刪除群組');
-      }
-      
-      // 刪除群組邀請
-      const invitesQuery = query(
-        collection(db, 'groupInvites'),
-        where('groupId', '==', groupId)
+
+      // 先把要刪的東西都查出來，任何一步失敗就整個中止，
+      // 避免群組被刪掉、支出卻變成沒有入口的孤兒資料。
+      const invitesSnapshot = await getDocs(
+        query(collection(db, 'groupInvites'), where('groupId', '==', groupId)),
       );
-      const invitesSnapshot = await getDocs(invitesQuery);
-      
-      const deleteInvitePromises = invitesSnapshot.docs.map(doc => 
-        deleteDoc(doc.ref)
+      const expensesSnapshot = await getDocs(
+        query(collection(db, 'groupExpenses'), where('groupId', '==', groupId)),
       );
-      
-      await Promise.all(deleteInvitePromises);
-      
-      // 刪除群組相關的支出記錄
-      try {
-        // 查詢屬於該群組的支出記錄
-        const expensesQuery = query(
-          collection(db, 'groupExpenses'),
-          where('groupId', '==', groupId)
-        );
-        const expensesSnapshot = await getDocs(expensesQuery);
-        
-        // 如果有支出記錄，則刪除它們
-        if (!expensesSnapshot.empty) {
-          
-          const deleteExpensePromises = expensesSnapshot.docs.map(doc => 
-            deleteDoc(doc.ref)
-          );
-          
-          await Promise.all(deleteExpensePromises);
-        }
-      } catch (_expensesError) {
-        // 即使刪除支出記錄失敗，我們仍然繼續刪除群組本身
-      }
-      
-      // 刪除群組文檔
-      await deleteDoc(groupRef);
+
+      await deleteDocsInBatches([
+        ...invitesSnapshot.docs.map((d) => d.ref),
+        ...expensesSnapshot.docs.map((d) => d.ref),
+        groupRef,
+      ]);
+
+
       
       // 更新UI
       setSuccess('分帳群組已成功刪除');
@@ -542,6 +402,8 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
       
       // 從列表中移除已刪除的群組
       setSplitTransactions(prev => prev.filter(t => t.id !== groupId));
+      setSelectedTransaction(null);
+      setGroupExpenses([]);
       
       // 顯示成功提示
       toast.success('分帳群組已成功刪除！', {
@@ -689,7 +551,10 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
   // 新增：加載群組支出
   const loadGroupExpenses = async (groupId: string) => {
     if (!currentUser) return;
-    
+
+    const seq = ++loadExpensesSeqRef.current;
+    const isStale = () => seq !== loadExpensesSeqRef.current;
+
     try {
       setLoading(true);
       setError(''); // 清除之前的錯誤
@@ -852,12 +717,15 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
         };
       });
       
+      if (isStale()) return; // 已經有更新的請求，這份結果作廢
       setGroupExpenses(expensesData);
-      
-    } catch (_error) {
+
+    } catch (err) {
+      if (isStale()) return;
+      logError('loadGroupExpenses', err);
       setError('加載群組支出失敗，請稍後再試');
     } finally {
-      setLoading(false);
+      if (!isStale()) setLoading(false);
     }
   };
 
@@ -887,7 +755,10 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
         // 整批共用同一個批次 ID，才能事後辨識是同一次結算
         const batchId = Date.now().toString();
         
-        // 更新群組支出狀態為已分帳
+        // 一次批次寫入：原本是逐筆 await，中途失敗會變成一半已分帳、
+        // 一半沒有，而且沒有任何回滾。
+        const batch = writeBatch(db);
+
         for (const expenseId of formData.expenseIds) {
           // 獲取當前處理的支出
           const currentExpense = groupExpenses.find(exp => exp.id === expenseId);
@@ -923,7 +794,7 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
           
           // 更新支出狀態
           const expenseRef = doc(db, 'groupExpenses', expenseId);
-          await updateDoc(expenseRef, {
+          batch.update(expenseRef, {
             status: 'confirmed',
             confirmed: true,
             confirmedAt: Timestamp.now(), // 添加確認時間
@@ -936,6 +807,8 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
             batchSettlementId: isBatchSettlement ? batchId : null // 批量結算ID
           });
         }
+
+        await batch.commit();
 
         toast.success(`已成功確認 ${formData.expenseIds.length} 筆支出的分帳設置`, {
           position: "top-center",
@@ -952,13 +825,14 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
       setShowConfirmExpenseForm(false);
       setShowTransactionDetails(true); // 返回分帳詳情頁面
       
-    } catch (error: any) {
-      setError(error.message || '確認帳單失敗，請稍後再試');
+    } catch (err: any) {
+      logError('handleConfirmExpenseSave', err);
+      setError(err?.message || '確認帳單失敗，請稍後再試');
     } finally {
       setLoading(false);
     }
   };
-  
+
   // 渲染分帳詳情
   const renderTransactionDetails = () => {
     if (!selectedTransaction) return null;
@@ -1007,7 +881,8 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
                   )}
                 </div>
 
-                {/* 操作按鈕 - 所有成員都可見 */}
+                {/* 操作按鈕 - 僅群組創建者可見 */}
+                {isGroupOwner(selectedTransaction) && (
                 <div className="flex flex-col gap-1.5 shrink-0">
                   {/* 編輯按鈕 */}
                   <button
@@ -1028,6 +903,7 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
                     刪除群組
                   </button>
                 </div>
+                )}
               </div>
               
               {selectedTransaction.description && (
@@ -1231,8 +1107,8 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
                           
                           {/* 編輯和刪除按鈕 - 重新設計 */}
                           <div className="flex space-x-2">
-                            {/* 只有未確認分帳的支出才顯示編輯按鈕 */}
-                            {!expense.confirmed && (
+                            {/* 只有未確認分帳、且是自己記的（或自己付的）才能編輯 */}
+                            {!expense.confirmed && canManageExpense(expense) && (
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation(); // 防止觸發卡片點擊事件
@@ -1245,6 +1121,7 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
                                 編輯
                               </button>
                             )}
+                            {canManageExpense(expense) && (
                             <button
                               onClick={(e) => {
                                 e.stopPropagation(); // 防止觸發卡片點擊事件
@@ -1258,6 +1135,7 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
                               <i className="fas fa-trash-alt mr-1"></i>
                               刪除
                             </button>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -1387,24 +1265,11 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
         draggable: true,
       });
       
-      // 短暫延遲以確保數據已經保存到資料庫後再重新加載數據
-      setTimeout(() => {
-        try {
-          
-          // 確保我們仍然選中相同的交易
-          if (selectedTransaction?.id !== currentTransaction.id) {
-            setSelectedTransaction(currentTransaction);
-          }
-          
-          // 重新加載支出數據
-          loadGroupExpenses(currentTransaction.id);
-        } catch (_error) {
-          toast.error('加載支出記錄失敗，請手動刷新頁面', {
-            position: "top-center",
-            autoClose: 5000,
-          });
-        }
-      }, 1000); // 减少到1秒以提高响应速度
+      // 寫入已經在表單那邊 await 完成，關閉表單就會讓上面的 effect
+      // 重新載入一次，這裡不需要再延遲重讀一遍
+      if (selectedTransaction?.id !== currentTransaction.id) {
+        setSelectedTransaction(currentTransaction);
+      }
     } else {
       
       // 如果沒有選中的交易，僅顯示成功訊息
@@ -1557,7 +1422,13 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
   // 添加刪除群組支出的函數
   const deleteGroupExpense = async (expenseId: string) => {
     if (!currentUser) return;
-    
+
+    const target = groupExpenses.find((exp) => exp.id === expenseId);
+    if (target && !canManageExpense(target)) {
+      toast.error('只有記錄者或付款人可以刪除這筆支出', { position: 'top-center', autoClose: 3000 });
+      return;
+    }
+
     try {
       setLoading(true);
       
@@ -1596,6 +1467,11 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
 
   // 添加編輯群組支出的函數
   const editGroupExpense = (expense: any) => {
+    if (!canManageExpense(expense)) {
+      toast.error('只有記錄者或付款人可以編輯這筆支出', { position: 'top-center', autoClose: 3000 });
+      return;
+    }
+
     // 保存當前選中的交易，以便後續使用
     const currentTransaction = selectedTransaction;
     
