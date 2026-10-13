@@ -354,6 +354,7 @@ const formatPeriodLabel = (
     const diffDays = Math.round((day.getTime() - today.getTime()) / 86400000);
     if (diffDays === 0) return "今天";
     if (diffDays === -1) return "昨天";
+    if (diffDays === 1) return "明天";
     return format(day, "yyyy年M月d日");
   }
 
@@ -364,6 +365,7 @@ const formatPeriodLabel = (
     );
     if (diffWeeks === 0) return "本週";
     if (diffWeeks === -1) return "上週";
+    if (diffWeeks === 1) return "下週";
     return `${format(range.start, "M月d日")} - ${format(range.end, "M月d日")}`;
   }
 
@@ -374,19 +376,29 @@ const formatPeriodLabel = (
     ) {
       return "本月";
     }
+    const monthDiff =
+      (anchor.getFullYear() - today.getFullYear()) * 12 + (anchor.getMonth() - today.getMonth());
+    if (monthDiff === -1) return "上個月";
+    if (monthDiff === 1) return "下個月";
     return `${anchor.getFullYear()}年${anchor.getMonth() + 1}月`;
   }
 
   if (anchor.getFullYear() === today.getFullYear()) return "今年";
   if (anchor.getFullYear() === today.getFullYear() - 1) return "去年";
+  if (anchor.getFullYear() === today.getFullYear() + 1) return "明年";
   return `${anchor.getFullYear()}年`;
 };
 
-// 已經是最新一期就不讓再往後翻
-const isLatestPeriod = (granularity: DateGranularity, anchor: Date) => {
-  if (granularity === "all" || granularity === "custom") return true;
-  const next = getPeriodRange(granularity, shiftPeriod(granularity, anchor, 1));
-  return !next || next.start > startOfDay(new Date());
+// 目前這一期是否包含今天；用來決定要不要顯示「回到今天」
+const isCurrentPeriod = (
+  granularity: DateGranularity,
+  anchor: Date,
+  customRange?: DateRange,
+) => {
+  const range = getPeriodRange(granularity, anchor, customRange);
+  if (!range) return true; // 全部
+  const today = startOfDay(new Date());
+  return today >= range.start && today <= range.end;
 };
 
 const buildRecurringExpenseDocId = (recurringRuleId: string, date: Date) =>
@@ -2887,10 +2899,12 @@ const chartRef = useRef<HTMLDivElement>(null);
     setAnchorDate((current) => shiftPeriod(dateGranularity, current, delta));
   };
 
-  // 翻遠了要能一鍵回來；已經在當期（或全部／自訂）就不顯示
+  // 翻走了要能一鍵回來，往過去或往未來都算；全部與自訂沒有「當期」可回
   const goToToday = () => setAnchorDate(startOfDay(new Date()));
   const showTodayShortcut =
-    dateGranularity !== "all" && !isLatestPeriod(dateGranularity, anchorDate);
+    dateGranularity !== "all" &&
+    dateGranularity !== "custom" &&
+    !isCurrentPeriod(dateGranularity, anchorDate);
   const todayShortcutLabel = formatPeriodLabel(dateGranularity, startOfDay(new Date()));
 
   // 依目前單位開對應的選擇器（日與週都用日期選擇器）
@@ -2928,12 +2942,14 @@ const chartRef = useRef<HTMLDivElement>(null);
   const selectableYears = (() => {
     const currentYear = new Date().getFullYear();
     let earliest = currentYear - 5;
+    let latest = currentYear;
     for (const item of [...expenses, ...incomes]) {
       const year = new Date(item.date).getFullYear();
       if (year < earliest) earliest = year;
+      if (year > latest) latest = year; // 有記未來的帳就要選得到
     }
     const years: number[] = [];
-    for (let year = currentYear; year >= earliest; year--) years.push(year);
+    for (let year = latest; year >= earliest; year--) years.push(year);
     return years;
   })();
 
@@ -4185,9 +4201,8 @@ const chartRef = useRef<HTMLDivElement>(null);
                       <button
                         type="button"
                         onClick={() => goToPeriod(1)}
-                        disabled={isLatestPeriod(dateGranularity, anchorDate)}
                         aria-label="下一期"
-                        style={{ width: "26px", height: "26px", display: "inline-flex", alignItems: "center", justifyContent: "center", background: "transparent", border: "none", outline: "none", boxShadow: "none", borderRadius: "999px", color: "#A79FB0", padding: 0, opacity: isLatestPeriod(dateGranularity, anchorDate) ? 0.3 : 1, cursor: isLatestPeriod(dateGranularity, anchorDate) ? "default" : "pointer" }}
+                        style={{ width: "26px", height: "26px", display: "inline-flex", alignItems: "center", justifyContent: "center", background: "transparent", border: "none", outline: "none", boxShadow: "none", borderRadius: "999px", color: "#A79FB0", padding: 0, cursor: "pointer" }}
                       >
                         <i className="fas fa-chevron-right" style={{ fontSize: "10px" }}></i>
                       </button>

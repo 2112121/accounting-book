@@ -63,6 +63,7 @@ const IncomeAnalysis: React.FC<IncomeAnalysisProps> = ({ incomes, onSwitchMode, 
   const chartRef = useRef<HTMLDivElement>(null);
   const chartInstanceRef = useRef<echarts.ECharts | null>(null);
   const dailyChartRef = useRef<HTMLDivElement>(null);
+  const monthInputRef = useRef<HTMLInputElement>(null);
   const dailyChartInstanceRef = useRef<echarts.ECharts | null>(null);
 
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -406,6 +407,22 @@ const IncomeAnalysis: React.FC<IncomeAnalysisProps> = ({ incomes, onSwitchMode, 
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // 透明的 month input 只有最右邊的日曆圖示會開選單，所以要主動開
+  const openMonthPicker = (fromInput = false) => {
+    const input = monthInputRef.current;
+    if (!input) return;
+    try {
+      if (typeof input.showPicker === "function") {
+        input.showPicker();
+        return;
+      }
+    } catch (_e) { /* 瀏覽器不支援就退回 focus */ }
+    // 從 input 自己的 onClick 進來時不能再 click 自己，否則會無限遞迴
+    if (fromInput) return;
+    input.focus();
+    input.click();
+  };
+
   const resetCategorySelection = () => {
     setSelectedCategory(null);
     setChartsKey((k) => k + 1);
@@ -447,14 +464,18 @@ const IncomeAnalysis: React.FC<IncomeAnalysisProps> = ({ incomes, onSwitchMode, 
               </button>
               <div className="relative">
                 <button
+                  type="button"
+                  onClick={() => openMonthPicker()}
                   className={`text-xs px-2 py-1 rounded-md transition-colors flex items-center ${chartFilterMode === 'custom' ? 'bg-[#4EA8DE] text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
                 >
                   選擇月份
                 </button>
                 <input
+                  ref={monthInputRef}
                   className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
                   type="month"
                   value={pieChartMonth}
+                  onClick={() => openMonthPicker(true)}
                   onChange={(e) => { setPieChartMonth(e.target.value); setChartFilterMode('custom'); setChartsKey((k) => k + 1); }}
                 />
               </div>
