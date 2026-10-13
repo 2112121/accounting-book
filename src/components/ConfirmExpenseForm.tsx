@@ -4,6 +4,7 @@ import { db } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
 import './ExpenseGroupForm.css';
 import { toast } from 'react-toastify';
+import { allocateEqually } from '../utils/split';
 
 // 為分帳方式創建一些圖標組件
 const EqualCircleIcon = ({ className }: { className?: string }) => (
@@ -480,27 +481,15 @@ const ConfirmExpenseForm: React.FC<ConfirmExpenseFormProps> = ({
     // 根據選擇的分帳方式計算每人金額
     switch (method) {
       case 'equal': {
-        // 平均分配
-        const equalShare = Math.floor(totalAmount / members.length);
+        // 平均分配：除不盡的零頭由這筆的付款人吸收
+        const amounts = allocateEqually(totalAmount, members.length, getRemainderIndex());
 
-        // 先給每個人分配整數金額
-        const updatedMembers = members.map(member => ({
+        setMembers(members.map((member, index) => ({
           ...member,
-          amount: equalShare,
-          amountInput: equalShare.toString(),
-          percentage: parseFloat((100 / members.length).toFixed(2))
-        }));
-
-        // 處理餘數，將餘數分配給前幾名成員
-        const remainder = totalAmount - (equalShare * members.length);
-        let remainderDistributed = 0;
-        for (let i = 0; i < updatedMembers.length && remainderDistributed < remainder; i++) {
-          updatedMembers[i].amount += 1;
-          updatedMembers[i].amountInput = updatedMembers[i].amount.toString();
-          remainderDistributed++;
-        }
-
-        setMembers(updatedMembers);
+          amount: amounts[index],
+          amountInput: amounts[index].toString(),
+          percentage: parseFloat((100 / members.length).toFixed(2)),
+        })));
         break;
       }
 
@@ -593,6 +582,14 @@ const ConfirmExpenseForm: React.FC<ConfirmExpenseFormProps> = ({
   // 金額有小數才顯示小數，避免錯誤訊息出現兩個一模一樣的數字
   const showAmount = (value: number) =>
     Number.isInteger(value) ? value.toString() : value.toFixed(2);
+
+  // 平均分帳的零頭要落在誰身上：預設是這筆支出的付款人。
+  // 固定從第一位成員開始發的話，同一個人會把每一筆的零頭都吃下來。
+  const getRemainderIndex = () => {
+    const payerId = selectedExpense?.payerId;
+    const index = payerId ? members.findIndex((m) => m.userId === payerId) : -1;
+    return index >= 0 ? index : 0;
+  };
 
   // 計算機功能：純函式，任何時候都以傳入的算式為準
   const evaluateExpression = (expression: string): string => {

@@ -774,9 +774,14 @@ const SplitExpenseManagement: React.FC<SplitExpenseManagementProps> = ({ onClose
             const expenseRatio = formData.totalAmount
               ? currentExpense.amount / formData.totalAmount
               : 0;
+            // 零頭給這筆的付款人，不要每筆都落在同一個人身上
+            const payerIndex = participants.findIndex(
+              (p: any) => p.userId === currentExpense.payerId,
+            );
             const allocated = allocateByShares(
               currentExpense.amount,
               participants.map((p: any) => p.amount || 0),
+              payerIndex >= 0 ? payerIndex : 0,
             );
 
             participants = participants.map((p: any, index: number) => ({
