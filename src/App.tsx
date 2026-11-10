@@ -519,6 +519,8 @@ const chartRef = useRef<HTMLDivElement>(null);
         query(
           collection(db, "recurringExpenses"),
           where("sourceExpenseId", "==", sourceExpenseId),
+          // 安全規則只允許查自己的規則，查詢必須帶 userId 條件，否則整個被拒絕
+          where("userId", "==", userId),
         ),
       );
 
@@ -1469,6 +1471,8 @@ const chartRef = useRef<HTMLDivElement>(null);
         query(
           collection(db, "recurringIncomes"),
           where("sourceIncomeId", "==", sourceIncomeId),
+          // 安全規則只允許查自己的規則，查詢必須帶 userId 條件，否則整個被拒絕
+          where("userId", "==", userId),
         ),
       );
       if (!sourceSnap.empty) {

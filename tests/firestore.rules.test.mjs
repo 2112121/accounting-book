@@ -137,6 +137,55 @@ test('功能｜社交：登入者仍可讀其他使用者的 users 文件、送�
   await assertSucceeds(addDoc(collection(db, 'friendRequests'), { from: { userId: BOB }, to: ALICE }));
 });
 
+// 以下逐一對應程式裡實際出現的查詢寫法（不只是「有帶 userId」這麼籠統）
+
+for (const [col, field] of [['recurringExpenses', 'sourceExpenseId'], ['recurringIncomes', 'sourceIncomeId']]) {
+  test(`功能｜${col}：編輯時用 ${field} + userId 找對應的定期規則（App.tsx findRecurringRules）`, async () => {
+    const q = query(collection(as(ALICE), col), where(field, '==', 'src-1'), where('userId', '==', ALICE));
+    await assertSucceeds(getDocs(q));
+  });
+
+  test(`限制｜${col}：只用 ${field}、沒帶 userId 的查詢會被整個拒絕，程式一定要帶 userId`, async () => {
+    const q = query(collection(as(ALICE), col), where(field, '==', 'src-1'));
+    await assertFails(getDocs(q));
+  });
+}
+
+test('功能｜收入：用 recurringRuleId + userId 找某條定期規則產生的收入', async () => {
+  const q = query(
+    collection(as(ALICE), 'incomes'),
+    where('recurringRuleId', '==', 'rule-1'),
+    where('userId', '==', ALICE),
+  );
+  await assertSucceeds(getDocs(q));
+});
+
+test('功能｜借貸：到期提醒的多條件查詢（BudgetNotification）', async () => {
+  const q = query(
+    collection(as(ALICE), 'loans'),
+    where('userId', '==', ALICE),
+    where('status', 'in', ['pending', 'partially_paid']),
+    where('dueDate', '<=', '2026-12-31'),
+  );
+  await assertSucceeds(getDocs(q));
+});
+
+test('功能｜借貸：依類型分頁的查詢（LoanManagement）', async () => {
+  const q = query(collection(as(ALICE), 'loans'), where('userId', '==', ALICE), where('type', '==', 'lend'));
+  await assertSucceeds(getDocs(q));
+});
+
+test('功能｜類別：只查自己的類別（BudgetProgressBars）', async () => {
+  const q = query(collection(as(ALICE), 'categories'), where('userId', '==', ALICE));
+  await assertSucceeds(getDocs(q));
+});
+
+test('功能｜定期規則：只改 isActive 的部分更新（停用定期）', async () => {
+  for (const col of ['recurringExpenses', 'recurringIncomes']) {
+    await assertSucceeds(updateDoc(doc(as(ALICE), col, 'alice-1'), { isActive: false }));
+  }
+});
+
 // ─────────────────────────── 攻擊：必須被擋下 ───────────────────────────
 
 for (const col of PERSONAL) {
