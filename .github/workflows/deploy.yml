@@ -53,3 +53,7 @@ jobs:
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           channelId: live
           projectId: accounting-book-8c886
+          # 鎖定 CLI 版本：預設是 latest，等於每次部署都在拿得到金鑰的環境裡
+          # 執行當天最新下載的程式。15.34+ 會額外檢查 Service Usage API，
+          # 需要 service account 有 Service Usage Consumer 角色才能升級。
+          firebaseToolsVersion: 15.33.0
