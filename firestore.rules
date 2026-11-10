@@ -1,0 +1,139 @@
+rules_version = '2';
+
+// Firestore 安全規則
+//
+// 原本的規則最後有一條 match /{document=**} { allow read, write: if request.auth != null; }，
+// 它匹配資料庫裡的每一份文件。Firestore 的規則是「任一條允許就放行」，
+// 所以任何人註冊帳號後都能讀取、修改、刪除所有使用者的所有資料。
+//
+// 這一版先處理個人資料（第一階段）：
+//   - 收入、借貸、預算、定期規則、自訂類別：只限本人
+//   - 支出：只有本人能新增、修改、刪除；讀取暫時開放給登入者，
+//     因為排行榜需要讀取其他成員的支出（第二階段改為只限同一排行榜的成員）
+//   - 社交功能（好友、排行榜、分帳群組、通知）：維持原本的行為，第二階段逐一收緊
+//
+// 規則測試：npm run test:rules（需要 Java，會啟動 Firestore 模擬器）
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isUser(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    // 讀取本人的文件。文件不存在時也允許：定期補產會在交易裡先 get 一筆
+    // 還沒建立的文件確認有沒有重複，此時 resource 為 null。
+    // 讀不存在的文件不會洩漏任何資料。
+    function canReadOwn() {
+      return signedIn() && (resource == null || resource.data.userId == request.auth.uid);
+    }
+
+    function canCreateOwn() {
+      return signedIn() && request.resource.data.userId == request.auth.uid;
+    }
+
+    // 修改時不能把 userId 改成別人，否則等於把資料塞進別人的帳本
+    function canUpdateOwn() {
+      return signedIn()
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.userId == resource.data.userId;
+    }
+
+    function canDeleteOwn() {
+      return signedIn() && resource.data.userId == request.auth.uid;
+    }
+
+    // ===== 個人資料：只限本人 =====
+
+    match /incomes/{id} {
+      allow read: if canReadOwn();
+      allow create: if canCreateOwn();
+      allow update: if canUpdateOwn();
+      allow delete: if canDeleteOwn();
+    }
+
+    match /loans/{id} {
+      allow read: if canReadOwn();
+      allow create: if canCreateOwn();
+      allow update: if canUpdateOwn();
+      allow delete: if canDeleteOwn();
+    }
+
+    match /recurringExpenses/{id} {
+      allow read: if canReadOwn();
+      allow create: if canCreateOwn();
+      allow update: if canUpdateOwn();
+      allow delete: if canDeleteOwn();
+    }
+
+    match /recurringIncomes/{id} {
+      allow read: if canReadOwn();
+      allow create: if canCreateOwn();
+      allow update: if canUpdateOwn();
+      allow delete: if canDeleteOwn();
+    }
+
+    // 預算以使用者的 uid 當文件 ID
+    match /budgets/{uid} {
+      allow read, write: if isUser(uid);
+    }
+
+    // 自訂類別：讀自己的與系統預設（userId == 'default'），只能寫自己的
+    match /categories/{id} {
+      allow read: if signedIn()
+        && (resource == null || resource.data.userId in [request.auth.uid, 'default']);
+      allow create: if canCreateOwn();
+      allow update: if canUpdateOwn();
+      allow delete: if canDeleteOwn();
+    }
+
+    // ===== 支出 =====
+
+    match /expenses/{id} {
+      // TODO(第二階段)：只允許本人，或同一個排行榜的成員
+      allow read: if signedIn();
+      allow create: if canCreateOwn();
+      allow update: if canUpdateOwn();
+      allow delete: if canDeleteOwn();
+    }
+
+    // ===== 社交功能：維持原本行為，第二階段逐一收緊 =====
+    // 刻意逐一列出，不再使用全域萬用規則：新增 collection 時必須明確寫規則，
+    // 沒寫的一律拒絕。
+
+    match /users/{path=**} {
+      allow read, write: if signedIn();
+    }
+    match /friendRequests/{path=**} {
+      allow read, write: if signedIn();
+    }
+    match /leaderboards/{path=**} {
+      allow read, write: if signedIn();
+    }
+    match /leaderboardInvites/{path=**} {
+      allow read, write: if signedIn();
+    }
+    match /notifications/{path=**} {
+      allow read, write: if signedIn();
+    }
+    match /expenseGroups/{path=**} {
+      allow read, write: if signedIn();
+    }
+    match /groupExpenses/{path=**} {
+      allow read, write: if signedIn();
+    }
+    match /groupInvites/{path=**} {
+      allow read, write: if signedIn();
+    }
+    match /splitTransactions/{path=**} {
+      allow read, write: if signedIn();
+    }
+    match /splitExpenses/{path=**} {
+      allow read, write: if signedIn();
+    }
+  }
+}
