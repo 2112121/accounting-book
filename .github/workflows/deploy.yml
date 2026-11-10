@@ -5,13 +5,25 @@ on:
     branches:
       - master
 
+# GITHUB_TOKEN 只給讀取權限：部署到 live 頻道不需要寫入 repo。
+# 沒寫這段的話會沿用 repo 預設權限（舊 repo 通常是全部可寫）。
+permissions:
+  contents: read
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      # Action 一律鎖定 commit SHA，不用可被移動的 tag。
+      # 部署步驟拿得到 FIREBASE_SERVICE_ACCOUNT，tag 若被改指向惡意 commit，
+      # 金鑰就會外洩（2025 年 tj-actions/changed-files 事件即是如此）。
+      # 升級時：gh api repos/<owner>/<repo>/commits/<tag> -q .sha
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          # 不把 token 留在 .git/config，後續步驟（含 npm 套件的安裝腳本）讀不到
+          persist-credentials: false
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 24
           cache: npm
@@ -35,7 +47,7 @@ jobs:
           VITE_FIREBASE_MEASUREMENT_ID: ${{ secrets.VITE_FIREBASE_MEASUREMENT_ID }}
 
       - name: Deploy to Firebase Hosting
-        uses: FirebaseExtended/action-hosting-deploy@v0
+        uses: FirebaseExtended/action-hosting-deploy@500ac625ca2dd40cbd15f7659af953801858032a # v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
